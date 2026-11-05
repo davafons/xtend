@@ -1,4 +1,5 @@
 class X::Read < ApplicationRecord
+  include WorkspaceScoped
   belongs_to :x_billing_cycle, class_name: "X::BillingCycle"
   belongs_to :x_sync_run, class_name: "X::SyncRun", optional: true
   validates :dataset, inclusion: { in: %w[identity followers following own_posts mentions users posts search liked_posts bookmarks dm_events] }

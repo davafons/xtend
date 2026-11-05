@@ -1,4 +1,5 @@
 class X::SyncRun < ApplicationRecord
+  include WorkspaceScoped
   DATASETS = %w[followers following own_posts mentions users posts search liked_posts bookmarks dm_events].freeze
   INTERACTION_DATASETS = %w[liked_posts bookmarks dm_events].freeze
   belongs_to :follow_snapshot, class_name: "Follow::Snapshot", optional: true
@@ -16,7 +17,7 @@ class X::SyncRun < ApplicationRecord
     raise ArgumentError, "Choose a supported source." unless DATASETS.include?(dataset)
     raise X::Client::Error, "Live collection is disabled in demo mode." if Rails.configuration.x.demo
     connection = X::Connection.current || raise(X::Client::Error, "Connect your X account first.")
-    raise X::Client::Error, "The connected X account does not match this workspace." unless connection.x_user_id == Workspace.current.owner_x_id
+    raise X::Client::Error, "The connected X account does not match this workspace." unless connection.x_user_id == Current.workspace.owner_x_id
     if (scope = X::Config::DATASET_SCOPES[dataset]) && !connection.granted?(scope)
       raise X::Client::Error, "Reconnect X to grant #{scope}. The current connection was authorized before this source existed."
     end
@@ -84,7 +85,7 @@ class X::SyncRun < ApplicationRecord
       return true
     end
     connection = X::Connection.current
-    raise X::Client::Error, "Reconnect the original X account before continuing." unless connection && connection.x_user_id == owner_x_id && owner_x_id == Workspace.current.owner_x_id
+    raise X::Client::Error, "Reconnect the original X account before continuing." unless connection && connection.x_user_id == owner_x_id && owner_x_id == Current.workspace.owner_x_id
     read = x_reads.where(status: "received").order(:id).last
     unless read
       access_token = connection.access_token!
@@ -156,7 +157,7 @@ class X::SyncRun < ApplicationRecord
   def self.unresolved_user_ids
     ids = X::SourcePost.pluck(:author_x_id, :reply_to_x_id).flatten.compact.uniq
     ids += DirectMessage.distinct.pluck(:partner_x_id)
-    ids.uniq - Person.where.not(x_id: nil).pluck(:x_id) - [Workspace.current.owner_x_id]
+    ids.uniq - Person.where.not(x_id: nil).pluck(:x_id) - [Current.workspace.owner_x_id]
   end
 
   def self.unresolved_parent_ids

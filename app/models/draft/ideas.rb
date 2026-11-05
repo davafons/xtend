@@ -1,6 +1,6 @@
 # Prompts for what to post next, built only from saved data. No X reads, no AI calls.
 class Draft::Ideas
-  def initialize(workspace = Workspace.current)
+  def initialize(workspace = Current.workspace)
     @workspace = workspace
     @owner = workspace.owner_x_id
   end

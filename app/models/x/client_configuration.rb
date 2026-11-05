@@ -1,4 +1,5 @@
 class X::ClientConfiguration < ApplicationRecord
+  include WorkspaceScoped
   class Connected < StandardError; end
   PURPOSE = "x_oauth_client_configuration"
 

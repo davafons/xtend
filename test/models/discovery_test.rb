@@ -17,7 +17,7 @@ class DiscoveryTest < ActiveSupport::TestCase
   end
 
   test "clear crypto promotion is excluded and concrete coding questions rank higher" do
-    interests = Workspace.current.interests
+    interests = Current.workspace.interests
     question = Discovery::Assessment.call(body: "How do you debug SQLite migrations in Rails?", description: "Builder", interests: interests)
     promotion = Discovery::Assessment.call(body: "We are building an agent economy with huge transaction volume", description: "Airdrop hunter", interests: interests)
     assert_operator question[:rank], :>, 0
@@ -44,7 +44,7 @@ class DiscoveryTest < ActiveSupport::TestCase
     assert_equal 0, X::Read.count
   end
   test "ambiguous words and automated replies do not count as builder relevance" do
-    interests = Workspace.current.interests
+    interests = Current.workspace.interests
     off_topic = Discovery::Assessment.call(body: "The train jumped the rails and Congress is in turmoil", description: "Political commentator", interests: interests)
     assert_operator off_topic[:rank], :<, 0
     useful = Discovery::Assessment.call(body: "Rails routing question: how do you isolate this controller?", description: nil, interests: interests)

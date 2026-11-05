@@ -50,7 +50,7 @@ class XSyncTest < ActionDispatch::IntegrationTest
     post x_billing_cycles_path, params: {cycle: {starts_on: cycle.starts_on.to_s, ends_on: cycle.ends_on.to_s, spend_cents: "73"}}
     assert_redirected_to settings_path(anchor: "billing")
     assert_equal 730_000, cycle.reload.provider_spend_micros
-    assert_equal 1000, Workspace.current.monthly_budget_cents
+    assert_equal 1000, Current.workspace.monthly_budget_cents
     post x_billing_cycles_path, params: {cycle: {starts_on: cycle.starts_on.to_s, ends_on: cycle.ends_on.to_s, spend_cents: "73.1"}}
     assert_equal 730_000, cycle.reload.provider_spend_micros
   end

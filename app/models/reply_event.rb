@@ -1,8 +1,9 @@
 class ReplyEvent < ApplicationRecord
+  include WorkspaceScoped
   belongs_to :person
   has_one :outreach, dependent: :destroy
 
-  validates :x_id, presence: true, uniqueness: true
+  validates :x_id, presence: true, uniqueness: { scope: :workspace_id }
   validates :target_x_id, :occurred_at, :confirmed_at, presence: true
   validates :direction, inclusion: { in: %w[incoming outgoing] }
   validates :classification, inclusion: { in: %w[initial continuation unclassified] }
@@ -44,7 +45,7 @@ class ReplyEvent < ApplicationRecord
   private
 
   def known_external_person
-    owner = Workspace.current.owner_x_id
+    owner = Current.workspace.owner_x_id
     errors.add(:person, "needs an identified workspace account") if owner.blank?
     errors.add(:person, "cannot be your own account") if owner.present? && person&.x_id == owner
     errors.add(:occurred_at, "cannot be in the future") if occurred_at && occurred_at > Time.current

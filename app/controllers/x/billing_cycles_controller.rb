@@ -19,7 +19,7 @@ class X::BillingCyclesController < ApplicationController
     if params[:finish_trial] == "1"
       completed = X::SyncRun.where(dataset: %w[followers following own_posts mentions]).where("page_number > 0").distinct.pluck(:dataset)
       raise ArgumentError, "Collect a page from all four sample sources before finishing the trial." unless completed.sort == %w[followers following own_posts mentions].sort
-      Workspace.current.update!(collection_trial_completed_at: Time.current)
+      Current.workspace.update!(collection_trial_completed_at: Time.current)
       notice = "Collection trial reviewed. Future requests still respect the cycle allowance."
     else
       evidence = params[:pricing_evidence].to_s.strip

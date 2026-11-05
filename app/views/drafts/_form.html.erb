@@ -15,7 +15,7 @@
     <div class="grid grid-cols-2 gap-4">
       <%= lc_field label: "Topic", id: "draft-topic" do |field| %>
         <%= lc_input name: "draft[topic]", value: draft.topic, list: "draft-topics", **field %>
-        <datalist id="draft-topics"><% Workspace.current.interests.each do |interest| %><option value="<%= interest %>"></option><% end %></datalist>
+        <datalist id="draft-topics"><% Current.workspace.interests.each do |interest| %><option value="<%= interest %>"></option><% end %></datalist>
       <% end %>
       <%= lc_field label: "Stage", id: "draft-status" do |field| %>
         <%= lc_select Draft::STATUSES.map { |key, label| [label, key] }, name: "draft[status]", selected: draft.status, **field %>

@@ -1,4 +1,5 @@
 class X::Connection < ApplicationRecord
+  include WorkspaceScoped
   class AccountMismatch < StandardError; end
   validates :x_user_id, :username, :token_ciphertext, :expires_at, :identity_checked_at, presence: true
 
@@ -7,7 +8,7 @@ class X::Connection < ApplicationRecord
   end
 
   def self.connect!(tokens, identity, configuration_digest: nil)
-    owner = Workspace.current
+    owner = Current.workspace
     if owner.owner_x_id.present? && owner.owner_x_id != identity.fetch("id")
       raise AccountMismatch, "This workspace belongs to another X account. Its existing data and connection have been preserved."
     end

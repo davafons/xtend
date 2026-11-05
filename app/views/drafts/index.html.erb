@@ -11,7 +11,7 @@
   <%= form_with model: @draft, class: "flex items-start gap-3" do |form| %>
     <%= lc_textarea "", name: "draft[body]", rows: 2, placeholder: "Capture an idea, an observation, a half-formed take…", aria: { label: "New idea" }, class: "min-h-0 grow" %>
     <%= lc_input name: "draft[topic]", placeholder: "Topic (optional)", aria: { label: "Topic" }, list: "draft-topics", class: "w-56" %>
-    <datalist id="draft-topics"><% Workspace.current.interests.each do |interest| %><option value="<%= interest %>"></option><% end %></datalist>
+    <datalist id="draft-topics"><% Current.workspace.interests.each do |interest| %><option value="<%= interest %>"></option><% end %></datalist>
     <%= lc_button "Save idea", type: :submit, variant: :secondary, icon: "plus" %>
   <% end %>
 <% end %>

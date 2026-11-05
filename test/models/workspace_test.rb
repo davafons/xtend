@@ -6,7 +6,7 @@ class WorkspaceTest < ActiveSupport::TestCase
   end
 
   test "API allowance requires bounded integer cents" do
-    workspace = Workspace.current
+    workspace = Current.workspace
     [nil, "", -1, "10.50", "invalid", 100001].each do |value|
       workspace.monthly_budget_cents = value
       assert_not workspace.valid?, "Expected #{value.inspect} to be rejected"

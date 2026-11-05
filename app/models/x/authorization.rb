@@ -1,4 +1,5 @@
 class X::Authorization < ApplicationRecord
+  include WorkspaceScoped
   def self.start!
     state = SecureRandom.urlsafe_base64(32)
     attempt = create!(state_digest: Digest::SHA256.hexdigest(state), expires_at: 10.minutes.from_now)

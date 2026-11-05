@@ -20,7 +20,7 @@ class Discovery::CandidateImport
           language: row.fetch("language", "en"), topic: row["topic"],
           match_reason: row["match_reason"], source: "import", published_at: Time.iso8601(row.fetch("published_at")))
         assessment = Discovery::Assessment.call(body: post.body, description: person.description,
-          interests: Workspace.current.interests, handle: person.handle, selected: true)
+          interests: Current.workspace.interests, handle: person.handle, selected: true)
         post.rank = assessment[:rank]
         post.save!
       end

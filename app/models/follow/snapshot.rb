@@ -1,4 +1,5 @@
 class Follow::Snapshot < ApplicationRecord
+  include WorkspaceScoped
   has_many :follow_memberships, class_name: "Follow::Membership", foreign_key: :follow_snapshot_id, dependent: :destroy
   has_many :people, through: :follow_memberships
   validates :direction, inclusion: { in: %w[followers following] }

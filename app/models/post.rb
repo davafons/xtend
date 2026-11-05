@@ -1,9 +1,10 @@
 class Post < ApplicationRecord
+  include WorkspaceScoped
   belongs_to :person
   has_one :post_disposition, dependent: :destroy
   has_one :reply_report, dependent: :destroy
 
-  validates :x_id, presence: true, uniqueness: true
+  validates :x_id, presence: true, uniqueness: { scope: :workspace_id }
   validates :x_id, format: { with: /\A\d{1,30}\z/ }
   validates :body, :published_at, presence: true
   validates :language, presence: true

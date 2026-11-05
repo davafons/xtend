@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_150000) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -20,6 +20,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.integer "skipped_count", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id"], name: "index_archive_imports_on_workspace_id"
   end
 
   create_table "daily_sessions", force: :cascade do |t|
@@ -27,7 +29,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index "(1)", name: "index_one_active_daily_session", unique: true, where: "completed_at IS NULL"
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id"], name: "index_daily_sessions_on_workspace_id"
+    t.index ["workspace_id"], name: "index_one_active_daily_session", unique: true, where: "completed_at IS NULL"
   end
 
   create_table "direct_messages", force: :cascade do |t|
@@ -40,8 +44,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "source", default: "x_api", null: false
+    t.integer "workspace_id", null: false
     t.index ["partner_x_id", "occurred_at"], name: "index_direct_messages_on_partner_x_id_and_occurred_at"
-    t.index ["x_id"], name: "index_direct_messages_on_x_id", unique: true
+    t.index ["workspace_id", "x_id"], name: "index_direct_messages_on_workspace_id_and_x_id", unique: true
+    t.index ["workspace_id"], name: "index_direct_messages_on_workspace_id"
     t.index ["x_sync_run_id"], name: "index_direct_messages_on_x_sync_run_id"
   end
 
@@ -52,7 +58,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "dismissed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["post_x_id"], name: "index_discovery_suggestions_on_post_x_id", unique: true
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id", "post_x_id"], name: "index_discovery_suggestions_on_workspace_id_and_post_x_id", unique: true
+    t.index ["workspace_id"], name: "index_discovery_suggestions_on_workspace_id"
   end
 
   create_table "drafts", force: :cascade do |t|
@@ -65,8 +73,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "posted_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["posted_x_id"], name: "index_drafts_on_posted_x_id", unique: true
+    t.integer "workspace_id", null: false
     t.index ["status"], name: "index_drafts_on_status"
+    t.index ["workspace_id", "posted_x_id"], name: "index_drafts_on_workspace_id_and_posted_x_id", unique: true
+    t.index ["workspace_id"], name: "index_drafts_on_workspace_id"
   end
 
   create_table "engagements", force: :cascade do |t|
@@ -80,24 +90,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.integer "x_sync_run_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["author_x_id"], name: "index_engagements_on_author_x_id"
-    t.index ["kind", "post_x_id"], name: "index_engagements_on_kind_and_post_x_id", unique: true
+    t.index ["workspace_id", "kind", "post_x_id"], name: "index_engagements_on_workspace_id_and_kind_and_post_x_id", unique: true
+    t.index ["workspace_id"], name: "index_engagements_on_workspace_id"
     t.index ["x_sync_run_id"], name: "index_engagements_on_x_sync_run_id"
   end
 
   create_table "follow_memberships", force: :cascade do |t|
     t.integer "follow_snapshot_id", null: false
     t.integer "person_id", null: false
+    t.integer "workspace_id", null: false
     t.index ["follow_snapshot_id", "person_id"], name: "index_follow_memberships_on_follow_snapshot_id_and_person_id", unique: true
     t.index ["follow_snapshot_id"], name: "index_follow_memberships_on_follow_snapshot_id"
     t.index ["person_id"], name: "index_follow_memberships_on_person_id"
+    t.index ["workspace_id"], name: "index_follow_memberships_on_workspace_id"
   end
 
   create_table "follow_protections", force: :cascade do |t|
     t.integer "person_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["person_id"], name: "index_follow_protections_on_person_id", unique: true
+    t.index ["workspace_id"], name: "index_follow_protections_on_workspace_id"
   end
 
   create_table "follow_reviews", force: :cascade do |t|
@@ -106,8 +122,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.date "reviewed_on", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["person_id", "reviewed_on"], name: "index_follow_reviews_on_person_id_and_reviewed_on", unique: true
     t.index ["person_id"], name: "index_follow_reviews_on_person_id"
+    t.index ["workspace_id"], name: "index_follow_reviews_on_workspace_id"
   end
 
   create_table "follow_snapshots", force: :cascade do |t|
@@ -118,6 +136,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.datetime "follower_tracking_completed_at"
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id"], name: "index_follow_snapshots_on_workspace_id"
   end
 
   create_table "follower_periods", force: :cascade do |t|
@@ -131,12 +151,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "ended_by"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["ended_snapshot_id"], name: "index_follower_periods_on_ended_snapshot_id"
     t.index ["first_snapshot_id"], name: "index_follower_periods_on_first_snapshot_id"
     t.index ["last_snapshot_id"], name: "index_follower_periods_on_last_snapshot_id"
     t.index ["person_id", "first_snapshot_id"], name: "index_follower_periods_on_person_id_and_first_snapshot_id", unique: true
     t.index ["person_id"], name: "index_follower_periods_on_person_id"
     t.index ["person_id"], name: "one_open_follow_period_per_person", unique: true, where: "ended_by IS NULL"
+    t.index ["workspace_id"], name: "index_follower_periods_on_workspace_id"
   end
 
   create_table "grok_proposals", force: :cascade do |t|
@@ -149,8 +171,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "reviewed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["person_id", "kind", "status"], name: "index_grok_proposals_on_person_id_and_kind_and_status"
     t.index ["person_id"], name: "index_grok_proposals_on_person_id"
+    t.index ["workspace_id"], name: "index_grok_proposals_on_workspace_id"
   end
 
   create_table "outreaches", force: :cascade do |t|
@@ -159,9 +183,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.string "target_x_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["daily_session_id"], name: "index_outreaches_on_daily_session_id"
     t.index ["reply_event_id"], name: "index_outreaches_on_reply_event_id", unique: true
-    t.index ["target_x_id"], name: "index_outreaches_on_target_x_id", unique: true
+    t.index ["workspace_id", "target_x_id"], name: "index_outreaches_on_workspace_id_and_target_x_id", unique: true
+    t.index ["workspace_id"], name: "index_outreaches_on_workspace_id"
   end
 
   create_table "people", force: :cascade do |t|
@@ -181,15 +207,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.integer "posts_count"
     t.datetime "joined_x_at"
     t.datetime "profile_observed_at"
-    t.index ["handle"], name: "index_people_on_handle", unique: true
-    t.index ["x_id"], name: "index_people_on_x_id", unique: true
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id", "handle"], name: "index_people_on_workspace_id_and_handle", unique: true
+    t.index ["workspace_id", "x_id"], name: "index_people_on_workspace_id_and_x_id", unique: true
+    t.index ["workspace_id"], name: "index_people_on_workspace_id"
   end
 
   create_table "pins", force: :cascade do |t|
     t.integer "person_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["person_id"], name: "index_pins_on_person_id", unique: true
+    t.index ["workspace_id"], name: "index_pins_on_workspace_id"
   end
 
   create_table "post_dispositions", force: :cascade do |t|
@@ -198,7 +228,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "until_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["post_id"], name: "index_post_dispositions_on_post_id", unique: true
+    t.index ["workspace_id"], name: "index_post_dispositions_on_workspace_id"
   end
 
   create_table "posts", force: :cascade do |t|
@@ -215,8 +247,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.integer "reply_count"
     t.string "source", default: "x_api", null: false
     t.string "grok_run_id"
+    t.integer "workspace_id", null: false
     t.index ["person_id"], name: "index_posts_on_person_id"
-    t.index ["x_id"], name: "index_posts_on_x_id", unique: true
+    t.index ["workspace_id", "x_id"], name: "index_posts_on_workspace_id_and_x_id", unique: true
+    t.index ["workspace_id"], name: "index_posts_on_workspace_id"
   end
 
   create_table "reply_events", force: :cascade do |t|
@@ -231,8 +265,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "outreach_eligible", default: true, null: false
+    t.integer "workspace_id", null: false
     t.index ["person_id"], name: "index_reply_events_on_person_id"
-    t.index ["x_id"], name: "index_reply_events_on_x_id", unique: true
+    t.index ["workspace_id", "x_id"], name: "index_reply_events_on_workspace_id_and_x_id", unique: true
+    t.index ["workspace_id"], name: "index_reply_events_on_workspace_id"
   end
 
   create_table "reply_reports", force: :cascade do |t|
@@ -240,7 +276,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.string "reply_url"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["post_id"], name: "index_reply_reports_on_post_id", unique: true
+    t.index ["workspace_id"], name: "index_reply_reports_on_workspace_id"
   end
 
   create_table "workspaces", force: :cascade do |t|
@@ -256,6 +294,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "mcp_token_used_at"
     t.boolean "mcp_share_notes", default: false, null: false
     t.boolean "mcp_share_dms", default: false, null: false
+    t.index ["mcp_token_digest"], name: "index_workspaces_on_mcp_token_digest", unique: true
   end
 
   create_table "x_authorizations", force: :cascade do |t|
@@ -264,7 +303,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "consumed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["state_digest"], name: "index_x_authorizations_on_state_digest", unique: true
+    t.index ["workspace_id"], name: "index_x_authorizations_on_workspace_id"
   end
 
   create_table "x_billing_cycles", force: :cascade do |t|
@@ -277,14 +318,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.text "pricing_evidence"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["starts_on"], name: "index_x_billing_cycles_on_starts_on", unique: true
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id", "starts_on"], name: "index_x_billing_cycles_on_workspace_id_and_starts_on", unique: true
+    t.index ["workspace_id"], name: "index_x_billing_cycles_on_workspace_id"
   end
 
   create_table "x_client_configurations", force: :cascade do |t|
     t.text "settings_ciphertext", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index "(1)", name: "index_single_x_client_configuration", unique: true
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id"], name: "index_single_x_client_configuration", unique: true
+    t.index ["workspace_id"], name: "index_x_client_configurations_on_workspace_id"
   end
 
   create_table "x_connections", force: :cascade do |t|
@@ -296,7 +341,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "identity_checked_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index "(1)", name: "index_single_owner_x_connection", unique: true
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id"], name: "index_single_owner_x_connection", unique: true
+    t.index ["workspace_id"], name: "index_x_connections_on_workspace_id"
   end
 
   create_table "x_reads", force: :cascade do |t|
@@ -317,6 +364,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.text "message"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id"], name: "index_x_reads_on_workspace_id"
     t.index ["x_billing_cycle_id"], name: "index_x_reads_on_x_billing_cycle_id"
     t.index ["x_sync_run_id"], name: "index_x_reads_on_x_sync_run_id"
   end
@@ -335,7 +384,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "reply_count"
-    t.index ["x_id"], name: "index_x_source_posts_on_x_id", unique: true
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id", "x_id"], name: "index_x_source_posts_on_workspace_id_and_x_id", unique: true
+    t.index ["workspace_id"], name: "index_x_source_posts_on_workspace_id"
     t.index ["x_sync_run_id"], name: "index_x_source_posts_on_x_sync_run_id"
   end
 
@@ -358,31 +409,59 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
     t.json "parameters", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
     t.index ["follow_snapshot_id"], name: "index_x_sync_runs_on_follow_snapshot_id"
     t.index ["owner_x_id"], name: "one_fetching_run_per_owner", unique: true, where: "status = 'fetching'"
     t.index ["request_key"], name: "index_x_sync_runs_on_request_key", unique: true
+    t.index ["workspace_id"], name: "index_x_sync_runs_on_workspace_id"
   end
 
+  add_foreign_key "archive_imports", "workspaces"
+  add_foreign_key "daily_sessions", "workspaces"
+  add_foreign_key "direct_messages", "workspaces"
   add_foreign_key "direct_messages", "x_sync_runs"
+  add_foreign_key "discovery_suggestions", "workspaces"
+  add_foreign_key "drafts", "workspaces"
+  add_foreign_key "engagements", "workspaces"
   add_foreign_key "engagements", "x_sync_runs"
   add_foreign_key "follow_memberships", "follow_snapshots"
   add_foreign_key "follow_memberships", "people"
+  add_foreign_key "follow_memberships", "workspaces"
   add_foreign_key "follow_protections", "people"
+  add_foreign_key "follow_protections", "workspaces"
   add_foreign_key "follow_reviews", "people"
+  add_foreign_key "follow_reviews", "workspaces"
+  add_foreign_key "follow_snapshots", "workspaces"
   add_foreign_key "follower_periods", "follow_snapshots", column: "ended_snapshot_id"
   add_foreign_key "follower_periods", "follow_snapshots", column: "first_snapshot_id"
   add_foreign_key "follower_periods", "follow_snapshots", column: "last_snapshot_id"
   add_foreign_key "follower_periods", "people"
+  add_foreign_key "follower_periods", "workspaces"
   add_foreign_key "grok_proposals", "people"
+  add_foreign_key "grok_proposals", "workspaces"
   add_foreign_key "outreaches", "daily_sessions"
   add_foreign_key "outreaches", "reply_events"
+  add_foreign_key "outreaches", "workspaces"
+  add_foreign_key "people", "workspaces"
   add_foreign_key "pins", "people"
+  add_foreign_key "pins", "workspaces"
   add_foreign_key "post_dispositions", "posts"
+  add_foreign_key "post_dispositions", "workspaces"
   add_foreign_key "posts", "people"
+  add_foreign_key "posts", "workspaces"
   add_foreign_key "reply_events", "people"
+  add_foreign_key "reply_events", "workspaces"
   add_foreign_key "reply_reports", "posts"
+  add_foreign_key "reply_reports", "workspaces"
+  add_foreign_key "x_authorizations", "workspaces"
+  add_foreign_key "x_billing_cycles", "workspaces"
+  add_foreign_key "x_client_configurations", "workspaces"
+  add_foreign_key "x_connections", "workspaces"
+  add_foreign_key "x_reads", "workspaces"
   add_foreign_key "x_reads", "x_billing_cycles"
   add_foreign_key "x_reads", "x_sync_runs"
+  add_foreign_key "x_source_posts", "workspaces"
   add_foreign_key "x_source_posts", "x_sync_runs"
   add_foreign_key "x_sync_runs", "follow_snapshots"
+  add_foreign_key "x_sync_runs", "workspaces"
 end

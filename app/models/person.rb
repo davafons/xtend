@@ -1,4 +1,5 @@
 class Person < ApplicationRecord
+  include WorkspaceScoped
   has_one :pin, dependent: :destroy
   has_one :follow_protection, class_name: "Follow::Protection", dependent: :destroy
   has_many :follower_periods, class_name: "Follow::FollowerPeriod", dependent: :destroy
@@ -11,9 +12,9 @@ class Person < ApplicationRecord
   has_many :grok_proposals, class_name: "Grok::Proposal", dependent: :destroy
 
   before_validation { self.handle = handle.to_s.delete_prefix("@").downcase.strip }
-  validates :handle, presence: true, uniqueness: true, format: { with: /\A[a-z0-9_]{1,15}\z/ }
+  validates :handle, presence: true, uniqueness: { scope: :workspace_id }, format: { with: /\A[a-z0-9_]{1,15}\z/ }
   validates :name, presence: true
-  validates :x_id, uniqueness: true, allow_nil: true
+  validates :x_id, uniqueness: { scope: :workspace_id }, allow_nil: true
   validates :x_id, format: { with: /\A\d{1,30}\z/ }, allow_nil: true
 
   scope :alphabetical, -> { order(:name) }

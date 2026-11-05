@@ -39,7 +39,7 @@ class XCollectionTest < ActiveSupport::TestCase
   end
 
   test "insufficient budget blocks a request before dispatch" do
-    Workspace.current.update!(monthly_budget_cents: 50)
+    Current.workspace.update!(monthly_budget_cents: 50)
     connected do
       run = start
       X::Client.stub(:new, -> { flunk "No network client should be constructed" }) { assert_not run.fetch_page!(expected_page: 0) }

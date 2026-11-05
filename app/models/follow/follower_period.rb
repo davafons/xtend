@@ -1,4 +1,5 @@
 class Follow::FollowerPeriod < ApplicationRecord
+  include WorkspaceScoped
   self.table_name = "follower_periods"
   belongs_to :person
   belongs_to :first_snapshot, class_name: "Follow::Snapshot"

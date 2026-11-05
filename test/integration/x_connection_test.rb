@@ -68,7 +68,7 @@ class XConnectionTest < ActionDispatch::IntegrationTest
       assert_not_includes connection.token_ciphertext, "test-access"
       assert_not_includes connection.token_ciphertext, "test-refresh"
       assert_equal 0o600, File.stat(X::TokenVault.key_path).mode & 0o777
-      assert_equal "999", Workspace.current.owner_x_id
+      assert_equal "999", Current.workspace.owner_x_id
       assert_equal ["/2/oauth2/token", "/2/users/me"], http.requests.map(&:path)
       form = URI.decode_www_form(http.requests.first.body).to_h
       assert_equal query.fetch("code_challenge"), Base64.urlsafe_encode64(Digest::SHA256.digest(form.fetch("code_verifier")), padding: false)
@@ -118,7 +118,7 @@ class XConnectionTest < ActionDispatch::IntegrationTest
       get callback_x_connection_path, params: {state: query.fetch("state"), code: "test-code"}
       assert_redirected_to settings_path
       assert_nil X::Connection.current
-      assert_equal "999", Workspace.current.owner_x_id
+      assert_equal "999", Current.workspace.owner_x_id
     end
   end
 
@@ -153,7 +153,7 @@ class XConnectionTest < ActionDispatch::IntegrationTest
       delete x_connection_path
       assert_nil X::Connection.current
       assert_equal "Keep my note", person.reload.notes
-      assert_equal "999", Workspace.current.owner_x_id
+      assert_equal "999", Current.workspace.owner_x_id
       assert_equal 1, http.requests.size
     end
   end

@@ -1,5 +1,6 @@
 # Profile facts and recaps that Grok Bot proposed for a person. Nothing applies until the owner accepts it.
 class Grok::Proposal < ApplicationRecord
+  include WorkspaceScoped
   KINDS = %w[profile recap].freeze
   belongs_to :person
   validates :kind, inclusion: { in: KINDS }

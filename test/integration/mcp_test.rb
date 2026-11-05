@@ -2,7 +2,7 @@ require "test_helper"
 
 class McpTest < ActionDispatch::IntegrationTest
   setup do
-    @token = Workspace.current.issue_mcp_token!
+    @token = Current.workspace.issue_mcp_token!
     @person = Person.resolve_profile!(profile(x_id: "555", handle: "builder", name: "A Builder"))
     @person.update!(notes: "Private note")
   end
@@ -29,9 +29,18 @@ class McpTest < ActionDispatch::IntegrationTest
     rpc("ping", headers: { "Origin" => "https://evil.example" })
     assert_response :forbidden
     assert_equal({}, rpc("ping")["result"])
-    Workspace.current.revoke_mcp_token!
+    Current.workspace.revoke_mcp_token!
     rpc("ping")
     assert_response :unauthorized
+  end
+
+  test "a token reads only its own workspace" do
+    other = Workspace.create!(name: "Other", owner_x_id: "888")
+    other_token = other.issue_mcp_token!
+    Current.set(workspace: other) { Person.resolve_profile!(profile(x_id: "777", handle: "theirs", name: "Theirs")) }
+    rpc("tools/call", { name: "list_people", arguments: {} }, token: other_token)
+    assert_equal [ "theirs" ], JSON.parse(response.body).dig("result", "structuredContent", "people").map { |person| person["handle"] }
+    assert tool("get_person_context", { "handle" => "theirs" })["isError"]
   end
 
   test "initialize, notifications, unknown methods, and unsupported HTTP verbs follow the protocol" do
@@ -62,7 +71,7 @@ class McpTest < ActionDispatch::IntegrationTest
     assert history["events"].none? { |event| event["kind"] == "dm" }
     assert_not history["coverage"].key?("DMs")
 
-    Workspace.current.update!(mcp_share_notes: true, mcp_share_dms: true)
+    Current.workspace.update!(mcp_share_notes: true, mcp_share_dms: true)
     assert_equal "Private note", tool("get_person_context", { "person_id" => @person.id })["structuredContent"]["notes"]
     assert tool("get_interaction_history", { "person_id" => @person.id })["structuredContent"]["events"].any? { |event| event["kind"] == "dm" }
 
@@ -102,8 +111,8 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_response :success
     new_token = response.body[/crm_[A-Za-z0-9_-]{20,}/]
     assert new_token
-    assert Workspace.current.mcp_token_matches?(new_token)
-    assert_not Workspace.current.mcp_token_matches?(@token)
+    assert_equal Current.workspace, Workspace.find_by_mcp_token(new_token)
+    assert_nil Workspace.find_by_mcp_token(@token)
 
     paste = "Results:\n```json\n" + { format: "twitter-crm-grok-v1", recaps: [{ handle: "builder", summary: "Ships Rails tools." }] }.to_json + "\n```"
     post grok_intakes_path, params: { grok_output: paste }

@@ -27,7 +27,7 @@ class WorkflowTest < ActionDispatch::IntegrationTest
   end
 
   test "API allowance is explicitly editable without changing connection or interests" do
-    workspace = Workspace.current
+    workspace = Current.workspace
     workspace.update!(monthly_budget_cents: 2500, builder_interests: "Builder tooling")
     patch settings_path, params: {workspace: {monthly_budget_cents: "1000"}}
     assert_redirected_to settings_path
@@ -42,7 +42,7 @@ class WorkflowTest < ActionDispatch::IntegrationTest
   end
 
   test "invalid allowance is rejected without overwriting the saved amount" do
-    workspace = Workspace.current
+    workspace = Current.workspace
     workspace.update!(monthly_budget_cents: 1775)
     patch settings_path, params: {workspace: {monthly_budget_cents: "10.50"}}
     assert_response :unprocessable_content

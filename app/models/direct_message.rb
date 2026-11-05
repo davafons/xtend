@@ -1,16 +1,17 @@
 # Metadata for one-to-one DMs only: who sent a message and when. Message text is never stored.
 class DirectMessage < ApplicationRecord
+  include WorkspaceScoped
   HISTORY_WINDOW = 30.days
 
   belongs_to :x_sync_run, class_name: "X::SyncRun", optional: true
-  validates :x_id, presence: true, uniqueness: true
+  validates :x_id, presence: true, uniqueness: { scope: :workspace_id }
   validates :conversation_x_id, :partner_x_id, :occurred_at, presence: true
   validates :direction, inclusion: { in: %w[incoming outgoing] }
   validates :source, inclusion: { in: %w[x_api archive] }
 
   # Returns :new, :known, or :skipped. Group and self conversations never establish a one-to-one exchange.
   def self.record!(x_id:, conversation_x_id:, participants:, sender_x_id:, occurred_at:, source:, run: nil)
-    owner = Workspace.current.owner_x_id
+    owner = Current.workspace.owner_x_id
     return :skipped unless participants.size == 2 && participants.count(owner) == 1
     partner = (participants - [owner]).first
     return :skipped unless [owner, partner].include?(sender_x_id)

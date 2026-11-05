@@ -1,4 +1,5 @@
 class DailySession < ApplicationRecord
+  include WorkspaceScoped
   TARGET = 20
   has_many :outreaches, dependent: :nullify
 

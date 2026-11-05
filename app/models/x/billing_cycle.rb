@@ -1,4 +1,5 @@
 class X::BillingCycle < ApplicationRecord
+  include WorkspaceScoped
   class LimitExceeded < StandardError; end
   has_many :x_reads, class_name: "X::Read", foreign_key: :x_billing_cycle_id
   validates :starts_on, :ends_on, :observed_at, presence: true
@@ -10,7 +11,7 @@ class X::BillingCycle < ApplicationRecord
   end
 
   def allowance_micros
-    Workspace.current.monthly_budget_cents * 10_000
+    Current.workspace.monthly_budget_cents * 10_000
   end
 
   def pending_micros
@@ -48,7 +49,7 @@ class X::BillingCycle < ApplicationRecord
       if discovery && remaining_micros - reservation < allowance_micros / 5
         raise LimitExceeded, "New discovery is paused to preserve the final 20% for relationship updates. Use saved candidates."
       end
-      trial = Workspace.current.collection_trial_completed_at.nil? && dataset != "identity"
+      trial = Current.workspace.collection_trial_completed_at.nil? && dataset != "identity"
       raise LimitExceeded, "This read exceeds the remaining local cycle allowance." if reservation > remaining_micros
       raise LimitExceeded, "This read exceeds the remaining $5 collection trial." if trial && reservation > self.class.trial_remaining_micros
       x_reads.create!(dataset: dataset, resource_limit: limit, reserved_micros: reservation,

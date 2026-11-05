@@ -1,6 +1,7 @@
 # Reads DM metadata from a downloaded X archive zip. Only the manifest, account, and DM files are opened;
 # message text is never read into storage and encrypted chat contents stay encrypted.
 class X::ArchiveImport < ApplicationRecord
+  include WorkspaceScoped
   self.table_name = "archive_imports"
   class Invalid < StandardError; end
   MAX_ENTRY_BYTES = 200.megabytes
@@ -9,7 +10,7 @@ class X::ArchiveImport < ApplicationRecord
   validates :owner_x_id, :generated_at, :account_created_at, presence: true
 
   def self.import!(path)
-    owner = Workspace.current.owner_x_id
+    owner = Current.workspace.owner_x_id
     raise Invalid, "Connect your X account first so the archive can be matched to it." if owner.blank?
     Zip::File.open(path) do |zip|
       manifest = read(zip, "data/manifest.js")

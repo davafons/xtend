@@ -71,7 +71,7 @@ class Grok::Intake
     Post.transaction do
       person = author(handle, row)
       assessment = Discovery::Assessment.call(body: text, description: person.description,
-        interests: Workspace.current.interests, handle: handle, selected: true)
+        interests: Current.workspace.interests, handle: handle, selected: true)
       reason = row["match_reason"].to_s.strip.first(500).presence
       record = existing || Post.new(x_id: link[:x_id])
       record.assign_attributes(person: person, body: text.first(1000), language: row["language"].to_s.presence&.first(8) || "en",

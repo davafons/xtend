@@ -4,7 +4,7 @@ class DemoWorkspace
     return if Post.exists?
 
     ApplicationRecord.transaction do
-      Workspace.current.update!(name: "Demo workspace", owner_x_id: "999")
+      Current.workspace.update!(name: "Demo workspace", owner_x_id: "999")
       profiles = [
         [ "9001", "demo_maya", "Maya Chen", "Building developer tools for small teams. Cares about useful interfaces and shipping less software." ],
         [ "9002", "demo_alex", "Alex Rivera", "Independent Rails builder. Shares the messy middle of launching a small product." ],

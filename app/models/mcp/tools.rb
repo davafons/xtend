@@ -70,7 +70,7 @@ class Mcp::Tools
   def self.names = DEFINITIONS.map { |tool| tool[:name] }
 
   def initialize
-    @workspace = Workspace.current
+    @workspace = Current.workspace
     @demo = Rails.configuration.x.demo
   end
 

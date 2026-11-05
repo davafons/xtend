@@ -4,7 +4,7 @@ require "rails/test_help"
 
 class ActiveSupport::TestCase
   setup do
-    Workspace.current.update!(owner_x_id: "999")
+    Current.workspace = Workspace.create!(owner_x_id: "999")
     X::BillingCycle.create!(starts_on: Date.current, ends_on: Date.current + 30, observed_at: Time.current)
   end
 
@@ -20,5 +20,15 @@ class ActiveSupport::TestCase
     record = Follow::Snapshot.create!(direction: direction, source: "x_api", observed_at: observed_at, completed_at: (observed_at if complete))
     people.each { |person| record.follow_memberships.create!(person: person) }
     record
+  end
+end
+
+class ActionDispatch::IntegrationTest
+  # Requests reset Current; restore the test's workspace so assertions after a request stay scoped.
+  def process(...)
+    workspace = Current.workspace
+    super
+  ensure
+    Current.workspace = workspace
   end
 end

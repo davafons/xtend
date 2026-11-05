@@ -2,8 +2,12 @@ class Workspace < ApplicationRecord
   validates :name, presence: true
   validates :monthly_budget_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100_000 }
 
-  def self.current
-    first || create!
+  # The connector token identifies its workspace. Only its digest is stored, and the lookup compares digests.
+  def self.find_by_mcp_token(token)
+    return if token.blank?
+    digest = mcp_digest(token)
+    workspace = find_by(mcp_token_digest: digest)
+    workspace if workspace && ActiveSupport::SecurityUtils.secure_compare(workspace.mcp_token_digest, digest)
   end
 
   def interests
@@ -19,11 +23,6 @@ class Workspace < ApplicationRecord
 
   def revoke_mcp_token!
     update!(mcp_token_digest: nil, mcp_token_created_at: nil, mcp_token_used_at: nil)
-  end
-
-  def mcp_token_matches?(token)
-    mcp_token_digest.present? && token.present? &&
-      ActiveSupport::SecurityUtils.secure_compare(mcp_token_digest, self.class.mcp_digest(token))
   end
 
   def self.mcp_digest(token)

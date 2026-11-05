@@ -1,4 +1,5 @@
 class Discovery::Suggestion < ApplicationRecord
+  include WorkspaceScoped
   class Invalid < StandardError; end
   validates :post_x_id, :source_url, presence: true
   scope :unresolved, -> { where(dismissed_at: nil).where.not(post_x_id: X::SourcePost.select(:x_id)) }
@@ -27,7 +28,7 @@ class Discovery::Suggestion < ApplicationRecord
     known = Post.where(published_at: 7.days.ago..).pluck(:x_id).first(100)
     <<~PROMPT
       Find up to 20 English public X posts from the last 7 days by builders where I can contribute a useful reply.
-      My interests: #{Workspace.current.interests.join('; ')}.
+      My interests: #{Current.workspace.interests.join('; ')}.
       Prefer concrete questions, implementation tradeoffs, work in progress, and lessons from shipping.
       Avoid generic AI hype, engagement bait, follow-for-follow, pure promotion, crypto, and threads with more than 50 replies.
       Use public X search. Do not use my private X plugin, DMs, bookmarks, or home timeline.

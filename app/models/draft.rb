@@ -1,4 +1,5 @@
 class Draft < ApplicationRecord
+  include WorkspaceScoped
   STATUSES = { "idea" => "Ideas", "drafting" => "Drafting", "ready" => "Ready", "posted" => "Posted" }.freeze
   LIMIT = 280
   URL = %r{https?://\S+}
@@ -22,7 +23,7 @@ class Draft < ApplicationRecord
   end
 
   def self.link_published!
-    owner = Workspace.current.owner_x_id
+    owner = Current.workspace.owner_x_id
     return if owner.blank?
     where(status: %w[ready posted], posted_x_id: nil).find_each do |draft|
       key = draft.match_key

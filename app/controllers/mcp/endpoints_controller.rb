@@ -1,5 +1,5 @@
 # Streamable HTTP endpoint for the MCP connector. Not a browser page, so it skips the browser and CSRF checks
-# and authenticates every request with the owner's revocable bearer token instead.
+# and authenticates every request with the workspace's revocable bearer token instead.
 class Mcp::EndpointsController < ActionController::API
   MAX_BYTES = 1.megabyte
   before_action :reject_foreign_origin, :authenticate
@@ -32,9 +32,9 @@ class Mcp::EndpointsController < ActionController::API
   end
 
   def authenticate
-    workspace = Workspace.current
     token = request.authorization.to_s[/\ABearer (\S+)\z/, 1]
-    unless workspace.mcp_token_matches?(token)
+    workspace = Current.workspace = Workspace.find_by_mcp_token(token)
+    unless workspace
       response.headers["WWW-Authenticate"] = 'Bearer realm="twitter-crm"'
       return render(json: rpc_error(-32001, "Missing or invalid connector token."), status: :unauthorized)
     end

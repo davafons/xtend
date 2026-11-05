@@ -1,14 +1,15 @@
 class Engagement < ApplicationRecord
+  include WorkspaceScoped
   KINDS = { "liked_posts" => "like", "bookmarks" => "bookmark" }.freeze
 
   belongs_to :x_sync_run, class_name: "X::SyncRun"
   validates :kind, inclusion: { in: KINDS.values }
-  validates :post_x_id, uniqueness: { scope: :kind }
+  validates :post_x_id, uniqueness: { scope: [ :workspace_id, :kind ] }
   validates :post_x_id, :author_x_id, :post_published_at, :observed_at, presence: true
 
   # Returns :new, :known, or :skipped so a refresh can stop once it reaches earlier evidence.
   def self.capture!(row, kind:, run:, observed_after: nil)
-    return :skipped if row.fetch("author_id") == Workspace.current.owner_x_id
+    return :skipped if row.fetch("author_id") == Current.workspace.owner_x_id
     record = find_or_initialize_by(kind: kind, post_x_id: row.fetch("id"))
     return :known if record.persisted?
     record.update!(author_x_id: row.fetch("author_id"), body: row.fetch("text"),

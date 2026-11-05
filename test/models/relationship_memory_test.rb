@@ -58,7 +58,7 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
   end
 
   test "unknown account identity prevents verified history" do
-    Workspace.current.update!(owner_x_id: nil)
+    Current.workspace.update!(owner_x_id: nil)
     assert_raises(ActiveRecord::RecordInvalid) { ingest }
     assert_equal 0, ReplyEvent.count
   end
@@ -151,7 +151,7 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
   test "Grok export excludes private notes and does not imply complete data" do
     person = Person.resolve_profile!(profile)
     person.update!(notes: "Private material")
-    context = Workspace.current.grok_context
+    context = Current.workspace.grok_context
     assert_equal "twitter-crm-context-v1", context[:format]
     assert_not_includes context.to_json, "Private material"
     assert_includes context[:coverage], "not a complete"

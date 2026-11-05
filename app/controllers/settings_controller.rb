@@ -1,6 +1,6 @@
 class SettingsController < ApplicationController
   def show
-    @workspace = Workspace.current
+    @workspace = Current.workspace
     @cycle = X::BillingCycle.current
     @runs = X::SyncRun.order(created_at: :desc).limit(12)
     @followers = Follow::Snapshot.latest("followers")
@@ -8,7 +8,7 @@ class SettingsController < ApplicationController
   end
 
   def update
-    @workspace = Workspace.current
+    @workspace = Current.workspace
     if @workspace.update(params.require(:workspace).permit(:name, :builder_interests, :monthly_budget_cents, :mcp_share_notes, :mcp_share_dms))
       redirect_to settings_path, notice: "Workspace settings saved."
     else

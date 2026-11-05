@@ -1,6 +1,7 @@
 class X::SourcePost < ApplicationRecord
+  include WorkspaceScoped
   belongs_to :x_sync_run, class_name: "X::SyncRun"
-  validates :x_id, uniqueness: true
+  validates :x_id, uniqueness: { scope: :workspace_id }
 
   def self.capture!(row, run:)
     references = row.fetch("referenced_posts")
@@ -20,7 +21,7 @@ class X::SourcePost < ApplicationRecord
   end
 
   def reconcile!
-    owner = Workspace.current.owner_x_id
+    owner = Current.workspace.owner_x_id
     return if repost || published_at > Time.current
     grok = Post.exists?(x_id: x_id, source: "grok")
     person = Person.find_by(x_id: author_x_id) || (Person.bind_grok_author!(post_x_id: x_id, author_x_id: author_x_id) if grok) unless author_x_id == owner
@@ -28,7 +29,7 @@ class X::SourcePost < ApplicationRecord
     if person && discovery
       post = Post.find_or_initialize_by(x_id: x_id)
       assessment = Discovery::Assessment.call(body: body, description: person.description,
-        interests: Workspace.current.interests, handle: person.handle, selected: grok || Discovery::Suggestion.exists?(post_x_id: x_id))
+        interests: Current.workspace.interests, handle: person.handle, selected: grok || Discovery::Suggestion.exists?(post_x_id: x_id))
       keep_reason = grok && post.rank >= 0 && assessment[:rank] >= 0
       post.assign_attributes(person: person, body: body, language: language.presence || "und", published_at: published_at,
         topic: post.topic.presence || "Builder conversations", rank: assessment[:rank], reply_count: reply_count,
