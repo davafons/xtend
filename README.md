@@ -1,6 +1,6 @@
 # Twitter CRM
 
-A local Rails POC for finding useful builder conversations, remembering people, and reviewing follows. The shared components come directly from the sibling `lostcoords-ui` gem. Project structure follows WariWari: Rails models and REST controllers, ERB, Hotwire, Importmap, Propshaft, SQLite, and standalone Tailwind.
+A Rails app for finding useful builder conversations, remembering people, and reviewing follows. It started as a local POC and now has sign-in and per-workspace data so it can be deployed (see [deploy](docs/deploy.md) and [architecture plan](docs/architecture-plan.md)). The shared components come directly from the sibling `lostcoords-ui` gem. Project structure follows WariWari: Rails models and REST controllers, ERB, Hotwire, Importmap, Propshaft, SQLite, and standalone Tailwind.
 
 ## Run with Parcela
 
@@ -13,6 +13,14 @@ parcela url web
 ```
 
 The review URL is `https://twitter-crm.localhost`. `parcela status` shows Rails and the CSS watcher. `parcela logs web` shows application logs. `parcela down` stops this environment.
+
+Every page requires sign-in. Create your account once per database, typing the password when asked:
+
+```bash
+parcela --path . run -- bin/rails users:create EMAIL=you@example.com
+```
+
+The first user joins the existing workspace and its data.
 
 Parcela runs database preparation and the Tailwind build before startup. SQLite lives in `PARCELA_DATA_DIR` when provided, otherwise `storage/`. Real mode starts empty and makes no X requests.
 
@@ -27,7 +35,7 @@ Parcela runs database preparation and the Tailwind build before startup. SQLite 
 
 ## Current integration boundary
 
-Single-owner X OAuth uses Authorization Code + PKCE S256 and read-only scopes. It verifies the connected account through `/2/users/me`, supports refresh and local disconnect, and stores tokens encrypted in SQLite. It never adds app users, signup, or login screens.
+Single-owner X OAuth uses Authorization Code + PKCE S256 and read-only scopes. It verifies the connected account through `/2/users/me`, supports refresh and local disconnect, and stores tokens encrypted in SQLite. X OAuth is separate from signing in to the app.
 
 Bounded manual collection, a spend ledger, recent search, and follower-change tracking are implemented. Full archive ingestion, backup restore, background sync jobs, and a live MCP connection are not implemented. Connecting does not start collection. The identity check can consume a user-read credit when a real connection is initiated. This POC never posts or unfollows on X.
 
@@ -47,7 +55,7 @@ The demo is opt-in and uses a different SQLite file. It contains fictional peopl
 CRM_DEMO=1 bin/rails db:prepare demo:seed
 ```
 
-With a Parcela data directory, pass the same `PARCELA_DATA_DIR` to that command. Serving the demo requires starting the web process with `CRM_DEMO=1`; the running real workspace does not change. `demo:seed` refuses to run in real mode. It does not overwrite an existing demo or contact X.
+With a Parcela data directory, pass the same `PARCELA_DATA_DIR` to that command. Serving the demo requires starting the web process with `CRM_DEMO=1`; the running real workspace does not change. `demo:seed` refuses to run in real mode. It does not overwrite an existing demo or contact X. Create a user in the demo database too (`CRM_DEMO=1 bin/rails users:create EMAIL=...`).
 
 ## Verify
 
@@ -57,7 +65,7 @@ bin/rails tailwindcss:build
 bin/rails zeitwerk:check
 ```
 
-Tests exercise domain behavior and HTTP persistence, including populated demo rendering. Desktop layout is checked in the running Parcela browser, rather than asserted through HTML selector tests.
+Tests exercise domain behavior and HTTP persistence, including populated demo rendering, sign-in on every route, and workspace isolation. Desktop layout is checked in the running Parcela browser, rather than asserted through HTML selector tests.
 
 The [POC specification](docs/poc-spec.md) defines intended scope. The [cost calculator](scripts/estimate-x-costs.py) is a planning tool; displayed allowances do not configure X billing controls.
 

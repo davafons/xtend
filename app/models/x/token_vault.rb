@@ -2,7 +2,7 @@ class X::TokenVault
   class Unavailable < StandardError; end
 
   def self.key_path
-    Pathname.new(ENV.fetch("PARCELA_DATA_DIR", Rails.root.join("storage").to_s)).join("x-token.key")
+    Pathname.new(ENV["APP_DATA_DIR"] || ENV.fetch("PARCELA_DATA_DIR", Rails.root.join("storage").to_s)).join("x-token.key")
   end
 
   def self.encrypt(value, purpose: "x_oauth_tokens")
