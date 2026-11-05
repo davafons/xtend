@@ -69,10 +69,10 @@
             </div>
             <p class="text-xs text-muted"><%= run.resource_count %> resources · <%= run.page_number %> pages · <%= run.created_at.strftime("%-d %b, %H:%M") %></p>
             <% if run.message.present? %><p class="text-xs text-muted"><%= run.message %></p><% end %>
-            <% if run.status == "partial" || run.status == "ready" || (run.status == "paused" && run.page_number.zero?) || run.x_reads.where(status: "received").exists? %>
-              <div><%= lc_button_to(run.status == "paused" ? "Retry this page" : "Read next page", x_sync_run_path(run), method: :patch, params: {page: run.page_number}, variant: :secondary, size: :sm, disabled: demo? || (run.retry_at && run.retry_at > Time.current)) %></div>
-            <% elsif run.status == "fetching" %>
+            <% if X::SyncRun::ACTIVE_STATUSES.include?(run.status) %>
               <div><%= lc_button_to "Recover interrupted page", x_sync_run_path(run), method: :patch, params: {recover: "1"}, variant: :ghost, size: :sm, disabled: run.updated_at > 2.minutes.ago %></div>
+            <% elsif run.status == "partial" || run.status == "ready" || (run.status == "paused" && run.page_number.zero?) || run.x_reads.where(status: "received").exists? %>
+              <div><%= lc_button_to(run.status == "paused" ? "Retry this page" : "Read next page", x_sync_run_path(run), method: :patch, params: {page: run.page_number}, variant: :secondary, size: :sm, disabled: demo? || (run.retry_at && run.retry_at > Time.current)) %></div>
             <% end %>
           </div>
         <% end %>

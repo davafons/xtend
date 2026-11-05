@@ -17,3 +17,5 @@ end
 gem "rubyzip", "~> 3.7", require: "zip"
 
 gem "bcrypt", "~> 3.1"
+
+gem "solid_queue", "~> 1.7"

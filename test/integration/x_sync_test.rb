@@ -13,7 +13,14 @@ class XSyncTest < ActionDispatch::IntegrationTest
         client.define_singleton_method(:page) { |*args, **kwargs| calls += 1; result }
         key = SecureRandom.uuid
         X::Client.stub(:new, client) do
-          2.times { post x_sync_runs_path, params: {dataset: "followers", request_key: key} }
+          assert_enqueued_jobs 1, only: X::FetchPageJob do
+            2.times { post x_sync_runs_path, params: {dataset: "followers", request_key: key} }
+          end
+          assert_equal 0, calls, "the request only queues the read"
+          assert_equal "queued", X::SyncRun.last.status
+          get settings_path
+          assert_includes response.body, "Reading from X in the background"
+          perform_enqueued_jobs
         end
         assert_equal 1, calls
         assert_equal 1, Person.count
@@ -71,7 +78,9 @@ class XSyncTest < ActionDispatch::IntegrationTest
           response
         end
         Net::HTTP.stub(:start, ->(*args, **options, &block) { block.call(http) }) do
-          post x_sync_runs_path, params: {dataset: "search", query: "Rails debugging", request_key: SecureRandom.uuid}
+          perform_enqueued_jobs do
+            post x_sync_runs_path, params: {dataset: "search", query: "Rails debugging", request_key: SecureRandom.uuid}
+          end
         end
         assert_equal 1, calls
         assert_equal "completed", X::SyncRun.last.status

@@ -8,31 +8,34 @@ Nothing has been deployed yet. This page lists what a deployment needs. The owne
 | --- | --- |
 | `APP_HOSTS` | Comma-separated public hostnames, such as `crm.example.com`. The server won't boot without it, and other `Host` headers get 403. |
 | `SECRET_KEY_BASE` | Signs sessions and hashes connector tokens. Generate it with `openssl rand -hex 64` and keep it stable: changing it signs everyone out and invalidates connector tokens. |
-| `/data` volume | Holds `production.sqlite3` and `x-token.key`, which encrypts saved X tokens. Back up both together. A database backup without the key can't decrypt X tokens. |
+| `/data` volume | Holds `production.sqlite3`, the job queue in `production_queue.sqlite3`, and `x-token.key`, which encrypts saved X tokens. Back up both together. A database backup without the key can't decrypt X tokens. |
 | TLS in front | The app assumes HTTPS (`assume_ssl`, `force_ssl`, secure cookies, HSTS). Cloudflare Tunnel terminates TLS and forwards to port 3000. |
 | X developer app | Each workspace saves its own X app in Data & settings. Its callback must be `https://<host>/x/connection/callback`. Owned-rate pricing only applies to the owner's own app. |
 
 ## Build and run on the server
 
-the server is reached through a Cloudflare Tunnel, so no port is published on the host. `compose.yaml` runs the app and `cloudflared` side by side.
+The existing the server tunnel from `../infra` (`tunnel-docker`, with `cloudflared` on the host network) carries the traffic. This app publishes only `127.0.0.1:23010` (`compose.yaml`), and the tunnel routes the public hostname there. These changes belong in infra, made there rather than from this repo:
 
-1. In Cloudflare Zero Trust, create a tunnel and copy its token. Add a public hostname, such as `crm.example.com`, that routes to `http://web:3000`.
-2. On the server, create a `.env` next to `compose.yaml` holding `APP_HOSTS=crm.example.com`, `SECRET_KEY_BASE=<openssl rand -hex 64>`, and `TUNNEL_TOKEN=<token>`. Never commit it.
-3. Build and start:
+1. Terraform: add an ingress entry to `cloudflare_zero_trust_tunnel_cloudflared_config.the server`, before the catch-all, routing `hostname = "<name>.example.com"` to `service = "http://localhost:23010"`. Also add the matching DNS record.
+2. Ansible: add a `twitter-crm` stack for the server that runs this `compose.yaml` with `APP_HOSTS` and `SECRET_KEY_BASE` from SSM, for example under `/xtend/`.
+3. Build the image where the sibling `lostcoords-ui` checkout exists, then create the owner:
 
 ```sh
 docker build --build-context lostcoords-ui=../lostcoords-ui -t twitter-crm .
-docker compose up -d
 docker compose exec web ./bin/rails users:create EMAIL=you@example.com
 ```
 
 `users:create` asks for the password without echoing it. `users:password EMAIL=...` changes a password and signs out that user's sessions. There is no signup page.
 
-Cloudflare terminates TLS. `cloudflared` reaches the app from a private Docker address, and Rails trusts private proxies, so `X-Forwarded-For` gives the visitor's IP and rate limits count each visitor separately. `test/integration/proxy_test.rb` covers this. Because no host port is published, nobody can bypass the tunnel and fake that header.
+Cloudflare terminates TLS. Requests reach the container from Docker's private bridge address, and Rails trusts private proxies, so `X-Forwarded-For` gives the visitor's IP and rate limits count each visitor separately. `test/integration/proxy_test.rb` covers this. The port is bound to loopback, so nothing outside the server can bypass the tunnel and fake that header.
 
 Optional extra layer: a Cloudflare Access policy on every path except `/mcp` and `/up` adds a second login in front of the app. Grok Bot can't pass Access, so `/mcp` has to stay outside the policy.
 
 The `lostcoords-ui` gem is pinned to commit `19ef2a7` of the sibling checkout, which isn't on GitHub. The build copies that checkout's git history in as a named build context, so either build on a machine that has the sibling checkout, or push or tag that commit on `lostcoords/ui` and point the Gemfile at GitHub.
+
+## Background jobs
+
+X reads run in Solid Queue inside the same Puma process, so there is one container and no separate worker. Each click queues one page read, the page refreshes until it finishes, and failed reads are never retried automatically. There are no recurring jobs.
 
 ## What is public
 
@@ -43,7 +46,7 @@ The `lostcoords-ui` gem is pinned to commit `19ef2a7` of the sibling checkout, w
 
 ## Before exposing it
 
-1. Pick the hostname and create the tunnel.
+1. Pick the hostname, then add its ingress rule and the stack in infra.
 2. Copy the local database and `x-token.key` to the volume, or start fresh and reconnect X.
 3. Update the X developer app's callback URL to the public hostname.
 4. Create the owner user, sign in, and create a new connector token for Grok Bot.

@@ -19,7 +19,7 @@ class X::SyncRunsController < ApplicationController
     end
     existing = X::SyncRun.find_by(request_key: params[:request_key])
     run = X::SyncRun.start!(dataset: dataset, request_key: params.require(:request_key), mode: params.fetch(:mode, "backfill"), parameters: parameters)
-    run.fetch_page!(expected_page: 0) unless existing
+    run.enqueue_page!(expected_page: 0) unless existing
     redirect_to return_path, notice: result_message(run)
   rescue X::BillingCycle::LimitExceeded, X::Client::Error, X::TokenVault::Unavailable, ArgumentError, KeyError => error
     redirect_to return_path, alert: error.message
@@ -30,7 +30,7 @@ class X::SyncRunsController < ApplicationController
     if params[:recover] == "1"
       run.recover!
     else
-      run.fetch_page!(expected_page: Integer(params.require(:page)))
+      run.enqueue_page!(expected_page: Integer(params.require(:page)))
     end
     redirect_to settings_path(anchor: "collection"), notice: result_message(run)
   rescue X::Client::Error, ArgumentError => error
@@ -45,6 +45,7 @@ class X::SyncRunsController < ApplicationController
 
   def result_message(run)
     run.reload
+    return "#{run.dataset.humanize}: reading page #{run.page_number + 1} from X. This page updates when it finishes." if run.status == "queued"
     run.message.presence || "#{run.dataset.humanize}: #{run.resource_count} resources saved across #{run.page_number} pages. #{run.status.humanize}."
   end
 end

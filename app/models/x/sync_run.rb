@@ -70,10 +70,27 @@ class X::SyncRun < ApplicationRecord
     find_by!(request_key: request_key)
   end
 
+  ACTIVE_STATUSES = %w[queued fetching].freeze
+  scope :active, -> { where(status: ACTIVE_STATUSES) }
+
+  # Queues the next page read. The job claims the page again, so duplicate clicks or jobs read at most once.
+  def enqueue_page!(expected_page:)
+    raise X::Client::Error, "Live collection is disabled in demo mode." if Rails.configuration.x.demo
+    queued = with_lock do
+      next false unless page_number == expected_page && %w[ready partial paused].include?(status)
+      next false if retry_at && retry_at > Time.current
+      raise X::Client::Error, "Another X page is already being collected." if self.class.active.where(owner_x_id: owner_x_id).where.not(id: id).exists?
+      update!(status: "queued", message: nil)
+      true
+    end
+    X::FetchPageJob.perform_later(workspace, id, expected_page) if queued
+    queued
+  end
+
   def fetch_page!(expected_page:)
     raise X::Client::Error, "Live collection is disabled in demo mode." if Rails.configuration.x.demo
     claim = with_lock do
-      next false unless page_number == expected_page && %w[ready partial paused].include?(status)
+      next false unless page_number == expected_page && %w[ready partial paused queued].include?(status)
       next false if retry_at && retry_at > Time.current
       raise X::Client::Error, "Another X page is already being collected." if self.class.where(owner_x_id: owner_x_id, status: "fetching").where.not(id: id).exists?
       update!(status: "fetching", message: nil, retry_at: nil)
@@ -108,7 +125,7 @@ class X::SyncRun < ApplicationRecord
 
   def recover!
     with_lock do
-      raise X::Client::Error, "Wait two minutes before recovering an interrupted request." if status == "fetching" && updated_at > 2.minutes.ago
+      raise X::Client::Error, "Wait two minutes before recovering an interrupted request." if ACTIVE_STATUSES.include?(status) && updated_at > 2.minutes.ago
       x_reads.where(status: "reserved").update_all(status: "uncertain", message: "Interrupted request; reservation retained.")
       update!(status: "paused", message: "Interrupted collection recovered. Saved responses can be applied without a new read.")
     end

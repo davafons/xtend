@@ -29,6 +29,9 @@
           </span>
         </header>
         <% end %>
+        <% if Current.workspace && X::SyncRun.active.exists? %>
+          <div data-controller="refresh" data-refresh-at-value="<%= Time.current.to_f %>" role="status" class="mt-4"><%= lc_alert "Reading from X in the background. This page updates when it finishes.", tone: :neutral %></div>
+        <% end %>
         <main class="pb-16">
           <% flash.each do |kind, message| %><div class="mb-6"><%= lc_alert message, tone: (kind == "alert" ? :danger : :success) %></div><% end %>
           <%= yield %>

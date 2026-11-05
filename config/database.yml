@@ -10,8 +10,13 @@ default: &default
   timeout: 5000
 
 development:
-  <<: *default
-  database: <%= File.join(ENV.fetch("PARCELA_DATA_DIR", Rails.root.join("storage").to_s), ENV["CRM_DEMO"] == "1" ? "demo.sqlite3" : "development.sqlite3").to_json %>
+  primary:
+    <<: *default
+    database: <%= File.join(ENV.fetch("PARCELA_DATA_DIR", Rails.root.join("storage").to_s), ENV["CRM_DEMO"] == "1" ? "demo.sqlite3" : "development.sqlite3").to_json %>
+  queue:
+    <<: *default
+    database: <%= File.join(ENV.fetch("PARCELA_DATA_DIR", Rails.root.join("storage").to_s), ENV["CRM_DEMO"] == "1" ? "demo_queue.sqlite3" : "development_queue.sqlite3").to_json %>
+    migrations_paths: db/queue_migrate
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -27,5 +32,10 @@ test:
 # Similarly, if you deploy your application as a Docker container, you must
 # ensure the database is located in a persisted volume.
 production:
-  <<: *default
-  database: <%= File.join(ENV.fetch("APP_DATA_DIR", Rails.root.join("storage").to_s), "production.sqlite3").to_json %>
+  primary:
+    <<: *default
+    database: <%= File.join(ENV.fetch("APP_DATA_DIR", Rails.root.join("storage").to_s), "production.sqlite3").to_json %>
+  queue:
+    <<: *default
+    database: <%= File.join(ENV.fetch("APP_DATA_DIR", Rails.root.join("storage").to_s), "production_queue.sqlite3").to_json %>
+    migrations_paths: db/queue_migrate
