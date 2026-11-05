@@ -1,0 +1,388 @@
+# This file is auto-generated from the current state of the database. Instead
+# of editing this file, please use the migrations feature of Active Record to
+# incrementally modify your database, and then regenerate this schema definition.
+#
+# This file is the source Rails uses to define your schema when running `bin/rails
+# db:schema:load`. When creating a new database, `bin/rails db:schema:load` tends to
+# be faster and is potentially less error prone than running all of your
+# migrations from scratch. Old migrations may fail to apply correctly if those
+# migrations use external dependencies or application code.
+#
+# It's strongly recommended that you check this file into your version control system.
+
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_120000) do
+  create_table "archive_imports", force: :cascade do |t|
+    t.string "owner_x_id", null: false
+    t.datetime "generated_at", null: false
+    t.datetime "account_created_at", null: false
+    t.boolean "partial", default: false, null: false
+    t.integer "direct_messages_count", default: 0, null: false
+    t.integer "skipped_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "daily_sessions", force: :cascade do |t|
+    t.date "anchor_day", null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "(1)", name: "index_one_active_daily_session", unique: true, where: "completed_at IS NULL"
+  end
+
+  create_table "direct_messages", force: :cascade do |t|
+    t.string "x_id", null: false
+    t.string "conversation_x_id", null: false
+    t.string "partner_x_id", null: false
+    t.string "direction", null: false
+    t.datetime "occurred_at", null: false
+    t.integer "x_sync_run_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "source", default: "x_api", null: false
+    t.index ["partner_x_id", "occurred_at"], name: "index_direct_messages_on_partner_x_id_and_occurred_at"
+    t.index ["x_id"], name: "index_direct_messages_on_x_id", unique: true
+    t.index ["x_sync_run_id"], name: "index_direct_messages_on_x_sync_run_id"
+  end
+
+  create_table "discovery_suggestions", force: :cascade do |t|
+    t.string "post_x_id", null: false
+    t.string "source_url", null: false
+    t.text "match_reason"
+    t.datetime "dismissed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["post_x_id"], name: "index_discovery_suggestions_on_post_x_id", unique: true
+  end
+
+  create_table "drafts", force: :cascade do |t|
+    t.text "body", default: "", null: false
+    t.string "status", default: "idea", null: false
+    t.string "topic"
+    t.text "notes"
+    t.string "inspiration_url"
+    t.string "posted_x_id"
+    t.datetime "posted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["posted_x_id"], name: "index_drafts_on_posted_x_id", unique: true
+    t.index ["status"], name: "index_drafts_on_status"
+  end
+
+  create_table "engagements", force: :cascade do |t|
+    t.string "kind", null: false
+    t.string "post_x_id", null: false
+    t.string "author_x_id", null: false
+    t.text "body"
+    t.datetime "post_published_at", null: false
+    t.datetime "observed_after"
+    t.datetime "observed_at", null: false
+    t.integer "x_sync_run_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["author_x_id"], name: "index_engagements_on_author_x_id"
+    t.index ["kind", "post_x_id"], name: "index_engagements_on_kind_and_post_x_id", unique: true
+    t.index ["x_sync_run_id"], name: "index_engagements_on_x_sync_run_id"
+  end
+
+  create_table "follow_memberships", force: :cascade do |t|
+    t.integer "follow_snapshot_id", null: false
+    t.integer "person_id", null: false
+    t.index ["follow_snapshot_id", "person_id"], name: "index_follow_memberships_on_follow_snapshot_id_and_person_id", unique: true
+    t.index ["follow_snapshot_id"], name: "index_follow_memberships_on_follow_snapshot_id"
+    t.index ["person_id"], name: "index_follow_memberships_on_person_id"
+  end
+
+  create_table "follow_protections", force: :cascade do |t|
+    t.integer "person_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["person_id"], name: "index_follow_protections_on_person_id", unique: true
+  end
+
+  create_table "follow_reviews", force: :cascade do |t|
+    t.integer "person_id", null: false
+    t.string "decision", null: false
+    t.date "reviewed_on", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["person_id", "reviewed_on"], name: "index_follow_reviews_on_person_id_and_reviewed_on", unique: true
+    t.index ["person_id"], name: "index_follow_reviews_on_person_id"
+  end
+
+  create_table "follow_snapshots", force: :cascade do |t|
+    t.string "direction", null: false
+    t.string "source", null: false
+    t.datetime "observed_at", null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "follower_tracking_completed_at"
+  end
+
+  create_table "follower_periods", force: :cascade do |t|
+    t.integer "person_id", null: false
+    t.integer "first_snapshot_id", null: false
+    t.integer "last_snapshot_id", null: false
+    t.integer "ended_snapshot_id"
+    t.datetime "followed_after"
+    t.datetime "first_seen_at", null: false
+    t.datetime "last_seen_at", null: false
+    t.datetime "ended_by"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ended_snapshot_id"], name: "index_follower_periods_on_ended_snapshot_id"
+    t.index ["first_snapshot_id"], name: "index_follower_periods_on_first_snapshot_id"
+    t.index ["last_snapshot_id"], name: "index_follower_periods_on_last_snapshot_id"
+    t.index ["person_id", "first_snapshot_id"], name: "index_follower_periods_on_person_id_and_first_snapshot_id", unique: true
+    t.index ["person_id"], name: "index_follower_periods_on_person_id"
+    t.index ["person_id"], name: "one_open_follow_period_per_person", unique: true, where: "ended_by IS NULL"
+  end
+
+  create_table "grok_proposals", force: :cascade do |t|
+    t.integer "person_id", null: false
+    t.string "kind", null: false
+    t.string "status", default: "pending", null: false
+    t.json "payload", default: {}, null: false
+    t.string "run_id"
+    t.string "via", null: false
+    t.datetime "reviewed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["person_id", "kind", "status"], name: "index_grok_proposals_on_person_id_and_kind_and_status"
+    t.index ["person_id"], name: "index_grok_proposals_on_person_id"
+  end
+
+  create_table "outreaches", force: :cascade do |t|
+    t.integer "daily_session_id"
+    t.integer "reply_event_id", null: false
+    t.string "target_x_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["daily_session_id"], name: "index_outreaches_on_daily_session_id"
+    t.index ["reply_event_id"], name: "index_outreaches_on_reply_event_id", unique: true
+    t.index ["target_x_id"], name: "index_outreaches_on_target_x_id", unique: true
+  end
+
+  create_table "people", force: :cascade do |t|
+    t.string "x_id"
+    t.string "handle", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "avatar_url"
+    t.string "banner_url"
+    t.string "location"
+    t.string "website_url"
+    t.integer "followers_count"
+    t.integer "following_count"
+    t.integer "posts_count"
+    t.datetime "joined_x_at"
+    t.datetime "profile_observed_at"
+    t.index ["handle"], name: "index_people_on_handle", unique: true
+    t.index ["x_id"], name: "index_people_on_x_id", unique: true
+  end
+
+  create_table "pins", force: :cascade do |t|
+    t.integer "person_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["person_id"], name: "index_pins_on_person_id", unique: true
+  end
+
+  create_table "post_dispositions", force: :cascade do |t|
+    t.integer "post_id", null: false
+    t.string "kind", null: false
+    t.datetime "until_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["post_id"], name: "index_post_dispositions_on_post_id", unique: true
+  end
+
+  create_table "posts", force: :cascade do |t|
+    t.integer "person_id", null: false
+    t.string "x_id", null: false
+    t.text "body", null: false
+    t.string "language", default: "en", null: false
+    t.string "topic"
+    t.text "match_reason"
+    t.integer "rank", default: 0, null: false
+    t.datetime "published_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "reply_count"
+    t.string "source", default: "x_api", null: false
+    t.string "grok_run_id"
+    t.index ["person_id"], name: "index_posts_on_person_id"
+    t.index ["x_id"], name: "index_posts_on_x_id", unique: true
+  end
+
+  create_table "reply_events", force: :cascade do |t|
+    t.integer "person_id", null: false
+    t.string "x_id", null: false
+    t.string "target_x_id", null: false
+    t.string "direction", null: false
+    t.string "classification", default: "unclassified", null: false
+    t.string "source", null: false
+    t.datetime "occurred_at", null: false
+    t.datetime "confirmed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "outreach_eligible", default: true, null: false
+    t.index ["person_id"], name: "index_reply_events_on_person_id"
+    t.index ["x_id"], name: "index_reply_events_on_x_id", unique: true
+  end
+
+  create_table "reply_reports", force: :cascade do |t|
+    t.integer "post_id", null: false
+    t.string "reply_url"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["post_id"], name: "index_reply_reports_on_post_id", unique: true
+  end
+
+  create_table "workspaces", force: :cascade do |t|
+    t.string "name", default: "Your workspace", null: false
+    t.text "builder_interests", default: "AI agents and coding tools\nBuilding and shipping Rails products\nDeveloper workflows\nJapanese learning tools\nLocal-first personal data", null: false
+    t.integer "monthly_budget_cents", default: 1000, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "owner_x_id"
+    t.datetime "collection_trial_completed_at"
+    t.string "mcp_token_digest"
+    t.datetime "mcp_token_created_at"
+    t.datetime "mcp_token_used_at"
+    t.boolean "mcp_share_notes", default: false, null: false
+    t.boolean "mcp_share_dms", default: false, null: false
+  end
+
+  create_table "x_authorizations", force: :cascade do |t|
+    t.string "state_digest", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["state_digest"], name: "index_x_authorizations_on_state_digest", unique: true
+  end
+
+  create_table "x_billing_cycles", force: :cascade do |t|
+    t.date "starts_on", null: false
+    t.date "ends_on", null: false
+    t.bigint "provider_spend_micros", default: 0, null: false
+    t.bigint "observed_through_read_id", default: 0, null: false
+    t.datetime "observed_at", null: false
+    t.string "owned_configuration_digest"
+    t.text "pricing_evidence"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["starts_on"], name: "index_x_billing_cycles_on_starts_on", unique: true
+  end
+
+  create_table "x_client_configurations", force: :cascade do |t|
+    t.text "settings_ciphertext", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "(1)", name: "index_single_x_client_configuration", unique: true
+  end
+
+  create_table "x_connections", force: :cascade do |t|
+    t.string "x_user_id", null: false
+    t.string "username", null: false
+    t.text "token_ciphertext", null: false
+    t.text "granted_scopes", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "identity_checked_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "(1)", name: "index_single_owner_x_connection", unique: true
+  end
+
+  create_table "x_reads", force: :cascade do |t|
+    t.integer "x_billing_cycle_id", null: false
+    t.integer "x_sync_run_id"
+    t.string "dataset", null: false
+    t.string "status", default: "reserved", null: false
+    t.string "pricing_basis", null: false
+    t.integer "resource_limit", null: false
+    t.integer "resource_count"
+    t.bigint "reserved_micros", null: false
+    t.bigint "estimated_micros"
+    t.boolean "trial", default: true, null: false
+    t.json "payload"
+    t.datetime "dispatched_at"
+    t.datetime "received_at"
+    t.datetime "committed_at"
+    t.text "message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["x_billing_cycle_id"], name: "index_x_reads_on_x_billing_cycle_id"
+    t.index ["x_sync_run_id"], name: "index_x_reads_on_x_sync_run_id"
+  end
+
+  create_table "x_source_posts", force: :cascade do |t|
+    t.string "x_id", null: false
+    t.string "author_x_id", null: false
+    t.string "parent_x_id"
+    t.string "reply_to_x_id"
+    t.string "conversation_x_id"
+    t.text "body", null: false
+    t.string "language"
+    t.datetime "published_at", null: false
+    t.integer "x_sync_run_id", null: false
+    t.boolean "repost", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "reply_count"
+    t.index ["x_id"], name: "index_x_source_posts_on_x_id", unique: true
+    t.index ["x_sync_run_id"], name: "index_x_source_posts_on_x_sync_run_id"
+  end
+
+  create_table "x_sync_runs", force: :cascade do |t|
+    t.string "owner_x_id", null: false
+    t.string "dataset", null: false
+    t.string "status", default: "ready", null: false
+    t.string "mode", default: "backfill", null: false
+    t.string "request_key", null: false
+    t.string "cursor"
+    t.string "since_id"
+    t.datetime "upper_bound", null: false
+    t.integer "page_limit", null: false
+    t.integer "page_number", default: 0, null: false
+    t.integer "resource_count", default: 0, null: false
+    t.datetime "finished_at"
+    t.datetime "retry_at"
+    t.text "message"
+    t.integer "follow_snapshot_id"
+    t.json "parameters", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["follow_snapshot_id"], name: "index_x_sync_runs_on_follow_snapshot_id"
+    t.index ["owner_x_id"], name: "one_fetching_run_per_owner", unique: true, where: "status = 'fetching'"
+    t.index ["request_key"], name: "index_x_sync_runs_on_request_key", unique: true
+  end
+
+  add_foreign_key "direct_messages", "x_sync_runs"
+  add_foreign_key "engagements", "x_sync_runs"
+  add_foreign_key "follow_memberships", "follow_snapshots"
+  add_foreign_key "follow_memberships", "people"
+  add_foreign_key "follow_protections", "people"
+  add_foreign_key "follow_reviews", "people"
+  add_foreign_key "follower_periods", "follow_snapshots", column: "ended_snapshot_id"
+  add_foreign_key "follower_periods", "follow_snapshots", column: "first_snapshot_id"
+  add_foreign_key "follower_periods", "follow_snapshots", column: "last_snapshot_id"
+  add_foreign_key "follower_periods", "people"
+  add_foreign_key "grok_proposals", "people"
+  add_foreign_key "outreaches", "daily_sessions"
+  add_foreign_key "outreaches", "reply_events"
+  add_foreign_key "pins", "people"
+  add_foreign_key "post_dispositions", "posts"
+  add_foreign_key "posts", "people"
+  add_foreign_key "reply_events", "people"
+  add_foreign_key "reply_reports", "posts"
+  add_foreign_key "x_reads", "x_billing_cycles"
+  add_foreign_key "x_reads", "x_sync_runs"
+  add_foreign_key "x_source_posts", "x_sync_runs"
+  add_foreign_key "x_sync_runs", "follow_snapshots"
+end

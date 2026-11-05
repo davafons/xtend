@@ -1,0 +1,146 @@
+<% content_for :title, @person.name %>
+<div class="pt-6 pb-6">
+  <%= lc_button_link_to "All people", people_path, variant: :ghost, size: :sm, icon: "arrow-left" %>
+</div>
+<div class="grid grid-cols-[minmax(0,1fr)_22rem] items-start gap-8">
+  <section class="flex flex-col gap-6">
+    <%= lc_card padding: :none, class: "overflow-hidden" do %>
+      <% if @person.banner_url.present? && !demo? %>
+        <%= image_tag @person.banner_image_url, alt: "", loading: "lazy", referrerpolicy: "no-referrer", class: "aspect-[3/1] max-h-56 w-full object-cover" %>
+      <% end %>
+      <div class="flex flex-col gap-5 p-6">
+        <div class="flex items-center gap-4">
+          <%= person_avatar @person, size: :lg %>
+          <div class="grow">
+            <%= lc_heading @person.name, level: 1, size: :page %>
+            <p class="text-muted">@<%= @person.handle %></p>
+          </div>
+          <%= source_link "View on X", @person.profile_url, variant: :secondary, size: :sm %>
+        </div>
+        <%= lc_text @person.description.presence || "No profile description collected yet.", tone: :muted %>
+        <% if @person.x_id.nil? && @person.posts.where(source: "grok").exists? %>
+          <%= lc_alert "Known only from Grok research. No X read has confirmed this account yet; the profile shown is what Grok reported.", tone: :warning %>
+        <% end %>
+        <% facts = [
+          (@person.location if @person.location.present?),
+          (link_to(@person.website_url.sub(%r{\Ahttps?://(www\.)?}, "").sub(/[?#].*\z/, "").delete_suffix("/").truncate(40), @person.website_url, target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline") if @person.website_url.present? && !demo?),
+          ("Joined X #{@person.joined_x_at.strftime('%B %Y')}" if @person.joined_x_at)
+        ].compact %>
+        <% if facts.any? || @person.followers_count %>
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted">
+            <% facts.each do |fact| %><span><%= fact %></span><% end %>
+            <% if @person.followers_count %>
+              <span><strong class="text-foreground tabular-nums"><%= number_to_human(@person.followers_count, precision: 3, significant: true, format: "%n%u", units: { thousand: "K", million: "M" }) %></strong> followers</span>
+              <span><strong class="text-foreground tabular-nums"><%= number_with_delimiter(@person.following_count) %></strong> following</span>
+              <span><strong class="text-foreground tabular-nums"><%= number_with_delimiter(@person.posts_count) %></strong> posts</span>
+            <% end %>
+          </div>
+          <% if @person.profile_observed_at %><p class="-mt-3 text-xs text-muted">Profile as of <%= @person.profile_observed_at.strftime("%-d %b %Y") %></p><% end %>
+        <% end %>
+        <div class="flex flex-wrap items-center gap-2">
+          <%= relationship_badge @person.reply_state %>
+          <%= relationship_badge @person.follow_state(@graph) %>
+          <span class="grow"></span>
+          <%= person_actions(@person) %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <%= lc_heading "Timeline", level: 2, size: :section %>
+        <nav class="flex flex-wrap items-center gap-1" aria-label="Timeline filter">
+          <% counts = @timeline.counts %>
+          <%= lc_button_link_to "Everything · #{@timeline.entries.size}", person_path(@person), variant: @category ? :ghost : :secondary, size: :sm, aria: { current: (@category ? nil : "page") } %>
+          <% Person::Timeline::CATEGORIES.each do |key, label| %>
+            <%= lc_button_link_to "#{label} · #{counts.fetch(key, 0)}", person_path(@person, show: key), variant: @category == key ? :secondary : :ghost, size: :sm, aria: { current: ("page" if @category == key) } %>
+          <% end %>
+        </nav>
+      </div>
+      <%= lc_card do %>
+        <% if @entries.empty? %>
+          <%= lc_text "Nothing here in the collected data. Missing history is not proof that you never interacted.", tone: :muted %>
+        <% else %>
+          <ol class="crm-timeline flex flex-col">
+            <% @entries.each_with_index do |entry, index| %>
+              <% if index.zero? || entry.at.to_date != @entries[index - 1].at.to_date %>
+                <li class="pb-3 pt-1 text-xs font-semibold uppercase tracking-wide text-muted <%= 'pt-5' unless index.zero? %>"><%= entry.at.year == Date.current.year ? entry.at.strftime("%A, %-d %B") : entry.at.strftime("%-d %B %Y") %></li>
+              <% end %>
+              <li class="crm-timeline-entry relative flex gap-4 pb-5">
+                <span class="relative z-10 flex size-6 shrink-0 items-center justify-center" style="background: var(--card-bg)"><%= lc_icon entry.icon, options: { class: "size-4 #{ { primary: "text-primary", success: "text-success", warning: "text-warning" }.fetch(entry.tone, "text-muted") }", "aria-hidden": true } %></span>
+                <div class="min-w-0 grow">
+                  <div class="flex items-baseline justify-between gap-3">
+                    <p class="text-sm font-semibold"><%= entry.title %></p>
+                    <time class="shrink-0 text-xs tabular-nums text-muted" datetime="<%= entry.at.iso8601 %>"><%= entry.at.strftime("%H:%M") %></time>
+                  </div>
+                  <% if entry.context %><p class="mt-1 line-clamp-2 border-s-2 border-border ps-3 text-xs text-muted"><%= entry.context %></p><% end %>
+                  <% if entry.body %><p class="mt-2 whitespace-pre-line text-sm"><%= entry.body %></p><% end %>
+                  <% if entry.detail || entry.url %>
+                    <p class="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-muted">
+                      <% if entry.detail %><span><%= entry.detail %></span><% end %>
+                      <% if entry.url && !demo? %><%= link_to entry.url, target: "_blank", rel: "noopener noreferrer", class: "inline-flex items-center gap-0.5 font-medium text-primary hover:underline" do %>Open on X<%= lc_icon "arrow-up-right", options: { class: "size-3", "aria-hidden": true } %><% end %><% end %>
+                    </p>
+                  <% end %>
+                </div>
+              </li>
+            <% end %>
+          </ol>
+        <% end %>
+        <p class="mt-2 border-t border-border pt-4 text-xs text-muted">Built from all collected replies, posts, DM metadata, likes, bookmarks, and complete follow checks. Coverage is partial; follow dates fall between checks rather than at exact times.</p>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="sticky top-28 flex flex-col gap-6">
+    <%= render "people/grok", person: @person %>
+    <%= lc_card do %>
+      <%= form_with model: @person, class: "flex flex-col gap-4" do %>
+        <%= lc_field label: "Your notes", id: "person-notes", hint: "Only you maintain these. Imports never overwrite them." do |field| %>
+          <%= lc_textarea @person.notes, name: "person[notes]", rows: 5, placeholder: "Why this person matters, shared interests, or something to follow up on…", **field %>
+        <% end %>
+        <div><%= lc_button "Save notes", type: :submit, size: :sm, icon: "pencil-square" %></div>
+      <% end %>
+    <% end %>
+    <%= lc_card do %>
+      <div class="flex flex-col gap-4">
+        <%= lc_heading "The relationship", level: 2, size: :card %>
+        <dl class="grid grid-cols-2 gap-4">
+          <div><dd class="text-3xl font-semibold tabular-nums"><%= @person.outgoing_count %></dd><dt class="text-sm text-muted">Replies from you</dt></div>
+          <div><dd class="text-3xl font-semibold tabular-nums"><%= @person.incoming_count %></dd><dt class="text-sm text-muted">Replies from them</dt></div>
+          <div class="col-span-2"><dt class="text-sm text-muted">Last reply</dt><dd class="text-sm font-medium"><%= relative_day @person.last_interaction_at %></dd></div>
+          <% interactions = @person.interactions %>
+          <div class="col-span-2">
+            <dt class="text-sm text-muted">Last direct message</dt>
+            <dd class="text-sm font-medium">
+              <% if (dm = interactions.last("dm")) %>
+                <%= relative_day dm.at %> · from <%= dm.direction == "outgoing" ? "you" : "them" %>
+                <% if interactions.awaiting_dm_reply? %><span class="mt-1 block"><%= lc_badge "They sent the last DM", tone: :warning %></span><% end %>
+              <% else %>
+                <span class="text-muted">None observed</span>
+              <% end %>
+            </dd>
+          </div>
+          <div><dt class="text-sm text-muted">Likes from you</dt><dd class="text-sm font-medium tabular-nums"><%= @person.engagements.count { |engagement| engagement.kind == "like" } %></dd></div>
+          <div><dt class="text-sm text-muted">Bookmarks</dt><dd class="text-sm font-medium tabular-nums"><%= @person.engagements.count { |engagement| engagement.kind == "bookmark" } %></dd></div>
+          <div class="col-span-2"><dt class="text-sm text-muted">Last interaction of any kind</dt><dd class="text-sm font-medium"><%= interaction_label(interactions.latest) %></dd></div>
+        </dl>
+        <p class="text-xs text-muted">Coverage: <%= safe_join(Person::Interactions.coverage.map { |label, value| "#{label} #{value}" }, " · ") %>. Reply state, DMs, likes, and follow status are separate facts.</p>
+        <% if @person.follower_periods.any? %>
+          <%= lc_button_link_to "Follower history and timing", follower_history_path, variant: :ghost, size: :sm, icon: "clock" %>
+        <% end %>
+      </div>
+    <% end %>
+    <%= lc_card do %>
+      <div class="flex flex-col gap-4">
+        <%= lc_heading "Keep them in your circle", level: 2, size: :card %>
+        <%= lc_text "Mutuals are protected automatically. You can also keep anyone whose work you value.", size: :small, tone: :muted %>
+        <% if @person.follow_protection %>
+          <%= lc_badge "Protected from cleanup", tone: :success %>
+          <%= lc_button_to "Remove manual protection", person_follow_protection_path(@person), method: :delete, variant: :ghost, size: :sm, icon: "shield-exclamation" %>
+        <% else %>
+          <%= lc_button_to "Keep following", person_follow_protection_path(@person), variant: :secondary, size: :sm, icon: "shield-check" %>
+        <% end %>
+      </div>
+    <% end %>
+  </aside>
+</div>

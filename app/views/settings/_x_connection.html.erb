@@ -1,0 +1,36 @@
+<div class="flex flex-col gap-4">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <p class="font-semibold">Your X account</p>
+      <% if XConnection.current %>
+        <p class="mt-2 text-sm text-muted">Connected as @<%= XConnection.current.username %>. Identity checked <%= time_ago_in_words(XConnection.current.identity_checked_at) %> ago.</p>
+      <% else %>
+        <p class="mt-2 text-sm text-muted">Connect your own X account for read-only access. This is a personal tool; there is no app signup or separate login.</p>
+      <% end %>
+    </div>
+    <%= lc_badge XConnection.current ? "Credentials saved" : "Not connected", tone: XConnection.current ? :success : :warning %>
+  </div>
+  <% if XConfig.configured? %>
+    <p class="text-sm text-muted">Read-only access to posts, profiles, followers, following, likes, bookmarks, and DMs, plus refresh access. <% if XConnection.current %>Granted now: <%= XConnection.current.granted_scopes.split.to_sentence %>. <% end %>No posting, following, liking, or DM-sending permissions.</p>
+    <% if XConfig.callback_origin != request.base_url %>
+      <%= lc_alert "Open the app at #{XConfig.callback_origin} before connecting so the callback uses the same browser session.", tone: :warning %>
+    <% end %>
+    <div class="flex flex-wrap gap-2">
+      <% if XConnection.current %>
+        <%= lc_button_to "Check connection", x_connection_path, method: :patch, variant: :secondary, size: :sm, icon: "arrow-path" %>
+        <%= lc_button_to "Disconnect locally", x_connection_path, method: :delete, variant: :ghost, size: :sm, icon: "link-slash" %>
+      <% else %>
+        <%= lc_button_to "Connect X", x_connection_path, variant: :primary, size: :sm, icon: "link", disabled: demo?, data: { turbo: false } %>
+      <% end %>
+    </div>
+  <% else %>
+    <%= lc_text "Save your OAuth Client ID, Client Secret if required, and exact redirect URI in the local developer-app form. Environment configuration and Rails encrypted credentials are also supported.", size: :small, tone: :muted %>
+    <%= lc_button "Connect X", disabled: true, variant: :secondary, size: :sm %>
+  <% end %>
+  <div class="rounded-2xl bg-background p-4">
+    <p class="text-sm font-semibold">Exact callback URL</p>
+    <p class="mt-2 break-all text-sm"><%= XConfig.redirect_uri.presence || "Not configured" %></p>
+    <p class="mt-2 text-xs text-muted">The callback path is <code>/x/connection/callback</code>. Register the complete configured URL exactly in the X developer console. The configured origin must match the browser session used to connect.</p>
+  </div>
+  <p class="text-xs text-muted">Connecting checks only your account identity, which may consume one API user read. It does not collect tweets or follows or start recurring jobs. Local disconnect removes saved tokens; revoke the app in X settings to remove X's authorization.</p>
+</div>

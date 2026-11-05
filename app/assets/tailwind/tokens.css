@@ -1,0 +1,83 @@
+@font-face { font-family: Manrope; src: url("manrope-400-latin.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: Manrope; src: url("manrope-500-latin.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: Manrope; src: url("manrope-600-latin.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: Manrope; src: url("manrope-700-latin.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+/* Sanzo Wada combination 267 + white: https://colors.bible/#c=Blue~267 */
+:root {
+  --wada-267-blue: #006eb8;
+  --wada-267-sand: #fdbf68;
+  --wada-267-orange: #f99d1b;
+  --wada-267-green: #00978d;
+  --f-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --f-display: var(--f-body);
+  --background: color-mix(in oklab, var(--wada-267-blue) 3%, white);
+  --surface: color-mix(in oklab, var(--wada-267-blue) 7%, white);
+  --surface-hover: color-mix(in oklab, var(--wada-267-blue) 12%, white);
+  --foreground: color-mix(in oklab, var(--wada-267-blue) 28%, black);
+  --muted: color-mix(in oklab, var(--foreground) 70%, white);
+  --border: color-mix(in oklab, var(--wada-267-blue) 15%, white);
+  --primary: var(--wada-267-blue);
+  --on-primary: white;
+  --success: color-mix(in oklab, var(--wada-267-green) 72%, black);
+  --warning: color-mix(in oklab, var(--wada-267-orange) 52%, black);
+  --danger: color-mix(in oklab, var(--wada-267-orange) 36%, var(--foreground));
+  --card-bg: white;
+  --card-border: 1px solid var(--border);
+  --card-radius: 1.25rem;
+  --card-shadow: 0 3px 14px -7px color-mix(in oklab, var(--foreground) 14%, transparent);
+  --crm-accent: color-mix(in oklab, var(--wada-267-orange) 44%, var(--foreground));
+  --crm-accent-soft: color-mix(in oklab, var(--wada-267-orange) 22%, white);
+  --crm-session-bg: color-mix(in oklab, var(--wada-267-sand) 30%, white);
+  --crm-avatar-blue: color-mix(in oklab, var(--wada-267-blue) 15%, white);
+  --crm-avatar-blue-ink: var(--wada-267-blue);
+  --crm-avatar-green: color-mix(in oklab, var(--wada-267-green) 18%, white);
+  --crm-avatar-green-ink: var(--success);
+  --crm-avatar-orange: color-mix(in oklab, var(--wada-267-orange) 25%, white);
+  --crm-avatar-orange-ink: var(--warning);
+  --crm-avatar-sand: color-mix(in oklab, var(--wada-267-sand) 45%, white);
+  --crm-avatar-sand-ink: var(--foreground);
+  --ui-page-max: 82rem;
+}
+
+html[data-theme="dark"] {
+  --background: color-mix(in oklab, var(--wada-267-blue) 18%, black);
+  --surface: color-mix(in oklab, var(--wada-267-blue) 27%, black);
+  --surface-hover: color-mix(in oklab, var(--wada-267-blue) 36%, black);
+  --foreground: color-mix(in oklab, var(--wada-267-sand) 8%, white);
+  --muted: color-mix(in oklab, var(--foreground) 72%, var(--background));
+  --border: color-mix(in oklab, var(--wada-267-blue) 38%, var(--background));
+  --primary: color-mix(in oklab, var(--wada-267-blue) 60%, white);
+  --on-primary: var(--background);
+  --success: color-mix(in oklab, var(--wada-267-green) 60%, white);
+  --warning: var(--wada-267-sand);
+  --danger: color-mix(in oklab, var(--wada-267-orange) 65%, white);
+  --card-bg: color-mix(in oklab, var(--wada-267-blue) 23%, black);
+  --card-shadow: 0 4px 18px -8px rgb(0 0 0 / 30%);
+  --crm-accent: var(--wada-267-sand);
+  --crm-accent-soft: color-mix(in oklab, var(--wada-267-orange) 15%, var(--background));
+  --crm-session-bg: color-mix(in oklab, var(--wada-267-sand) 12%, var(--background));
+  --crm-avatar-blue: color-mix(in oklab, var(--wada-267-blue) 38%, var(--background));
+  --crm-avatar-blue-ink: var(--primary);
+  --crm-avatar-green: color-mix(in oklab, var(--wada-267-green) 25%, var(--background));
+  --crm-avatar-green-ink: var(--success);
+  --crm-avatar-orange: color-mix(in oklab, var(--wada-267-orange) 20%, var(--background));
+  --crm-avatar-orange-ink: var(--warning);
+  --crm-avatar-sand: color-mix(in oklab, var(--wada-267-sand) 20%, var(--background));
+  --crm-avatar-sand-ink: var(--foreground);
+}
+
+.crm-avatar[data-avatar-tone="blue"] { background: var(--crm-avatar-blue); --avatar-color: var(--crm-avatar-blue-ink); }
+.crm-avatar[data-avatar-tone="green"] { background: var(--crm-avatar-green); --avatar-color: var(--crm-avatar-green-ink); }
+.crm-avatar[data-avatar-tone="orange"] { background: var(--crm-avatar-orange); --avatar-color: var(--crm-avatar-orange-ink); }
+.crm-avatar[data-avatar-tone="sand"] { background: var(--crm-avatar-sand); --avatar-color: var(--crm-avatar-sand-ink); }
+.crm-session-card { --card-bg: var(--crm-session-bg); --card-border: 1px solid color-mix(in oklab, var(--primary) 20%, var(--border)); }
+.crm-accent { color: var(--crm-accent); }
+.crm-accent-panel { background: var(--crm-accent-soft); color: var(--crm-accent); }
+.crm-navigation [aria-current="page"] { --button-bg: var(--primary); --button-ink: var(--on-primary); }
+.crm-section-icon { display: inline-block; width: 1.15em; height: 1.15em; margin-right: 0.5rem; vertical-align: -0.18em; color: var(--primary); }
+
+.crm-timeline-entry::before { content: ""; position: absolute; inset-block: 1.75rem 0.25rem; inset-inline-start: calc(0.75rem - 1px); width: 2px; background: var(--border); }
+.crm-timeline-entry:has(+ li:not(.crm-timeline-entry))::before, .crm-timeline-entry:last-child::before { display: none; }
+.crm-post-card[data-opened] { --card-border: 1px solid color-mix(in oklab, var(--wada-267-orange) 55%, var(--border)); }
+.crm-post-preview { background: var(--card-bg); }

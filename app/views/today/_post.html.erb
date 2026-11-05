@@ -1,0 +1,50 @@
+<%= lc_card id: dom_id(post), class: "crm-post-card @container", data: { controller: "outreach", outreach_id_value: post.id } do %>
+  <div class="flex flex-col gap-5">
+    <div class="flex items-start justify-between gap-4">
+      <%= link_to person_path(post.person), class: "flex items-center gap-3" do %>
+        <%= person_avatar post.person %>
+        <span>
+          <span class="block font-semibold"><%= post.person.name %></span>
+          <span class="text-sm text-muted">@<%= post.person.handle %> · <%= time_ago_in_words(post.published_at) %> ago</span>
+        </span>
+      <% end %>
+      <%= person_actions(post.person) %>
+    </div>
+    <% if post.source == "grok" %>
+      <div class="flex flex-wrap items-center gap-2 text-xs text-muted">
+        <%= lc_badge "Unverified · from Grok", tone: :warning %>
+        <span>Text, time, and author as Grok reported them. Open on X to check before replying.</span>
+      </div>
+    <% end %>
+    <p class="whitespace-pre-line text-lg"><%= CGI.unescapeHTML(post.body) %></p>
+    <div class="rounded-2xl bg-primary-soft/60 p-4 text-sm">
+      <p><span class="font-semibold">Why this fits</span> · <%= post.match_reason.presence || tag.span("No match reason saved for this tweet.", class: "text-muted") %></p>
+      <p class="mt-2 text-muted"><%= post.person.description.presence || "No bio collected. Check their profile on X before replying." %><% if post.person.x_id.nil? && post.person.description.present? %> <span class="text-xs">(bio from Grok)</span><% end %></p>
+      <% if post.person.notes.present? %><p class="mt-2"><span class="font-semibold">Your note</span> · <%= post.person.notes %></p><% end %>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 text-xs text-muted">
+      <%= relationship_badge post.person.reply_state %>
+      <%= relationship_badge post.person.follow_state(@graph) %>
+      <span><%= post.reply_count.nil? ? "Reply count not collected" : "#{post.reply_count} replies at last check" %></span>
+      <% if post.topic.present? %><span class="ms-auto"><%= post.topic %></span><% end %>
+    </div>
+    <p class="text-sm font-medium text-warning" data-outreach-target="hint" hidden>Opened on X. If you replied, mark it below — paste the link to your reply if you have it.</p>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex grow flex-wrap items-center gap-2">
+        <%= source_link "Open on X", post.source_url, size: :sm, data: { action: "outreach#opened" } %>
+        <%= form_with url: post_reply_report_path(post), method: :post, class: "flex grow items-center gap-2" do %>
+          <%= lc_input name: "reply_url", type: :url, size: :sm, placeholder: "Your reply link (optional)", aria: { label: "Link to your reply on X (optional)" }, class: "max-w-64 grow" %>
+          <%= lc_button "I replied", type: :submit, variant: :secondary, size: :sm, icon: "check" %>
+        <% end %>
+      </div>
+      <div class="flex items-center gap-1">
+        <% if post.source == "grok" && !demo? %>
+          <%= lc_button_to "Verify on X", x_sync_runs_path, params: { dataset: "posts", post_x_id: post.x_id, return_to: "today", request_key: SecureRandom.uuid }, variant: :ghost, size: :sm, icon: "shield-check", title: "One paid post lookup, $0.005 standard", disabled: !XBillingCycle.current || !XConnection.current %>
+        <% end %>
+        <%= lc_button_to "Tomorrow", post_disposition_path(post, kind: "snoozed"), variant: :ghost, size: :sm, icon: "clock", title: "Hide until tomorrow" %>
+        <%= lc_button_to "Skip", post_disposition_path(post, kind: "skipped"), variant: :ghost, size: :sm, icon: "forward", title: "Hide this tweet" %>
+      </div>
+    </div>
+    <% if demo? %><p class="text-xs text-muted">Fictional example. Live links are disabled.</p><% end %>
+  </div>
+<% end %>

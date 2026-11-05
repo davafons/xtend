@@ -1,0 +1,49 @@
+<section id="billing" class="flex flex-col gap-4 scroll-mt-8">
+  <%= lc_heading "API budget and billing cycle", level: 2, size: :section %>
+  <%= lc_card do %>
+    <div class="flex flex-col gap-5">
+      <p class="text-3xl font-semibold tabular-nums"><%= number_to_currency(@workspace.monthly_budget_cents / 100.0) %><span class="text-base font-normal text-muted"> / billing cycle</span></p>
+      <%= lc_text "This app cannot verify or change your X billing cap. X enforces the account-wide cap. Local estimates leave other apps' usage unknown. Check the console before recording an observation.", size: :small, tone: :muted %>
+      <%= lc_button_link_to "Open X billing", "https://console.x.com/", target: "_blank", rel: "noopener noreferrer", variant: :ghost, size: :sm %>
+      <% if @cycle %>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><p class="text-muted">Observed account spend</p><p class="font-semibold"><%= microdollars(@cycle.provider_spend_micros) %></p></div>
+          <div><p class="text-muted">Later estimates and holds</p><p class="font-semibold"><%= microdollars(@cycle.pending_micros) %></p></div>
+          <div><p class="text-muted">Local remaining allowance</p><p class="font-semibold"><%= microdollars(@cycle.remaining_micros) %></p></div>
+          <div><p class="text-muted">Pricing basis</p><p class="font-semibold"><%= @cycle.owned_pricing? ? "Recorded owned-read evidence" : "Standard rates" %></p></div>
+        </div>
+        <p class="text-xs text-muted">Cycle <%= @cycle.starts_on %> to <%= @cycle.ends_on %> (end exclusive). Console observation <%= time_ago_in_words(@cycle.observed_at) %> ago. Update it at least daily before collection.</p>
+        <% if @cycle.remaining_micros <= @cycle.allowance_micros / 5 %><%= lc_alert "Less than 20% of the local allowance remains. Prefer cached context and relationship updates.", tone: :warning %><% end %>
+        <% uncertain = XRead.where(status: "uncertain").count %>
+        <% if uncertain.positive? %><%= lc_alert "#{uncertain} request reservations have uncertain outcomes. Their full cost remains held.", tone: :warning %><% end %>
+      <% end %>
+      <%= form_with url: x_billing_cycles_path, class: "flex flex-col gap-4" do %>
+        <div class="grid grid-cols-2 gap-3">
+          <%= lc_field label: "Cycle starts", id: "cycle-start" do |field| %><%= lc_input type: :date, name: "cycle[starts_on]", value: @cycle&.starts_on, required: true, **field %><% end %>
+          <%= lc_field label: "Cycle ends (exclusive)", id: "cycle-end" do |field| %><%= lc_input type: :date, name: "cycle[ends_on]", value: @cycle&.ends_on, required: true, **field %><% end %>
+        </div>
+        <%= lc_field label: "Current X account spend (USD cents)", id: "cycle-spend", hint: "Copy the current cycle's spend from X. This is spend, not credit balance. 73 cents means $0.73." do |field| %><%= lc_input type: :number, name: "cycle[spend_cents]", min: 0, step: 1, required: true, **field %><% end %>
+        <div><%= lc_button "Record console observation", type: :submit, variant: :secondary, size: :sm, icon: "check-circle", disabled: demo? %></div>
+      <% end %>
+      <% if @workspace.errors.any? %><%= lc_alert @workspace.errors.full_messages.to_sentence, tone: :danger %><% end %>
+      <%= form_with model: @workspace, url: settings_path, class: "flex flex-col gap-4" do %>
+        <%= lc_field label: "Monthly API allowance (USD cents)", id: "workspace-monthly-budget-cents", hint: "1,000 cents = $10.00. Saving this does not change the cap at X." do |field| %><%= lc_input name: "workspace[monthly_budget_cents]", value: @workspace.monthly_budget_cents_before_type_cast, type: :number, min: 0, max: 100000, step: 1, required: true, **field %><% end %>
+        <div><%= lc_button "Save allowance", type: :submit, size: :sm, icon: "banknotes" %></div>
+      <% end %>
+      <% if @cycle %>
+        <%= lc_collapsible title: "Owned-read pricing evidence" do %>
+          <%= form_with url: x_billing_cycle_path(@cycle), method: :patch, class: "flex flex-col gap-4 pt-4" do %>
+            <%= lc_text "Use this only after the console or billing evidence confirms owned rates for this developer app. A successful OAuth connection alone is insufficient.", size: :small, tone: :muted %>
+            <%= lc_field label: "Billing evidence", id: "pricing-evidence" do |field| %><%= lc_textarea @cycle.pricing_evidence, name: "pricing_evidence", rows: 3, required: true, maxlength: 1000, **field %><% end %>
+            <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="owned_confirmed" value="1" required> I checked owned-read pricing for the current app and owner.</label>
+            <div><%= lc_button "Record pricing evidence", type: :submit, variant: :secondary, size: :sm, icon: "shield-check", disabled: demo? %></div>
+          <% end %>
+        <% end %>
+        <% unless @workspace.collection_trial_completed_at %>
+          <p class="text-xs text-muted">First-collection trial remaining: <%= microdollars(XBillingCycle.trial_remaining_micros) %>, also limited by the cycle balance.</p>
+          <%= lc_button_to "Finish reviewed collection trial", x_billing_cycle_path(@cycle), method: :patch, params: {finish_trial: "1"}, variant: :ghost, size: :sm, disabled: demo? %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</section>

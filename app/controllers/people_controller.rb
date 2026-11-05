@@ -1,0 +1,87 @@
+class PeopleController < ApplicationController
+  PER_PAGE = 50
+  SORTS = {
+    "name" => "people.name COLLATE NOCASE ASC",
+    "recent" => "last_reply_at IS NULL, last_reply_at DESC, people.name COLLATE NOCASE ASC",
+    "replies" => "reply_total DESC, last_reply_at DESC, people.name COLLATE NOCASE ASC",
+    "added" => "people.created_at DESC, people.id DESC",
+    "followers" => "people.followers_count IS NULL, people.followers_count DESC, people.name COLLATE NOCASE ASC"
+  }.freeze
+
+  def index
+    @graph = FollowGraph.latest
+    @people = Person.all
+    @people = @people.where("name LIKE ? OR handle LIKE ? OR notes LIKE ? OR description LIKE ?", *Array.new(4, "%#{Person.sanitize_sql_like(params[:q].to_s)}%")) if params[:q].present?
+    @people = @people.pinned if params[:filter] == "pinned"
+    @people = @people.where(id: FollowProtection.select(:person_id)) if params[:filter] == "kept"
+    @people = @people.where.not(notes: [nil, ""]) if params[:filter] == "notes"
+    if params[:follow].present?
+      if @graph.complete?
+        following = @graph.following.follow_memberships.select(:person_id)
+        followers = @graph.followers.follow_memberships.select(:person_id)
+        @people = case params[:follow]
+        when "mutual" then @people.where(id: following).where(id: followers)
+        when "following_only" then @people.where(id: following).where.not(id: followers)
+        when "followers_only" then @people.where(id: followers).where.not(id: following)
+        when "lost" then @people.where(id: FollowerPeriod.ended.select(:person_id)).where.not(id: FollowerPeriod.ongoing.select(:person_id))
+        else @people
+        end
+      else
+        @people = @people.none
+      end
+    end
+    if params[:state].present?
+      outgoing = ReplyEvent.where(direction: "outgoing").select(:person_id)
+      incoming = ReplyEvent.where(direction: "incoming").select(:person_id)
+      @people = case params[:state]
+      when "Two-way" then @people.where(id: outgoing).where(id: incoming)
+      when "You replied only" then @people.where(id: outgoing).where.not(id: incoming)
+      when "They replied only" then @people.where(id: incoming).where.not(id: outgoing)
+      when "No observed replies" then @people.where.not(id: outgoing).where.not(id: incoming)
+      else @people
+      end
+    end
+    @count = @people.count
+    @sort = SORTS.key?(params[:sort]) ? params[:sort] : "recent"
+    @page = [params[:page].to_i, 1].max
+    @people = @people.includes(:pin, :follow_protection, :reply_events)
+      .select("people.*",
+        "(SELECT MAX(occurred_at) FROM reply_events WHERE reply_events.person_id = people.id) AS last_reply_at",
+        "(SELECT COUNT(*) FROM reply_events WHERE reply_events.person_id = people.id) AS reply_total")
+      .order(Arel.sql(SORTS.fetch(@sort)))
+      .offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
+  end
+
+  def show
+    @person = Person.includes(:pin, :follow_protection, :reply_events, :follow_reviews, :follower_periods, :posts, :engagements).find(params[:id])
+    @graph = FollowGraph.latest
+    @timeline = @person.timeline
+    @category = Person::Timeline::CATEGORIES.key?(params[:show]) ? params[:show] : nil
+    @entries = @category ? @timeline.select { |entry| entry.category == @category } : @timeline.entries
+  end
+
+  def new
+    @person = Person.new
+  end
+
+  def create
+    @person = Person.new(params.require(:person).permit(:handle, :name, :notes))
+    if @person.save
+      redirect_to @person, notice: "Person saved."
+    else
+      render :new, status: :unprocessable_entity
+    end
+  end
+
+  def update
+    @person = Person.find(params[:id])
+    if @person.update(params.require(:person).permit(:notes))
+      redirect_to @person, notice: "Notes saved."
+    else
+      @graph = FollowGraph.latest
+      @timeline = @person.timeline
+      @entries = @timeline.entries
+      render :show, status: :unprocessable_entity
+    end
+  end
+end

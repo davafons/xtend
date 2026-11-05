@@ -1,0 +1,26 @@
+<% content_for :title, "Add a person" %>
+<div class="pt-8 pb-8">
+  <%= lc_heading "Someone worth remembering.", level: 1, size: :page %>
+</div>
+<div class="max-w-xl">
+  <%= lc_card do %>
+    <%= form_with model: @person, class: "flex flex-col gap-5" do %>
+      <% if @person.errors.any? %>
+        <%= lc_alert @person.errors.full_messages.to_sentence, tone: :danger %>
+      <% end %>
+      <%= lc_field label: "Name", id: "person-name" do |field| %>
+        <%= lc_input name: "person[name]", value: @person.name, required: true, **field %>
+      <% end %>
+      <%= lc_field label: "X handle", id: "person-handle", hint: "Without the @. A handle alone does not verify their X identity." do |field| %>
+        <%= lc_input name: "person[handle]", value: @person.handle, required: true, **field %>
+      <% end %>
+      <%= lc_field label: "Why do you want to remember them?", id: "person-notes" do |field| %>
+        <%= lc_textarea @person.notes, name: "person[notes]", rows: 4, **field %>
+      <% end %>
+      <div class="flex items-center gap-3">
+        <%= lc_button "Save person", type: :submit %>
+        <%= lc_button_link_to "Cancel", people_path, variant: :ghost %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

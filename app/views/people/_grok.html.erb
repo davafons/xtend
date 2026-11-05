@@ -1,0 +1,38 @@
+<% recap = person.grok_proposals.latest_recap %>
+<% pending = person.grok_proposals.pending.order(:created_at) %>
+<% if recap || pending.any? %>
+  <%= lc_card do %>
+    <div class="flex flex-col gap-4">
+      <%= lc_heading "From Grok", level: 2, size: :card %>
+      <% if recap %>
+        <div>
+          <p class="whitespace-pre-line text-sm"><%= recap.payload["summary"] %></p>
+          <p class="mt-1 text-xs text-muted">Recap accepted <%= relative_day recap.reviewed_at %>. Grok research, not collected evidence.</p>
+        </div>
+      <% end %>
+      <% pending.each do |proposal| %>
+        <div class="flex flex-col gap-2 rounded-2xl bg-primary-soft/60 p-4 text-sm">
+          <p class="font-semibold"><%= proposal.kind == "recap" ? "Proposed recap" : "Proposed profile facts" %></p>
+          <% if proposal.kind == "recap" %>
+            <p class="whitespace-pre-line"><%= proposal.payload["summary"] %></p>
+            <% Array(proposal.payload["evidence_urls"]).each do |url| %>
+              <% unless demo? %><%= link_to url.truncate(48), url, target: "_blank", rel: "noopener noreferrer", class: "text-xs text-primary hover:underline" %><% end %>
+            <% end %>
+          <% else %>
+            <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+              <% proposal.payload.except("observed_at").each do |key, value| %>
+                <dt class="text-muted"><%= key.humanize %></dt>
+                <dd><%= value %><% if person[key].present? %> <span class="text-xs text-muted">(you already have a value; it stays)</span><% end %></dd>
+              <% end %>
+            </dl>
+            <p class="text-xs text-muted">Accepting fills only empty fields. X-collected data and your edits always win.</p>
+          <% end %>
+          <div class="flex gap-2">
+            <%= lc_button_to "Accept", grok_proposal_path(proposal), method: :patch, params: { decision: "accept" }, variant: :secondary, size: :sm, icon: "check" %>
+            <%= lc_button_to "Dismiss", grok_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, variant: :ghost, size: :sm, icon: "x-mark" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

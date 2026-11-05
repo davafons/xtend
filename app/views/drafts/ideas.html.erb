@@ -1,0 +1,107 @@
+<% content_for :title, "Ideas" %>
+<div class="flex items-end justify-between gap-8 pb-6 pt-8">
+  <div class="flex flex-col gap-3">
+    <%= lc_heading "What to post about", level: 1, size: :page %>
+    <%= lc_text "Starting points from your interests and real conversations. Built from saved data; opening this page makes no X reads.", tone: :muted %>
+  </div>
+  <%= render "tabs" %>
+</div>
+
+<div class="grid grid-cols-[minmax(0,1fr)_24rem] items-start gap-8">
+  <div class="flex flex-col gap-8">
+    <section class="flex flex-col gap-3">
+      <div>
+        <%= lc_heading "Replies worth expanding", level: 2, size: :section %>
+        <%= lc_text "Your longer replies in conversations that became two-way. Something you already explained well can become a post of its own.", size: :small, tone: :muted %>
+      </div>
+      <% replies = @ideas.replies_to_expand %>
+      <% if replies.empty? %><%= lc_text "None yet. Two-way conversations with longer replies appear here.", size: :small, tone: :muted %><% end %>
+      <% replies.each do |post| %>
+        <%= lc_card padding: :compact do %>
+          <div class="flex items-start gap-4">
+            <p class="grow whitespace-pre-line text-sm"><%= @ideas.strip_mentions(post.body) %></p>
+            <div class="flex shrink-0 flex-col items-end gap-1">
+              <%= lc_button_to "Draft from this", drafts_path, params: { open: "1", draft: { status: "drafting", body: @ideas.strip_mentions(post.body), inspiration_url: @ideas.status_url(post) } }, variant: :secondary, size: :sm, icon: "pencil-square" %>
+              <span class="text-xs text-muted"><%= post.published_at.strftime("%-d %b") %><% unless demo? %> · <%= link_to "thread", @ideas.status_url(post), target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline" %><% end %></span>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <div>
+        <%= lc_heading "Questions people asked you", level: 2, size: :section %>
+        <%= lc_text "If one person asked, others are wondering too. Answer publicly.", size: :small, tone: :muted %>
+      </div>
+      <% questions = @ideas.questions %>
+      <% if questions.empty? %><%= lc_text "No questions in collected replies yet.", size: :small, tone: :muted %><% end %>
+      <% questions.each do |post| %>
+        <% author = @ideas.authors[post.author_x_id] %>
+        <%= lc_card padding: :compact do %>
+          <div class="flex items-start gap-4">
+            <div class="flex grow items-start gap-3">
+              <% if author %><%= person_avatar author, size: :sm %><% end %>
+              <div class="min-w-0">
+                <% if author %><%= link_to author.name, author, class: "text-sm font-semibold" %><% end %>
+                <p class="whitespace-pre-line text-sm"><%= @ideas.strip_mentions(post.body) %></p>
+              </div>
+            </div>
+            <div class="flex shrink-0 flex-col items-end gap-1">
+              <%= lc_button_to "Answer in a post", drafts_path, params: { open: "1", draft: { status: "drafting", notes: "Question from @#{author&.handle}: #{@ideas.strip_mentions(post.body)}", inspiration_url: @ideas.status_url(post), topic: nil } }, variant: :secondary, size: :sm, icon: "pencil-square" %>
+              <span class="text-xs text-muted"><%= post.published_at.strftime("%-d %b") %></span>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <div>
+        <%= lc_heading "What you posted recently", level: 2, size: :section %>
+        <%= lc_text "Your latest original posts and their reply counts at collection time. Build on what got responses; avoid repeating yourself.", size: :small, tone: :muted %>
+      </div>
+      <% if @ideas.own_posts.empty? %><%= lc_text "No original posts collected yet.", size: :small, tone: :muted %><% end %>
+      <%= lc_card padding: :none, class: "overflow-hidden" do %>
+        <%= lc_table do %>
+          <caption class="sr-only">Your recent posts</caption>
+          <thead><tr><th scope="col">Post</th><th scope="col" class="text-end">Replies</th><th scope="col" class="text-end">Date</th></tr></thead>
+          <tbody>
+            <% @ideas.own_posts.each do |post| %>
+              <tr>
+                <td class="text-sm"><span class="line-clamp-2"><%= CGI.unescapeHTML(post.body) %></span></td>
+                <td class="text-end text-sm tabular-nums"><%= post.reply_count || "—" %></td>
+                <td class="whitespace-nowrap text-end text-xs text-muted"><%= post.published_at.strftime("%-d %b") %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        <% end %>
+      <% end if @ideas.own_posts.any? %>
+    </section>
+  </div>
+
+  <aside class="sticky top-28 flex flex-col gap-6">
+    <%= lc_card do %>
+      <div class="flex flex-col gap-4">
+        <%= lc_heading "Your focus areas", level: 2, size: :card %>
+        <div class="flex flex-col divide-y divide-border">
+          <% @ideas.interests.each do |interest| %>
+            <div class="flex items-center justify-between gap-3 py-2">
+              <span class="text-sm"><%= interest %></span>
+              <%= lc_button_to "Idea", drafts_path, params: { draft: { topic: interest, status: "idea" } }, variant: :ghost, size: :sm, icon: "plus", title: "Save an idea card for this topic" %>
+            </div>
+          <% end %>
+        </div>
+        <%= lc_button_link_to "Edit focus areas", settings_path, variant: :ghost, size: :sm %>
+      </div>
+    <% end %>
+    <%= lc_card do %>
+      <div class="flex flex-col gap-4">
+        <%= lc_heading "Ask Grok for angles", level: 2, size: :card %>
+        <%= lc_text "Includes your focus areas, recent posts, and current drafts. Paste it into Grok; save the angles you like as ideas.", size: :small, tone: :muted %>
+        <%= lc_copy_button "Copy Grok prompt", value: @ideas.grok_prompt, variant: :secondary, size: :sm %>
+        <%= lc_collapsible title: "Read the prompt" do %><p class="whitespace-pre-wrap pt-4 text-xs"><%= @ideas.grok_prompt %></p><% end %>
+      </div>
+    <% end %>
+  </aside>
+</div>
