@@ -15,3 +15,5 @@ group :test do
 end
 
 gem "rubyzip", "~> 3.7", require: "zip"
+
+gem "bcrypt", "~> 3.1"

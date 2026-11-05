@@ -12,6 +12,7 @@
   <body class="min-h-screen bg-background text-foreground">
     <% if demo? %><div class="bg-warning-soft px-6 py-3 text-center text-sm font-medium" role="status">Demo workspace · fictional people and activity · separate from your real data · no X requests</div><% end %>
       <%= lc_container do %>
+        <% if Current.workspace %>
         <header class="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-6 xl:flex-nowrap border-b border-border bg-background/95 py-5 backdrop-blur-md">
           <%= link_to root_path, class: "flex items-center gap-3 font-bold text-lg tracking-tight" do %>
             Twitter CRM
@@ -22,13 +23,17 @@
               <%= lc_button_link_to label, path, variant: (active ? :secondary : :ghost), size: :sm, icon: icon, aria: { current: ("page" if active) } %>
             <% end %>
           </nav>
-          <span class="flex items-center gap-2 text-sm text-muted"><%= lc_icon X::Connection.current ? "link" : "signal-slash", options: { class: "size-4" } %><%= demo? ? "Demo data" : (X::Connection.current ? "X credentials saved" : "X not connected") %></span>
+          <span class="flex items-center gap-3 text-sm text-muted">
+            <span class="flex items-center gap-2"><%= lc_icon X::Connection.current ? "link" : "signal-slash", options: { class: "size-4" } %><%= demo? ? "Demo data" : (X::Connection.current ? "X credentials saved" : "X not connected") %></span>
+            <%= lc_button_to "Sign out", session_path, method: :delete, variant: :ghost, size: :sm, icon: "arrow-right-start-on-rectangle", title: "Signed in as #{Current.user&.email_address}" %>
+          </span>
         </header>
+        <% end %>
         <main class="pb-16">
           <% flash.each do |kind, message| %><div class="mb-6"><%= lc_alert message, tone: (kind == "alert" ? :danger : :success) %></div><% end %>
           <%= yield %>
         </main>
-        <footer class="flex items-center justify-between gap-4 border-t border-border py-6 text-xs text-muted"><span class="flex items-center gap-2"><span class="flex gap-1" aria-hidden="true"><% %w[blue sand orange green].each do |color| %><span class="size-2.5 rounded-full" style="background: var(--wada-267-<%= color %>)"></span><% end %></span><%= link_to "Wada 267", "https://colors.bible/#c=Blue~267", target: "_blank", rel: "noopener noreferrer", class: "hover:text-primary" %></span><span>Local workspace · English discovery · You write every reply</span></footer>
+        <footer class="flex items-center justify-between gap-4 border-t border-border py-6 text-xs text-muted"><span class="flex items-center gap-2"><span class="flex gap-1" aria-hidden="true"><% %w[blue sand orange green].each do |color| %><span class="size-2.5 rounded-full" style="background: var(--wada-267-<%= color %>)"></span><% end %></span><%= link_to "Wada 267", "https://colors.bible/#c=Blue~267", target: "_blank", rel: "noopener noreferrer", class: "hover:text-primary" %></span><span>English discovery · You write every reply</span></footer>
       <% end %>
     </body>
   </html>

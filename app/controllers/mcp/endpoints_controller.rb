@@ -2,6 +2,8 @@
 # and authenticates every request with the workspace's revocable bearer token instead.
 class Mcp::EndpointsController < ActionController::API
   MAX_BYTES = 1.megabyte
+  rate_limit to: 120, within: 1.minute, store: RATE_LIMIT_STORE, by: -> { request.remote_ip },
+    with: -> { render json: rpc_error(-32002, "Too many requests. Slow down."), status: :too_many_requests }
   before_action :reject_foreign_origin, :authenticate
 
   def create

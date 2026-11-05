@@ -1,4 +1,5 @@
 class Workspace < ApplicationRecord
+  has_many :users, dependent: :destroy
   validates :name, presence: true
   validates :monthly_budget_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100_000 }
 

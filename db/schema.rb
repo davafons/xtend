@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_150002) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -281,6 +281,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_150000) do
     t.index ["workspace_id"], name: "index_reply_reports_on_workspace_id"
   end
 
+  create_table "sessions", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.string "ip_address"
+    t.string "user_agent"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.string "email_address", null: false
+    t.string "password_digest", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email_address"], name: "index_users_on_email_address", unique: true
+    t.index ["workspace_id"], name: "index_users_on_workspace_id"
+  end
+
   create_table "workspaces", force: :cascade do |t|
     t.string "name", default: "Your workspace", null: false
     t.text "builder_interests", default: "AI agents and coding tools\nBuilding and shipping Rails products\nDeveloper workflows\nJapanese learning tools\nLocal-first personal data", null: false
@@ -453,6 +472,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_150000) do
   add_foreign_key "reply_events", "workspaces"
   add_foreign_key "reply_reports", "posts"
   add_foreign_key "reply_reports", "workspaces"
+  add_foreign_key "sessions", "users"
+  add_foreign_key "users", "workspaces"
   add_foreign_key "x_authorizations", "workspaces"
   add_foreign_key "x_billing_cycles", "workspaces"
   add_foreign_key "x_client_configurations", "workspaces"

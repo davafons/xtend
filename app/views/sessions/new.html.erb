@@ -1,0 +1,16 @@
+<% content_for :title, "Sign in" %>
+<div class="mx-auto flex max-w-md flex-col gap-6 pt-16">
+  <%= lc_heading "Sign in", level: 1, size: :page %>
+  <%= lc_card do %>
+    <%= form_with url: session_path, class: "flex flex-col gap-5" do %>
+      <%= lc_field label: "Email address", id: "session-email" do |field| %>
+        <%= lc_input name: "email_address", type: :email, value: params[:email_address], required: true, autofocus: true, autocomplete: "username", **field %>
+      <% end %>
+      <%= lc_field label: "Password", id: "session-password" do |field| %>
+        <%= lc_input name: "password", type: :password, required: true, autocomplete: "current-password", maxlength: 72, **field %>
+      <% end %>
+      <div><%= lc_button "Sign in", type: :submit %></div>
+    <% end %>
+  <% end %>
+  <p class="text-sm text-muted">There is no signup. The owner creates accounts with <code>bin/rails users:create</code>.</p>
+</div>

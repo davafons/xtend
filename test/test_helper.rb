@@ -1,9 +1,11 @@
 ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
+require_relative "test_helpers/session_test_helper"
 
 class ActiveSupport::TestCase
   setup do
+    RATE_LIMIT_STORE.clear
     Current.workspace = Workspace.create!(owner_x_id: "999")
     X::BillingCycle.create!(starts_on: Date.current, ends_on: Date.current + 30, observed_at: Time.current)
   end
@@ -24,6 +26,11 @@ class ActiveSupport::TestCase
 end
 
 class ActionDispatch::IntegrationTest
+  setup do
+    @user = Current.workspace.users.create!(email_address: "owner@example.com", password: "correct horse battery")
+    sign_in_as(@user)
+  end
+
   # Requests reset Current; restore the test's workspace so assertions after a request stay scoped.
   def process(...)
     workspace = Current.workspace
