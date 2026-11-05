@@ -107,4 +107,4 @@ Gemfile pins the sibling UI source to its last working revision while its curren
 
 ## Visual theme
 
-The interface is dark only: the `lostcoords-ui` dark theme on a true black background, with white for actions. `app/assets/tailwind/tokens.css` sets only the neutral scale; cards, borders, inputs, and status colors come from the library. Shared Heroicons and text labels mark relationship and action cues.
+The interface is dark only and uses the default `lostcoords-ui` dark theme, as on its docs site. The app sets no color tokens of its own. Shared Heroicons and text labels mark relationship and action cues.

@@ -1,18 +1,6 @@
-/* Dark only. The library's dark theme moved to X's true black: one neutral scale, and white
-   for actions, as in the library default. Cards follow --muted and secondary buttons follow
-   --accent; the remaining settings (borders, inputs, status colors, shadows) keep the library's
-   dark values. Unlayered, so these values win over the library's layered defaults. */
-:root,
-html[data-theme="dark"] {
+/* Dark only: the layout sets data-theme="dark" and the colors are the library's dark defaults. */
+:root {
   color-scheme: dark;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-
-  --background: oklch(0% 0 0deg);
-  --foreground: oklch(93% 0 0deg);
-  --muted: oklch(17% 0 0deg);
-  --accent: oklch(23% 0 0deg);
-  --primary: var(--foreground);
-  --primary-foreground: var(--background);
   --container-page: 82rem;
 }
 
