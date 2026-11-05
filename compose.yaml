@@ -1,0 +1,24 @@
+# the server: the app is reachable only through a Cloudflare Tunnel. No host port is published.
+# Build first: docker build --build-context lostcoords-ui=../lostcoords-ui -t twitter-crm .
+# Secrets come from a .env file next to this one (never committed): APP_HOSTS, SECRET_KEY_BASE, TUNNEL_TOKEN.
+services:
+  web:
+    image: twitter-crm
+    restart: unless-stopped
+    environment:
+      APP_HOSTS: ${APP_HOSTS:?set APP_HOSTS}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?set SECRET_KEY_BASE}
+    volumes:
+      - twitter-crm-data:/data
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN}
+    depends_on:
+      - web
+
+volumes:
+  twitter-crm-data:
