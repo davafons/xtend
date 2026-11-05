@@ -22,13 +22,18 @@ class X::Connection < ApplicationRecord
         raise X::Client::Error, "Client configuration changed during authorization. Start a new connection."
       end
       connection = current || new
-      connection.assign_attributes(x_user_id: identity.fetch("id"), username: identity.fetch("username"),
+      connection.assign_attributes(x_user_id: identity.fetch("id"), username: identity.fetch("username"), avatar_url: identity["profile_image_url"],
         granted_scopes: scope.join(" "), token_ciphertext: X::TokenVault.encrypt(tokens.slice("access_token", "refresh_token").to_json),
         expires_at: tokens.fetch("expires_in").to_i.seconds.from_now, identity_checked_at: Time.current)
       connection.save!
       owner.update!(owner_x_id: connection.x_user_id)
       connection
     end
+  end
+
+  # The owner's X profile picture, at the size People uses. The identity read sanitizes the URL to X's image host.
+  def avatar_image_url
+    avatar_url&.sub(/_normal(\.\w+)\z/, "_bigger\\1")
   end
 
   def granted?(scope)
@@ -38,7 +43,7 @@ class X::Connection < ApplicationRecord
   def check_identity!
     identity = X::Client.new.identity(access_token!)
     raise AccountMismatch, "X returned a different account. Reconnect the original account." unless identity.fetch("id") == x_user_id
-    update!(username: identity.fetch("username"), identity_checked_at: Time.current)
+    update!(username: identity.fetch("username"), avatar_url: identity["profile_image_url"], identity_checked_at: Time.current)
   end
 
   def access_token!

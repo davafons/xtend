@@ -50,6 +50,11 @@ module ApplicationHelper
     end
   end
 
+  def owner_avatar(size: :md)
+    url = X::Connection.current&.avatar_image_url unless demo?
+    url ? lc_avatar(src: url, alt: "", size: size, referrerpolicy: "no-referrer") : lc_avatar("You", size: size, class: "bg-you text-background")
+  end
+
   # Each tag keeps one hue wherever it appears, so groups are easy to spot in lists.
   TAG_HUES = [
     "bg-sky-400/15 text-sky-300", "bg-emerald-400/15 text-emerald-300", "bg-amber-400/15 text-amber-300",

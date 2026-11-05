@@ -69,7 +69,7 @@ class XConnectionTest < ActionDispatch::IntegrationTest
       assert_not_includes connection.token_ciphertext, "test-refresh"
       assert_equal 0o600, File.stat(X::TokenVault.key_path).mode & 0o777
       assert_equal "999", Current.workspace.owner_x_id
-      assert_equal ["/2/oauth2/token", "/2/users/me"], http.requests.map(&:path)
+      assert_equal ["/2/oauth2/token", "/2/users/me?user.fields=profile_image_url"], http.requests.map(&:path)
       form = URI.decode_www_form(http.requests.first.body).to_h
       assert_equal query.fetch("code_challenge"), Base64.urlsafe_encode64(Digest::SHA256.digest(form.fetch("code_verifier")), padding: false)
       assert_equal "test-client", form.fetch("client_id")
@@ -138,18 +138,20 @@ class XConnectionTest < ActionDispatch::IntegrationTest
       stored = JSON.parse(X::TokenVault.decrypt(connection.reload.token_ciphertext))
       assert_equal "rotated-refresh", stored.fetch("refresh_token")
       assert connection.expires_at > Time.current
-      assert_equal ["/2/oauth2/token", "/2/users/me"], http.requests.map(&:path)
+      assert_equal ["/2/oauth2/token", "/2/users/me?user.fields=profile_image_url"], http.requests.map(&:path)
     end
   end
 
   test "checking a valid connection reads only identity and disconnect preserves people" do
-    with_config([response_json({data: {id: "999", username: "renamed"}})]) do |http|
+    picture = "https://pbs.twimg.com/profile_images/1/me_normal.jpg"
+    with_config([response_json({data: {id: "999", username: "renamed", profile_image_url: picture}})]) do |http|
       X::Connection.connect!(tokens, {"id" => "999", "username" => "owner"})
       person = Person.create!(handle: "builder", name: "Builder", notes: "Keep my note")
       patch x_connection_path
       assert_redirected_to settings_path
       assert_equal "renamed", X::Connection.current.username
-      assert_equal ["/2/users/me"], http.requests.map(&:path)
+      assert_equal "https://pbs.twimg.com/profile_images/1/me_bigger.jpg", X::Connection.current.avatar_image_url
+      assert_equal ["/2/users/me?user.fields=profile_image_url"], http.requests.map(&:path)
       delete x_connection_path
       assert_nil X::Connection.current
       assert_equal "Keep my note", person.reload.notes

@@ -28,7 +28,7 @@ class X::Client
 
   def identity(access_token)
     read = X::Read.fetch!(dataset: "identity", limit: 1) do
-      X::Payload.identity(get("/2/users/me", access_token))
+      X::Payload.identity(get("/2/users/me", access_token, "user.fields" => "profile_image_url"))
     end
     read.mark_applied!
     read.payload.fetch("data")

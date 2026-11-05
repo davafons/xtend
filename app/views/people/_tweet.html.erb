@@ -5,7 +5,7 @@
 <div class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3">
   <div class="flex flex-col items-center">
     <% if author == :you %>
-      <%= lc_avatar "You", size: :md, class: "bg-you text-background" %>
+      <%= owner_avatar %>
     <% else %>
       <%= link_to person_avatar(person, size: :md), person, tabindex: -1, aria: { hidden: true } %>
     <% end %>

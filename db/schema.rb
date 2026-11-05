@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_06_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_06_100000) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -383,6 +383,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_090000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
+    t.string "avatar_url"
     t.index ["workspace_id"], name: "index_single_owner_x_connection", unique: true
     t.index ["workspace_id"], name: "index_x_connections_on_workspace_id"
   end
