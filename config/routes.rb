@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   resources :people, only: [ :index, :show, :new, :create, :update ] do
     resource :pin, only: [ :create, :destroy ]
     resource :follow_protection, only: [ :create, :destroy ], controller: "follow/protections"
+    resources :tags, only: [ :create, :destroy ], controller: "person_tags"
   end
   resources :posts, only: [] do
     resource :disposition, only: [ :create, :destroy ], controller: "post_dispositions"
@@ -49,7 +50,9 @@ Rails.application.routes.draw do
   namespace :grok do
     resource :connector, only: :show
     resources :intakes, only: :create
-    resources :proposals, only: :update
+    resources :proposals, only: :update do
+      patch :review, on: :collection
+    end
   end
 
   # MCP connector for Grok Bot

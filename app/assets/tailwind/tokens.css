@@ -1,8 +1,19 @@
-/* Dark only: the layout sets data-theme="dark" and the colors are the library's dark defaults. */
+/* Dark only: the layout sets data-theme="dark" and the colors are the library's dark defaults.
+   The app adds a few meaning colors on top, never replacing library tokens:
+   you (your actions), like, message (DMs), and grok (research). Two-way uses the library's
+   success color and one-way-from-them its warning color. */
 :root {
   color-scheme: dark;
   --container-page: 82rem;
+  --crm-you: oklch(72% 0.14 245deg);
+  --crm-like: oklch(72% 0.17 0deg);
+  --crm-message: oklch(74% 0.13 295deg);
+  --crm-grok: oklch(78% 0.11 185deg);
 }
 
-.crm-timeline-entry::before { content: ""; position: absolute; inset-block: 1.75rem 0.25rem; inset-inline-start: calc(0.75rem - 1px); width: 2px; background: var(--border); }
-.crm-timeline-entry:has(+ li:not(.crm-timeline-entry))::before, .crm-timeline-entry:last-child::before { display: none; }
+@theme inline {
+  --color-you: var(--crm-you);
+  --color-like: var(--crm-like);
+  --color-message: var(--crm-message);
+  --color-grok: var(--crm-grok);
+}

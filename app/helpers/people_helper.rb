@@ -1,5 +1,5 @@
 module PeopleHelper
-  FILTER_KEYS = %i[q state follow filter sort].freeze
+  FILTER_KEYS = %i[q state follow filter tag sort].freeze
 
   def people_filter_params(**changes)
     params.permit(*FILTER_KEYS).to_h.symbolize_keys.merge(changes).compact_blank

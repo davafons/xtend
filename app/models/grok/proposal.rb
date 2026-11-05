@@ -1,7 +1,7 @@
-# Profile facts and recaps that Grok Bot proposed for a person. Nothing applies until the owner accepts it.
+# Profile facts, recaps, and tags that Grok Bot proposed for a person. Nothing applies until the owner accepts it.
 class Grok::Proposal < ApplicationRecord
   include WorkspaceScoped
-  KINDS = %w[profile recap].freeze
+  KINDS = %w[profile recap tags].freeze
   belongs_to :person
   validates :kind, inclusion: { in: KINDS }
   validates :status, inclusion: { in: %w[pending accepted dismissed] }
@@ -17,6 +17,7 @@ class Grok::Proposal < ApplicationRecord
   def accept!
     transaction do
       person.fill_blank_profile!(payload.slice(*Grok::Intake::PROFILE_FIELDS)) if kind == "profile"
+      person.add_tags!(payload["tags"], source: "grok") if kind == "tags"
       update!(status: "accepted", reviewed_at: Time.current)
     end
   end

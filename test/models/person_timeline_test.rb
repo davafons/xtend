@@ -64,4 +64,30 @@ class PersonTimelineTest < ActiveSupport::TestCase
     Person.resolve_profile!(profile)
     assert_equal "https://pbs.twimg.com/profile_images/1/a_normal.jpg", person.reload.avatar_url
   end
+
+  test "replies show the post they answered, and likes mark posts already shown" do
+    person = ingest(x_id: "7001", target_x_id: "8001").person
+    run = X::SyncRun.create!(dataset: "liked_posts", owner_x_id: "999", request_key: SecureRandom.uuid, page_limit: 1, upper_bound: Time.current, status: "completed")
+    Engagement.create!(kind: "like", post_x_id: "8001", author_x_id: person.x_id, post_published_at: 1.day.ago, observed_at: Time.current, x_sync_run: run)
+    Engagement.create!(kind: "like", post_x_id: "9009", author_x_id: person.x_id, body: "Another post", post_published_at: 2.days.ago, observed_at: Time.current, x_sync_run: run)
+    timeline = Person.find(person.id).timeline
+    reply = timeline.find { |entry| entry.title == "You replied to A Builder" }
+    assert_equal [:you, :them, "8001"], [reply.author, reply.parent.author, reply.parent.x_id]
+    assert_equal ["9009"], timeline.select { |entry| entry.category == "engagement" }.map(&:x_id), "the liked parent is not repeated"
+    assert_equal ["like"], timeline.marks["8001"]
+    assert_equal 2, timeline.counts["engagement"]
+    assert_includes timeline.filter("engagement"), reply
+  end
+
+  test "replies to each other form one thread, oldest first" do
+    person = ingest(x_id: "7001", target_x_id: "8001", occurred_at: 2.hours.ago).person
+    ingest(x_id: "7002", target_x_id: "7001", direction: "incoming", classification: "continuation", occurred_at: 1.hour.ago)
+    ingest(x_id: "7100", target_x_id: "8100", occurred_at: 3.days.ago)
+    items = Person.find(person.id).timeline.items.select { |item| item.is_a?(Person::Timeline::Thread) || item.post? }
+    thread = items.first
+    assert_kind_of Person::Timeline::Thread, thread
+    assert_equal %w[7001 7002], thread.posts.map(&:x_id)
+    assert_equal "8001", thread.posts.first.parent.x_id
+    assert_equal "7100", items.second.x_id
+  end
 end

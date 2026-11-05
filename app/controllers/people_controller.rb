@@ -15,6 +15,9 @@ class PeopleController < ApplicationController
     @people = @people.pinned if params[:filter] == "pinned"
     @people = @people.where(id: Follow::Protection.select(:person_id)) if params[:filter] == "kept"
     @people = @people.where.not(notes: [nil, ""]) if params[:filter] == "notes"
+    @people = @people.untagged if params[:filter] == "untagged"
+    @people = @people.tagged(params[:tag]) if params[:tag].present?
+    @tags = Tag.by_use.to_a
     if params[:follow].present?
       if @graph.complete?
         following = @graph.following.follow_memberships.select(:person_id)
@@ -44,7 +47,7 @@ class PeopleController < ApplicationController
     @count = @people.count
     @sort = SORTS.key?(params[:sort]) ? params[:sort] : "recent"
     @page = [params[:page].to_i, 1].max
-    @people = @people.includes(:pin, :follow_protection, :reply_events)
+    @people = @people.includes(:pin, :follow_protection, :reply_events, :tags)
       .select("people.*",
         "(SELECT MAX(occurred_at) FROM reply_events WHERE reply_events.person_id = people.id) AS last_reply_at",
         "(SELECT COUNT(*) FROM reply_events WHERE reply_events.person_id = people.id) AS reply_total")
@@ -53,11 +56,11 @@ class PeopleController < ApplicationController
   end
 
   def show
-    @person = Person.includes(:pin, :follow_protection, :reply_events, :follow_reviews, :follower_periods, :posts, :engagements).find(params[:id])
+    @person = Person.includes(:pin, :follow_protection, :reply_events, :follow_reviews, :follower_periods, :posts, :engagements, :tags).find(params[:id])
     @graph = Follow::Graph.latest
     @timeline = @person.timeline
     @category = Person::Timeline::CATEGORIES.key?(params[:show]) ? params[:show] : nil
-    @entries = @category ? @timeline.select { |entry| entry.category == @category } : @timeline.entries
+    @entries = @timeline.filter(@category)
   end
 
   def new

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_150002) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_06_090000) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -213,6 +213,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_150002) do
     t.index ["workspace_id"], name: "index_people_on_workspace_id"
   end
 
+  create_table "person_tags", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "person_id", null: false
+    t.integer "tag_id", null: false
+    t.string "source", default: "owner", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["person_id", "tag_id"], name: "index_person_tags_on_person_id_and_tag_id", unique: true
+    t.index ["person_id"], name: "index_person_tags_on_person_id"
+    t.index ["tag_id"], name: "index_person_tags_on_tag_id"
+    t.index ["workspace_id"], name: "index_person_tags_on_workspace_id"
+  end
+
   create_table "pins", force: :cascade do |t|
     t.integer "person_id", null: false
     t.datetime "created_at", null: false
@@ -288,6 +301,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_150002) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "tags", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["workspace_id", "name"], name: "index_tags_on_workspace_id_and_name", unique: true
+    t.index ["workspace_id"], name: "index_tags_on_workspace_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -462,6 +484,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_150002) do
   add_foreign_key "outreaches", "reply_events"
   add_foreign_key "outreaches", "workspaces"
   add_foreign_key "people", "workspaces"
+  add_foreign_key "person_tags", "people"
+  add_foreign_key "person_tags", "tags"
+  add_foreign_key "person_tags", "workspaces"
   add_foreign_key "pins", "people"
   add_foreign_key "pins", "workspaces"
   add_foreign_key "post_dispositions", "posts"
@@ -473,6 +498,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_150002) do
   add_foreign_key "reply_reports", "posts"
   add_foreign_key "reply_reports", "workspaces"
   add_foreign_key "sessions", "users"
+  add_foreign_key "tags", "workspaces"
   add_foreign_key "users", "workspaces"
   add_foreign_key "x_authorizations", "workspaces"
   add_foreign_key "x_billing_cycles", "workspaces"

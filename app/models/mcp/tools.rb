@@ -29,9 +29,10 @@ class Mcp::Tools
       description: "Progress toward 20 distinct new reply targets, plus post IDs already replied to, set aside, or reported. Use it to avoid duplicates.",
       inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
     { name: "list_people", title: "List people",
-      description: "Bounded list of people in the CRM with follow state, reply state, pins, keeps, and last observed interaction.",
+      description: "Bounded list of people in the CRM with follow state, reply state, tags, pins, keeps, and last observed interaction.",
       inputSchema: { type: "object", properties: {
-        filter: { type: "string", enum: %w[all pinned kept mutual you_follow follows_you replied] },
+        filter: { type: "string", enum: %w[all pinned kept mutual you_follow follows_you replied untagged] },
+        tag: { type: "string", description: "Only people with this tag." },
         query: { type: "string", description: "Match name, handle, or bio." },
         limit: { type: "integer", minimum: 1, maximum: 50 }, cursor: { type: "string" } } },
       annotations: { readOnlyHint: true } },
@@ -63,7 +64,15 @@ class Mcp::Tools
       inputSchema: { type: "object", required: %w[summary], properties: PERSON_REF.merge(
         summary: { type: "string", maxLength: 1500 },
         evidence_urls: { type: "array", maxItems: 10, items: { type: "string" } }, run_id: { type: "string" }) },
-      annotations: { readOnlyHint: false, destructiveHint: false } }
+      annotations: { readOnlyHint: false, destructiveHint: false } },
+    { name: "propose_tags", title: "Propose tags",
+      description: "Stage tags for up to 50 existing people, such as a city, role, or topic, so the owner can group them. Reuse tags from get_owner_profile where they fit. Nothing applies until the owner accepts.",
+      inputSchema: { type: "object", required: %w[assignments], properties: {
+        run_id: { type: "string" },
+        assignments: { type: "array", maxItems: 50, items: { type: "object", required: %w[tags], properties: PERSON_REF.merge(
+          tags: { type: "array", maxItems: 8, items: { type: "string", maxLength: 40 } },
+          reason: { type: "string", description: "Short public evidence for the tags, such as the bio or recent posts." }) } } } },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } }
   ].freeze
 
   def self.definitions = DEFINITIONS
@@ -78,6 +87,7 @@ class Mcp::Tools
     { demo: @demo, handle: X::Connection.current&.username, interests: @workspace.interests,
       session_goal: "Replies on #{DailySession::TARGET} distinct new target posts per session. Follow-ups in existing exchanges do not count.",
       discovery_filters: ["English only", "Posted in the last 7 days", "At most 50 replies", "No crypto, airdrops, engagement bait, follow-for-follow, or pure promotion", "No automated accounts"],
+      tags: Tag.by_use.limit(200).map { |tag| { name: tag.name, people: tag.people_count } },
       shared_categories: { notes: @workspace.mcp_share_notes, dm_metadata: @workspace.mcp_share_dms },
       rules: "Reading or proposing never sends anything. The owner replies manually on X." }
   end
@@ -116,9 +126,11 @@ class Mcp::Tools
     when "you_follow" then people.where(id: following)
     when "follows_you" then people.where(id: followers)
     when "replied" then people.where(id: ReplyEvent.select(:person_id))
+    when "untagged" then people.untagged
     else raise Invalid, "Unknown filter."
     end
-    page = people.includes(:pin, :follow_protection, :reply_events).offset(offset).limit(limit + 1).to_a
+    people = people.tagged(args["tag"].to_s) if args["tag"].present?
+    page = people.includes(:pin, :follow_protection, :reply_events, :tags).offset(offset).limit(limit + 1).to_a
     more = page.size > limit
     page = page.first(limit)
     interactions = Person::Interactions.index(page)
@@ -192,6 +204,12 @@ class Mcp::Tools
     intake(args).call("recaps" => [args.except("run_id")]).slice(:run_id, :recaps)
   end
 
+  def propose_tags(args)
+    assignments = args["assignments"]
+    raise Invalid, "assignments must be an array of 1 to 50 items." unless assignments.is_a?(Array) && assignments.size.between?(1, Grok::Intake::MAX_TAG_ITEMS)
+    intake(args).call("tags" => assignments).slice(:run_id, :tags)
+  end
+
   private
 
   def intake(args)
@@ -201,7 +219,7 @@ class Mcp::Tools
   def person_summary(person, graph, interactions)
     latest = interactions.signals.reject { |signal| signal.channel == "dm" && !@workspace.mcp_share_dms }.first
     { id: person.id, handle: person.handle, name: person.name, description: person.description&.first(300),
-      follow_state: person.follow_state(graph), reply_state: person.reply_state,
+      follow_state: person.follow_state(graph), reply_state: person.reply_state, tags: person.tags.map(&:name),
       pinned: person.pin.present?, keep_following: person.follow_protection.present?,
       last_interaction: latest && { channel: latest.channel, direction: latest.direction, at: latest.at.iso8601, approximate: latest.approximate? } }
   end

@@ -1,0 +1,29 @@
+<% if entry.post? %>
+  <% social = entry.title unless entry.title == "Posted" %>
+  <% if social %>
+    <p class="mb-1 grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-3 text-caption font-semibold <%= ApplicationHelper::MEANING_TEXT.fetch(entry.tone) %>">
+      <span class="flex justify-end"><%= lc_icon entry.icon, options: { class: "size-4", "aria-hidden": true } %></span><span><%= social %></span>
+    </p>
+  <% end %>
+  <% if entry.parent %>
+    <% parent_url = "https://x.com/i/status/#{entry.parent.x_id}" unless entry.url.nil? %>
+    <%= render "people/tweet", author: entry.parent.author, person: person, owner_handle: owner_handle, body: entry.parent.body,
+      at: nil, url: parent_url, marks: timeline.marks[entry.parent.x_id], thread: true %>
+  <% end %>
+  <%= render "people/tweet", author: entry.author, person: person, owner_handle: owner_handle, body: entry.body, at: entry.at,
+    url: entry.url, marks: timeline.marks[entry.x_id], detail: entry.detail %>
+<% else %>
+  <div class="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3">
+    <span class="flex size-10 items-center justify-center rounded-full <%= ApplicationHelper::MEANING_CLASSES.fetch(entry.tone) %>"><%= lc_icon entry.icon, options: { class: "size-5", "aria-hidden": true } %></span>
+    <div class="min-w-0">
+      <p class="text-small font-semibold"><%= entry.title %></p>
+      <% if entry.detail || entry.url %>
+        <p class="text-caption text-muted-foreground">
+          <%= entry.detail %>
+          <% if entry.url && !demo? %><%= link_to "Open on X", entry.url, target: "_blank", rel: "noopener noreferrer", class: "ms-2 font-medium hover:text-you" %><% end %>
+        </p>
+      <% end %>
+    </div>
+    <time class="text-caption tabular-nums text-muted-foreground" datetime="<%= entry.at.iso8601 %>"><%= entry.at.year == Date.current.year ? entry.at.strftime("%-d %b, %H:%M") : entry.at.strftime("%-d %b %Y") %></time>
+  </div>
+<% end %>

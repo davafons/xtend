@@ -1,0 +1,49 @@
+<% batch = Grok::Classification.batch %>
+<% pending = Grok::Proposal.pending.where(kind: "tags").includes(person: :tags).order(:created_at) %>
+<%= lc_section title: "Tag people with Grok", id: "tags", class: "scroll-mt-8" do %>
+  <%= lc_card do %>
+    <div class="flex flex-col gap-5">
+      <%= lc_text "Grok suggests tags such as a city, a role, or topics, so you can group the people you follow and who follow you. Suggestions wait here until you accept them; your own tags are never changed.", tone: :muted %>
+      <% if batch.any? %>
+        <p class="text-small">The prompt covers <%= pluralize(batch.size, "untagged person", plural: "untagged people") %>, followers first. After importing, copy it again for the next batch.</p>
+        <div><%= lc_copy_button "Copy tagging prompt", value: Grok::Classification.prompt(batch), variant: :secondary, size: :sm %></div>
+        <%= lc_collapsible title: "Read the prompt" do %><p class="whitespace-pre-wrap pt-4 text-xs"><%= Grok::Classification.prompt(batch) %></p><% end %>
+      <% else %>
+        <p class="text-small">Everyone with an X account in your CRM has tags.</p>
+      <% end %>
+      <%= form_with url: grok_intakes_path, class: "flex flex-col gap-4" do %>
+        <%= hidden_field_tag :return_to, "grok" %>
+        <%= lc_field label: "Grok results", id: "grok-tags-output", hint: "Paste Grok's whole answer. The app reads only its #{Grok::Intake::FORMAT} JSON block: up to #{Grok::Intake::MAX_TAG_ITEMS} people." do |field| %><%= lc_textarea "", name: "grok_output", rows: 5, maxlength: 100_000, required: true, **field %><% end %>
+        <div><%= lc_button "Import tag suggestions", type: :submit, size: :sm, icon: "arrow-down-tray" %></div>
+      <% end %>
+    </div>
+  <% end %>
+  <% if pending.any? %>
+    <%= lc_card padding: :none, class: "mt-4" do %>
+      <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <p class="flex items-center gap-2 font-semibold text-grok"><%= lc_icon "sparkles", options: { class: "size-4", "aria-hidden": true } %><%= pluralize(pending.size, "person", plural: "people") %> with suggested tags</p>
+        <div class="flex gap-2">
+          <%= lc_button_to "Accept all", review_grok_proposals_path, method: :patch, params: { decision: "accept" }, variant: :secondary, size: :sm, icon: "check" %>
+          <%= lc_button_to "Dismiss all", review_grok_proposals_path, method: :patch, params: { decision: "dismiss" }, variant: :ghost, size: :sm, icon: "x-mark" %>
+        </div>
+      </div>
+      <ul class="flex flex-col divide-y divide-border border-t border-border">
+        <% pending.each do |proposal| %>
+          <li class="flex items-center gap-3 px-5 py-3">
+            <%= person_avatar proposal.person, size: :sm %>
+            <div class="min-w-0 grow">
+              <p class="text-small"><%= link_to proposal.person.name, proposal.person, class: "font-semibold hover:underline" %> <span class="text-muted-foreground">@<%= proposal.person.handle %></span></p>
+              <div class="mt-1 flex flex-wrap gap-1">
+                <% proposal.person.tags.each do |tag| %><%= tag_chip tag.name %><% end %>
+                <% proposal.payload["tags"].each do |name| %><%= tag_chip name %><% end %>
+              </div>
+              <% if proposal.payload["reason"] %><p class="mt-1 truncate text-caption text-muted-foreground"><%= proposal.payload["reason"] %></p><% end %>
+            </div>
+            <%= lc_button_to "Accept", grok_proposal_path(proposal), method: :patch, params: { decision: "accept" }, variant: :ghost, size: :sm, icon: "check", aria: { label: "Accept tags for #{proposal.person.name}" } %>
+            <%= lc_button_to "Dismiss", grok_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, variant: :ghost, size: :sm, icon: "x-mark", aria: { label: "Dismiss tags for #{proposal.person.name}" } %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  <% end %>
+<% end %>

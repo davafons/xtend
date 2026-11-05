@@ -14,7 +14,10 @@
   <%= lc_input name: "q", value: params[:q], type: :search, placeholder: "Search names, handles, bios, notes…", aria: { label: "Search people" }, class: "w-80" %>
   <%= lc_select [["Any follow status", ""], ["Mutuals", "mutual"], ["You follow only", "following_only"], ["They follow only", "followers_only"], ["Lost followers", "lost"]], name: "follow", selected: params[:follow], aria: { label: "Follow status" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
   <%= lc_select [["Any replies", ""], *["Two-way", "You replied only", "They replied only", "No observed replies"].map { |state| [state, state] }], name: "state", selected: params[:state], aria: { label: "Reply state" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
-  <%= lc_select [["Everyone", ""], ["Pinned", "pinned"], ["Kept", "kept"], ["With notes", "notes"]], name: "filter", selected: params[:filter], aria: { label: "Your markers" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
+  <%= lc_select [["Everyone", ""], ["Pinned", "pinned"], ["Kept", "kept"], ["With notes", "notes"], ["Untagged", "untagged"]], name: "filter", selected: params[:filter], aria: { label: "Your markers" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
+  <% if @tags.any? %>
+    <%= lc_select [["Any tag", ""], *@tags.map { |tag| ["##{tag.name} · #{tag.people_count}", tag.name] }], name: "tag", selected: params[:tag], aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
+  <% end %>
   <%= lc_button "Search", type: :submit, variant: :secondary, class: "sr-only" %>
   <% if people_filter_params.except(:sort).any? %><%= lc_button_link_to "Clear", people_path(people_filter_params.slice(:sort)), variant: :ghost, size: :sm, icon: "x-mark" %><% end %>
   <span class="ms-auto text-sm tabular-nums text-muted-foreground"><%= pluralize(@count, "person", plural: "people") %></span>
@@ -47,7 +50,7 @@
             <th scope="col">Replies</th>
             <th scope="col" class="text-end"><%= people_sort_header "Count", "replies" %></th>
             <th scope="col"><%= people_sort_header "Last reply", "recent" %></th>
-            <th scope="col">Notes · bio</th>
+            <th scope="col">Tags · notes · bio</th>
             <th scope="col"><span class="sr-only">Open</span></th>
           </tr>
         </thead>
@@ -60,7 +63,7 @@
                   <span class="min-w-0">
                     <span class="flex items-baseline gap-1.5 font-semibold">
                       <span class="truncate"><%= person.name %></span>
-                      <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-primary", "aria-label": "Pinned" } %><% end %>
+                      <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
                       <% if person.follow_protection %><span class="shrink-0 text-xs font-normal text-success" title="Protected from cleanup">· kept</span><% end %>
                     </span>
                     <span class="block text-xs text-muted-foreground">@<%= person.handle %></span>
@@ -72,12 +75,13 @@
               <td class="whitespace-nowrap"><%= relationship_badge person.reply_state %></td>
               <td class="whitespace-nowrap text-end text-xs tabular-nums text-muted-foreground" title="Replies from you · replies from them">
                 <% if person.reply_events.any? %>
-                  <span class="inline-flex items-center gap-0.5"><%= lc_icon "arrow-up-right", options: { class: "size-3", "aria-hidden": true } %><%= person.outgoing_count %></span>
-                  <span class="ms-2 inline-flex items-center gap-0.5"><%= lc_icon "arrow-down-left", options: { class: "size-3", "aria-hidden": true } %><%= person.incoming_count %></span>
+                  <span class="inline-flex items-center gap-0.5 text-you"><%= lc_icon "arrow-up-right", options: { class: "size-3", "aria-hidden": true } %><%= person.outgoing_count %></span>
+                  <span class="ms-2 inline-flex items-center gap-0.5 text-success"><%= lc_icon "arrow-down-left", options: { class: "size-3", "aria-hidden": true } %><%= person.incoming_count %></span>
                 <% else %>—<% end %>
               </td>
               <td class="whitespace-nowrap text-sm"><%= relative_day person.last_interaction_at %></td>
               <td class="max-w-md text-sm">
+                <% if person.tags.any? %><span class="mb-1 flex flex-wrap gap-1"><% person.tags.each do |tag| %><%= tag_chip tag.name %><% end %></span><% end %>
                 <% if person.notes.present? %>
                   <span class="line-clamp-2"><%= person.notes %></span>
                 <% else %>

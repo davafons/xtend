@@ -5,13 +5,14 @@
 </div>
 <div class="grid grid-cols-2 items-start gap-8">
   <div class="flex flex-col gap-8">
+    <%= render "tags" %>
     <%= render "connector" %>
   </div>
   <div class="flex flex-col gap-8">
       <%= lc_section title: "Grok Bot context" do %>
         <%= lc_card do %>
           <div class="flex flex-col gap-4">
-            <%= lc_text "Download your interests, all saved people, public reply counts, follow states, and pins for a Grok Bot conversation.", tone: :muted %>
+            <%= lc_text "Download your interests, all saved people, public reply counts, follow states, tags, and pins for a Grok Bot conversation.", tone: :muted %>
             <%= lc_text "The file excludes private notes and DMs. Downloading does not send it anywhere. A live Bot connection is not configured.", size: :small, tone: :muted %>
             <div>
               <%= lc_button_link_to "Export public context", context_export_path, variant: :secondary, size: :sm, icon: "arrow-down-tray", data: { turbo: false } %>

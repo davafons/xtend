@@ -124,4 +124,16 @@ class McpTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_includes response.body, "Ships Rails tools."
   end
+
+  test "Grok can read tags, list untagged people, and propose tags for review" do
+    @person.add_tags!("tokyo")
+    Person.resolve_profile!(profile(x_id: "556", handle: "other", name: "Other"))
+    assert_equal [{ "name" => "tokyo", "people" => 1 }], tool("get_owner_profile")["structuredContent"]["tags"]
+    assert_equal ["other"], tool("list_people", { "filter" => "untagged" })["structuredContent"]["people"].map { |person| person["handle"] }
+    assert_equal [["builder", ["tokyo"]]], tool("list_people", { "tag" => "tokyo" })["structuredContent"]["people"].map { |person| [person["handle"], person["tags"]] }
+    result = tool("propose_tags", { "assignments" => [{ "handle" => "other", "tags" => ["designer"], "reason" => "Bio" }] })
+    assert_equal "staged", result["structuredContent"]["tags"].first["status"]
+    assert_empty Tag.where(name: "designer")
+    assert tool("propose_tags", { "assignments" => [] })["isError"]
+  end
 end

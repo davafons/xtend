@@ -3,7 +3,7 @@
 <% if recap || pending.any? %>
   <%= lc_card do %>
     <div class="flex flex-col gap-4">
-      <%= lc_heading "From Grok", level: 2, size: :subheading %>
+      <h2 class="flex items-center gap-2 text-subheading text-grok"><%= lc_icon "sparkles", options: { class: "size-5", "aria-hidden": true } %>From Grok</h2>
       <% if recap %>
         <div>
           <p class="whitespace-pre-line text-sm"><%= recap.payload["summary"] %></p>
@@ -12,8 +12,11 @@
       <% end %>
       <% pending.each do |proposal| %>
         <div class="flex flex-col gap-2 rounded-2xl bg-tile p-4 text-sm">
-          <p class="font-semibold"><%= proposal.kind == "recap" ? "Proposed recap" : "Proposed profile facts" %></p>
-          <% if proposal.kind == "recap" %>
+          <p class="font-semibold"><%= { "recap" => "Proposed recap", "tags" => "Proposed tags", "profile" => "Proposed profile facts" }.fetch(proposal.kind) %></p>
+          <% if proposal.kind == "tags" %>
+            <div class="flex flex-wrap gap-1.5"><% proposal.payload["tags"].each do |name| %><%= tag_chip name %><% end %></div>
+            <% if proposal.payload["reason"] %><p class="text-xs text-muted-foreground"><%= proposal.payload["reason"] %></p><% end %>
+          <% elsif proposal.kind == "recap" %>
             <p class="whitespace-pre-line"><%= proposal.payload["summary"] %></p>
             <% Array(proposal.payload["evidence_urls"]).each do |url| %>
               <% unless demo? %><%= link_to url.truncate(48), url, target: "_blank", rel: "noopener noreferrer", class: "text-xs text-primary hover:underline" %><% end %>

@@ -19,19 +19,55 @@ module ApplicationHelper
     Rails.configuration.x.demo
   end
 
-  def state_tone(state)
+  # Fills and text for the app's meaning colors (see tokens.css). Badges keep the library shape.
+  MEANING_CLASSES = {
+    you: "bg-you/15 text-you", both: "bg-success-soft text-success", them: "bg-warning-soft text-warning",
+    like: "bg-like/15 text-like", message: "bg-message/15 text-message", grok: "bg-grok/15 text-grok",
+    neutral: "bg-tile text-muted-foreground"
+  }.freeze
+  MEANING_TEXT = { you: "text-you", both: "text-success", them: "text-warning", like: "text-like",
+    message: "text-message", grok: "text-grok", neutral: "text-muted-foreground" }.freeze
+
+  # Two-way is green, only you is blue, only them is amber: the person reached out and you have not yet.
+  def state_meaning(state)
     case state
-    when "Two-way", "Mutual" then :success
-    when "You replied only", "They replied only" then :primary
+    when "Two-way", "Mutual" then :both
+    when "You replied only", "You follow", "You follow · follow-back unknown" then :you
+    when "They replied only", "Follows you", "Observed follower" then :them
     else :neutral
     end
   end
 
-  def person_avatar(person, size: :md)
+  def meaning_badge(meaning, &block)
+    lc_badge(class: MEANING_CLASSES.fetch(meaning), &block)
+  end
+
+  def person_avatar(person, size: :md, **options)
     if person.avatar_url.present? && !demo?
-      lc_avatar(src: person.avatar_image_url, alt: "", size: size, loading: "lazy", referrerpolicy: "no-referrer")
+      lc_avatar(src: person.avatar_image_url, alt: "", size: size, loading: "lazy", referrerpolicy: "no-referrer", **options)
     else
-      lc_avatar(person.initials, size: size)
+      lc_avatar(person.initials, size: size, **options)
+    end
+  end
+
+  # Each tag keeps one hue wherever it appears, so groups are easy to spot in lists.
+  TAG_HUES = [
+    "bg-sky-400/15 text-sky-300", "bg-emerald-400/15 text-emerald-300", "bg-amber-400/15 text-amber-300",
+    "bg-rose-400/15 text-rose-300", "bg-violet-400/15 text-violet-300", "bg-cyan-400/15 text-cyan-300",
+    "bg-lime-400/15 text-lime-300", "bg-orange-400/15 text-orange-300", "bg-fuchsia-400/15 text-fuchsia-300",
+    "bg-indigo-400/15 text-indigo-300"
+  ].freeze
+
+  def tag_hue(name)
+    TAG_HUES[Zlib.crc32(name.to_s) % TAG_HUES.size]
+  end
+
+  def tag_chip(name, href: people_path(tag: name), remove: nil)
+    lc_badge(class: "#{tag_hue(name)} rounded-full") do
+      safe_join([
+        link_to("##{name}", href, class: "hover:underline"),
+        (button_to(remove, method: :delete, class: "-me-1 inline-flex cursor-pointer rounded-full opacity-70 hover:opacity-100", aria: { label: "Remove #{name}" }, form: { class: "inline-flex" }) { lc_icon("x-mark", options: { class: "size-3", "aria-hidden": true }) } if remove)
+      ].compact)
     end
   end
 
@@ -47,7 +83,7 @@ module ApplicationHelper
   end
 
   def relationship_badge(state)
-    lc_badge(tone: state_tone(state)) do
+    meaning_badge(state_meaning(state)) do
       safe_join([lc_icon(relationship_icon(state), options: { class: "size-3.5", "aria-hidden": true }), tag.span(state)])
     end
   end

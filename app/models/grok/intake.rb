@@ -5,6 +5,8 @@ class Grok::Intake
   class Invalid < StandardError; end
   FORMAT = "twitter-crm-grok-v1"
   MAX_ITEMS = 20
+  MAX_TAG_ITEMS = 50
+  MAX_TAGS_PER_PERSON = 8
   MAX_BYTES = 100.kilobytes
   HOSTS = %w[x.com www.x.com twitter.com www.twitter.com mobile.twitter.com mobile.x.com].freeze
   PROFILE_FIELDS = %w[name description location website_url followers_count following_count].freeze
@@ -44,7 +46,8 @@ class Grok::Intake
       run_id: run_id,
       posts: Array.wrap(document["posts"]).then { |rows| bounded(rows) }.map { |row| post(row) },
       profiles: Array.wrap(document["profiles"]).then { |rows| bounded(rows) }.map { |row| profile(row) },
-      recaps: Array.wrap(document["recaps"]).then { |rows| bounded(rows) }.map { |row| recap(row) }
+      recaps: Array.wrap(document["recaps"]).then { |rows| bounded(rows) }.map { |row| recap(row) },
+      tags: Array.wrap(document["tags"]).then { |rows| bounded(rows, MAX_TAG_ITEMS) }.map { |row| tags(row) }
     }
   end
 
@@ -113,10 +116,26 @@ class Grok::Intake
     result("staged", person.handle, "Proposal #{proposal.id} awaits review.")
   end
 
+  # Tags are staged per person; only tags the person does not have yet are proposed.
+  def tags(row)
+    return rejected("Each tag assignment must be an object.") unless row.is_a?(Hash)
+    person = find_person(row)
+    return rejected("Unknown person. Use a person_id or handle the CRM already has.", row["handle"]) unless person
+    names = Tag.names_from(row["tags"]).first(MAX_TAGS_PER_PERSON) - person.tags.map(&:name)
+    return result("unchanged", person.handle, "They already have these tags.") if names.empty? && Tag.names_from(row["tags"]).any?
+    return rejected("tags must list 1 to #{MAX_TAGS_PER_PERSON} short labels.", person.handle) if names.empty?
+    Grok::Proposal.transaction do
+      Grok::Proposal.pending.where(person: person, kind: "tags").destroy_all
+      proposal = Grok::Proposal.create!(person: person, kind: "tags", via: @via, run_id: run_id,
+        payload: { "tags" => names, "reason" => row["reason"].to_s.strip.first(300).presence }.compact)
+      result("staged", person.handle, "Proposal #{proposal.id} awaits review.")
+    end
+  end
+
   private
 
-  def bounded(rows)
-    raise Invalid, "Send up to #{MAX_ITEMS} items of each kind at a time." if rows.size > MAX_ITEMS
+  def bounded(rows, maximum = MAX_ITEMS)
+    raise Invalid, "Send up to #{maximum} items of each kind at a time." if rows.size > maximum
     rows
   end
 

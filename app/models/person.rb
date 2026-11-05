@@ -10,6 +10,8 @@ class Person < ApplicationRecord
   has_many :engagements, primary_key: :x_id, foreign_key: :author_x_id, inverse_of: false
   has_many :direct_messages, primary_key: :x_id, foreign_key: :partner_x_id, inverse_of: false
   has_many :grok_proposals, class_name: "Grok::Proposal", dependent: :destroy
+  has_many :person_tags, dependent: :destroy
+  has_many :tags, -> { order(:name) }, through: :person_tags
 
   before_validation { self.handle = handle.to_s.delete_prefix("@").downcase.strip }
   validates :handle, presence: true, uniqueness: { scope: :workspace_id }, format: { with: /\A[a-z0-9_]{1,15}\z/ }
@@ -19,6 +21,20 @@ class Person < ApplicationRecord
 
   scope :alphabetical, -> { order(:name) }
   scope :pinned, -> { joins(:pin) }
+  scope :tagged, ->(name) { where(id: PersonTag.joins(:tag).where(tags: { name: Tag.normalize(name) }).select(:person_id)) }
+  scope :untagged, -> { where.not(id: PersonTag.select(:person_id)) }
+
+  # Adds tags without touching existing ones; returns the tags that were new for this person.
+  def add_tags!(names, source: "owner")
+    transaction do
+      Tag.names_from(names).filter_map do |name|
+        tag = Tag.named(name)
+        next if person_tags.exists?(tag: tag)
+        person_tags.create!(tag: tag, source: source)
+        tag
+      end
+    end
+  end
 
   PROFILE_DETAILS = %i[avatar_url banner_url location website_url followers_count following_count posts_count joined_x_at].freeze
 
