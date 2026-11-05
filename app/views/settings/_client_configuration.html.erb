@@ -2,7 +2,7 @@
 <%= lc_section title: "X developer app" do %>
   <%= lc_card do %>
     <div class="flex flex-col gap-5">
-      <p class="text-sm text-muted">Save your own developer app configuration on this computer. It stays encrypted locally and is never included in context exports.</p>
+      <p class="text-sm text-muted-foreground">Save your own developer app configuration on this computer. It stays encrypted locally and is never included in context exports.</p>
       <%= lc_badge "Configuration source: #{X::Config.source.to_s.humanize}" %>
       <% if X::Connection.current %>
         <%= lc_text "Disconnect X locally before changing client configuration. Your relationship data will stay in place.", size: :small, tone: :muted %>
@@ -28,7 +28,7 @@
           <div><%= lc_button "Save local configuration", type: :submit, size: :sm, icon: "lock-closed" %></div>
         <% end %>
       <% end %>
-      <p class="text-xs text-muted">Precedence is environment, then Rails encrypted credentials, then this local form. A source is selected by its Client ID, so credentials from different apps are never mixed.</p>
+      <p class="text-xs text-muted-foreground">Precedence is environment, then Rails encrypted credentials, then this local form. A source is selected by its Client ID, so credentials from different apps are never mixed.</p>
     </div>
   <% end %>
 <% end %>

@@ -1,6 +1,6 @@
 <% content_for :title, "X data" %>
 <div class="flex flex-col gap-3 pb-8 pt-8">
-  <%= lc_heading "What has been collected from X.", level: 1, size: :page %>
+  <%= lc_heading "What has been collected from X.", level: 1, size: :title %>
   <%= lc_text "Coverage for each source, manual collection, and your archive. Every read is one bounded page you start.", tone: :muted %>
 </div>
 <div class="grid grid-cols-2 items-start gap-8">
@@ -11,7 +11,7 @@
           <div class="flex items-start justify-between gap-4">
             <div>
               <p class="font-semibold">Followers</p>
-              <p class="mt-2 text-sm text-muted">
+              <p class="mt-2 text-sm text-muted-foreground">
                 <%= @followers ? "#{@followers.person_ids.size} #{@followers.completed_at ? 'complete' : 'partial'} records · #{@followers.observed_at.strftime('%-d %b, %H:%M')} · #{@followers.source.humanize}" : "No complete snapshot collected" %>
               </p>
             </div>
@@ -20,7 +20,7 @@
           <div class="flex items-start justify-between gap-4">
             <div>
               <p class="font-semibold">Following</p>
-              <p class="mt-2 text-sm text-muted">
+              <p class="mt-2 text-sm text-muted-foreground">
                 <%= @following ? "#{@following.person_ids.size} #{@following.completed_at ? 'complete' : 'partial'} records · #{@following.observed_at.strftime('%-d %b, %H:%M')} · #{@following.source.humanize}" : "No complete snapshot collected" %>
               </p>
             </div>
@@ -29,12 +29,12 @@
           <div><%= lc_button_link_to "Follower changes and timing", follower_history_path, variant: :secondary, size: :sm, icon: "chart-bar" %></div>
           <div>
             <p class="font-semibold">Reply history</p>
-            <p class="mt-2 text-sm text-muted">
+            <p class="mt-2 text-sm text-muted-foreground">
               <%= ReplyEvent.count %> supported events · limited coverage. An empty direction is not a guarantee that no replies ever happened.</p>
             </div>
             <div>
               <p class="font-semibold">Private messages</p>
-              <p class="mt-2 text-sm text-muted"><% if (since = DirectMessage.covered_since) %><%= pluralize(DirectMessage.count, "one-to-one message") %> since <%= since.strftime("%-d %b %Y") %>; sender and time only, never text.<% else %>Not collected.<% end %> Private messages are excluded from the Grok context file.</p>
+              <p class="mt-2 text-sm text-muted-foreground"><% if (since = DirectMessage.covered_since) %><%= pluralize(DirectMessage.count, "one-to-one message") %> since <%= since.strftime("%-d %b %Y") %>; sender and time only, never text.<% else %>Not collected.<% end %> Private messages are excluded from the Grok context file.</p>
             </div>
           </div>
         <% end %>

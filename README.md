@@ -4,7 +4,7 @@ A Rails app for finding useful builder conversations, remembering people, and re
 
 ## Run with Parcela
 
-Requirements: Ruby 4.0.2, Bundler, the sibling `../lostcoords-ui` source repository, and Parcela.
+Requirements: Ruby 4.0.2, Bundler, and Parcela. The `lostcoords-ui` 0.7.0 gem comes from GitHub.
 
 ```bash
 bundle install
@@ -107,4 +107,4 @@ Gemfile pins the sibling UI source to its last working revision while its curren
 
 ## Visual theme
 
-The interface uses [Sanzo Wada combination 267](https://colors.bible/#c=Blue~267), with white: `#006EB8`, `#FDBF68`, `#F99D1B`, and `#00978D`. Theme shades and tints derive from those four colors. Shared Heroicons, colored initials, and directional relationship badges provide visual cues alongside text. Theme values live in `app/assets/tailwind/tokens.css`; components continue to come from the pinned `lostcoords-ui` gem.
+The interface is dark only and modelled on X's "Lights out" theme: a black background, `#16181C` cards, `#2F3336` borders, `#E7E9EA` text, and `#1D9BF0` for actions. The colors are set as `lostcoords-ui` theme tokens in `app/assets/tailwind/tokens.css`. Shared Heroicons and text labels mark relationship and action cues.

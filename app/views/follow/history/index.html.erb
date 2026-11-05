@@ -1,14 +1,14 @@
 <% content_for :title, "Followers" %>
 <div class="flex items-end justify-between gap-8 pb-6 pt-8">
   <div class="flex flex-col gap-3">
-    <%= lc_heading "Followers", level: 1, size: :page %>
+    <%= lc_heading "Followers", level: 1, size: :title %>
     <%= lc_text "Who follows you, who's new, and who left — compared across complete follower checks. Opening this page makes no API calls.", tone: :muted %>
   </div>
   <dl class="flex shrink-0 gap-6 text-end">
-    <div><dd class="text-2xl font-semibold tabular-nums"><%= @counts["current"] %></dd><dt class="text-xs text-muted">Followers</dt></div>
-    <div><dd class="text-2xl font-semibold tabular-nums"><%= @counts["current"].positive? ? "#{(@follow_back * 100.0 / @counts["current"]).round}%" : "—" %></dd><dt class="text-xs text-muted">You follow back</dt></div>
-    <div><dd class="text-2xl font-semibold tabular-nums"><%= @new_since_last ? "+#{@new_since_last}" : "—" %></dd><dt class="text-xs text-muted">New since last check</dt></div>
-    <div><dd class="text-2xl font-semibold tabular-nums"><%= @lost_since_last ? "−#{@lost_since_last}" : "—" %></dd><dt class="text-xs text-muted">Lost since last check</dt></div>
+    <div><dd class="text-2xl font-semibold tabular-nums"><%= @counts["current"] %></dd><dt class="text-xs text-muted-foreground">Followers</dt></div>
+    <div><dd class="text-2xl font-semibold tabular-nums"><%= @counts["current"].positive? ? "#{(@follow_back * 100.0 / @counts["current"]).round}%" : "—" %></dd><dt class="text-xs text-muted-foreground">You follow back</dt></div>
+    <div><dd class="text-2xl font-semibold tabular-nums"><%= @new_since_last ? "+#{@new_since_last}" : "—" %></dd><dt class="text-xs text-muted-foreground">New since last check</dt></div>
+    <div><dd class="text-2xl font-semibold tabular-nums"><%= @lost_since_last ? "−#{@lost_since_last}" : "—" %></dd><dt class="text-xs text-muted-foreground">Lost since last check</dt></div>
   </dl>
 </div>
 
@@ -18,7 +18,7 @@
       <%= lc_button_link_to "#{label} · #{@counts[key]}", follower_history_path(view: key), variant: @view == key ? :secondary : :ghost, size: :sm, aria: { current: ("page" if @view == key) } %>
     <% end %>
   </nav>
-  <p class="text-sm text-muted">
+  <p class="text-sm text-muted-foreground">
     <% if @checks.any? %>Checks: <%= @checks.map { |check| check.observed_at.strftime("%-d %b, %H:%M") }.join(" and ") %><% else %>No complete follower check yet<% end %>
   </p>
 </div>
@@ -60,21 +60,21 @@
                   <%= person_avatar person %>
                   <span class="min-w-0">
                     <span class="flex items-baseline gap-1.5 font-semibold"><span class="truncate"><%= person.name %></span><% if person.follow_protection %><span class="shrink-0 text-xs font-normal text-success">· kept</span><% end %></span>
-                    <span class="block text-xs text-muted">@<%= person.handle %></span>
+                    <span class="block text-xs text-muted-foreground">@<%= person.handle %></span>
                   </span>
                 <% end %>
               </th>
               <td class="whitespace-nowrap text-end text-sm tabular-nums"><%= compact_count person.followers_count %></td>
               <td class="whitespace-nowrap">
                 <%= relationship_badge person.reply_state %>
-                <% if person.reply_events.any? %><span class="ms-1 text-xs tabular-nums text-muted">↗<%= person.outgoing_count %> ↙<%= person.incoming_count %></span><% end %>
+                <% if person.reply_events.any? %><span class="ms-1 text-xs tabular-nums text-muted-foreground">↗<%= person.outgoing_count %> ↙<%= person.incoming_count %></span><% end %>
               </td>
               <% if @view == "new" %>
-                <td class="whitespace-nowrap text-sm"><%= period.followed_after.strftime("%-d %b") %>–<%= period.first_seen_at.strftime("%-d %b %Y") %><% unless period.ended_by %><span class="block text-xs text-muted">still following</span><% end %></td>
+                <td class="whitespace-nowrap text-sm"><%= period.followed_after.strftime("%-d %b") %>–<%= period.first_seen_at.strftime("%-d %b %Y") %><% unless period.ended_by %><span class="block text-xs text-muted-foreground">still following</span><% end %></td>
                 <td class="whitespace-nowrap text-sm">
                   <% window = period.interaction_window(1) %>
-                  <%= window ? "#{window[:minimum_days].round(1)}–#{window[:maximum_days].round(1)} days" : tag.span("No reply yet", class: "text-muted") %>
-                  <% if period.ambiguous_early_replies? %><span class="block text-xs text-muted">earlier replies in the detection window</span><% end %>
+                  <%= window ? "#{window[:minimum_days].round(1)}–#{window[:maximum_days].round(1)} days" : tag.span("No reply yet", class: "text-muted-foreground") %>
+                  <% if period.ambiguous_early_replies? %><span class="block text-xs text-muted-foreground">earlier replies in the detection window</span><% end %>
                 </td>
               <% elsif @view == "lost" %>
                 <td class="whitespace-nowrap text-sm"><%= period.baseline? ? "Before #{period.first_seen_at.strftime('%-d %b %Y')}" : "#{period.followed_after.strftime('%-d %b')}–#{period.first_seen_at.strftime('%-d %b %Y')}" %></td>
@@ -82,9 +82,9 @@
               <% else %>
                 <td class="whitespace-nowrap"><%= @graph.following?(person) ? relationship_badge("Mutual") : lc_badge("Not yet") %></td>
                 <td class="whitespace-nowrap text-sm">
-                  <% if period.baseline? %><span class="text-muted">Before <%= period.first_seen_at.strftime("%-d %b %Y") %></span>
+                  <% if period.baseline? %><span class="text-muted-foreground">Before <%= period.first_seen_at.strftime("%-d %b %Y") %></span>
                   <% else %><%= period.followed_after.strftime("%-d %b") %>–<%= period.first_seen_at.strftime("%-d %b %Y") %><% end %>
-                  <% if person.follower_periods.size > 1 %><span class="block text-xs text-muted">followed again</span><% end %>
+                  <% if person.follower_periods.size > 1 %><span class="block text-xs text-muted-foreground">followed again</span><% end %>
                 </td>
               <% end %>
               <td class="whitespace-nowrap text-sm"><%= relative_day person.last_interaction_at %></td>
@@ -99,7 +99,7 @@
 <div class="mt-8 grid grid-cols-2 gap-6">
   <%= lc_card do %>
     <div class="flex flex-col gap-3">
-      <%= lc_heading "How long follows last", level: 2, size: :card %>
+      <%= lc_heading "How long follows last", level: 2, size: :subheading %>
       <% if @duration %>
         <p class="text-2xl font-semibold"><%= @duration[:minimum_days].round(1) %>–<%= @duration[:maximum_days].round(1) %> days</p>
         <%= lc_text "Mean range across #{@duration[:count]} completed periods with observed starts. Ongoing follows and unknown starts are excluded.", size: :small, tone: :muted %>
@@ -110,7 +110,7 @@
   <% end %>
   <%= lc_card do %>
     <div class="flex flex-col gap-3">
-      <%= lc_heading "Reading the dates", level: 2, size: :card %>
+      <%= lc_heading "Reading the dates", level: 2, size: :subheading %>
       <%= lc_text "A follow or unfollow happened somewhere between two checks, so dates are ranges. Follows that start and end between checks stay invisible. A disappearance can be a suspension or deactivation, not only an unfollow. A follower check costs about $0.17 at owned rates.", size: :small, tone: :muted %>
     </div>
   <% end %>

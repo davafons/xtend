@@ -1,5 +1,5 @@
 <section id="discovery" class="flex flex-col gap-4 scroll-mt-8">
-  <%= lc_heading "Find conversations with Grok", level: 2, size: :section %>
+  <%= lc_heading "Find conversations with Grok", level: 2, size: :heading %>
   <%= lc_card do %>
     <div class="flex flex-col gap-5">
       <%= lc_text "Use your Grok Bot's public search, then paste its JSON block here. Grok's public search uses no X API credits, and its candidates go straight to Today labeled Unverified, with no paid lookup.", tone: :muted %>
@@ -21,7 +21,7 @@
       <% if pending.positive? %>
         <p class="text-sm"><%= pending %> source links need post verification.</p>
         <%= lc_button_to "Resolve saved links", x_sync_runs_path, params: {dataset: "posts", purpose: "discovery", request_key: SecureRandom.uuid, return_to: "discovery"}, variant: :secondary, size: :sm, disabled: demo? || !@cycle || !X::Connection.current %>
-        <p class="text-xs text-muted">Up to 20 posts ($0.10 standard maximum), then resolve missing people separately if needed.</p>
+        <p class="text-xs text-muted-foreground">Up to 20 posts ($0.10 standard maximum), then resolve missing people separately if needed.</p>
       <% end %>
       <% end %>
     </div>

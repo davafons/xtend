@@ -1,14 +1,14 @@
 <%= form_with model: draft, class: "grid grid-cols-[minmax(0,1fr)_24rem] items-start gap-8", data: { controller: "composer" } do %>
   <div class="flex flex-col gap-4">
     <% unless draft.persisted? %><%= hidden_field_tag :open, "1" %><% end %>
-    <% if draft.errors.any? %><%= lc_alert draft.errors.full_messages.to_sentence, tone: :danger %><% end %>
+    <% if draft.errors.any? %><%= lc_alert draft.errors.full_messages.to_sentence, tone: :destructive %><% end %>
     <%= lc_card do %>
       <div class="flex flex-col gap-4">
         <%= lc_textarea draft.body, name: "draft[body]", rows: 12, autofocus: true, placeholder: "Write your post. Add a line with --- to split it into a thread.", aria: { label: "Draft" }, class: "text-base", data: { composer_target: "input", action: "input->composer#render" } %>
         <div class="flex flex-wrap items-center gap-2">
           <%= lc_button "Save", type: :submit, size: :sm, icon: "check" %>
           <%= lc_button "Add thread break", type: :button, variant: :ghost, size: :sm, icon: "plus", data: { action: "composer#insertBreak" } %>
-          <span class="ms-auto text-sm text-muted" data-composer-target="summary"></span>
+          <span class="ms-auto text-sm text-muted-foreground" data-composer-target="summary"></span>
         </div>
       </div>
     <% end %>
@@ -26,14 +26,14 @@
     <% end %>
     <% if draft.inspiration_url.present? %>
       <%= hidden_field_tag "draft[inspiration_url]", draft.inspiration_url %>
-      <p class="text-xs text-muted">Inspired by <%= link_to "this post", draft.inspiration_url, target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline" %>.</p>
+      <p class="text-xs text-muted-foreground">Inspired by <%= link_to "this post", draft.inspiration_url, target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline" %>.</p>
     <% end %>
   </div>
 
   <aside class="sticky top-28 flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <%= lc_heading "Preview", level: 2, size: :card %>
-      <span class="text-xs text-muted">Approximate X count</span>
+      <%= lc_heading "Preview", level: 2, size: :subheading %>
+      <span class="text-xs text-muted-foreground">Approximate X count</span>
     </div>
     <div class="flex flex-col gap-3" data-composer-target="preview"></div>
     <% if draft.persisted? && !demo? %>

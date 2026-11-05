@@ -1,10 +1,10 @@
 <% content_for :title, "Today" %>
 <div class="flex items-end justify-between gap-8 pb-8 pt-8">
   <div class="flex flex-col gap-3">
-    <p class="text-sm text-muted">
+    <p class="text-sm text-muted-foreground">
       <%= Date.current.strftime("%A, %-d %B") %> <span class="px-2">/</span> Your daily session</p>
       <div class="flex items-center gap-4">
-      <%= lc_heading "Make a few good connections.", level: 1, size: :page %>
+      <%= lc_heading "Make a few good connections.", level: 1, size: :title %>
     </div>
       <%= lc_text "Find a useful conversation. Remember the person. Bring something of your own.", tone: :muted %>
     </div>
@@ -13,14 +13,14 @@
   <div class="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-8">
     <section class="flex min-w-0 flex-col gap-4" aria-labelledby="opportunities-heading">
       <div class="flex min-h-11 items-center justify-between gap-4">
-        <%= lc_heading "Worth a reply", level: 2, size: :section, id: "opportunities-heading" %>
-        <span class="text-sm text-muted">
+        <%= lc_heading "Worth a reply", level: 2, size: :heading, id: "opportunities-heading" %>
+        <span class="text-sm text-muted-foreground">
           <%= @available %> available · English</span>
         </div>
         <% if @posts.empty? %>
           <%= lc_card class: "py-12" do %>
             <div class="flex flex-col items-center gap-5 text-center">
-              <%= lc_heading "Your next conversation starts here.", level: 3, size: :card %>
+              <%= lc_heading "Your next conversation starts here.", level: 3, size: :subheading %>
               <%= lc_text "No suitable tweets are ready yet. Paste Grok's results or run a bounded search on Discover.", tone: :muted, class: "max-w-md" %>
               <%= lc_button_link_to "Find conversations", discovery_path, icon: "arrow-right", icon_position: :end %>
               <%= lc_text X::Connection.current ? "X is connected. Collection starts only when you request it." : "Connect X to verify source links and replies.", size: :small, tone: :muted %>
@@ -37,7 +37,7 @@
                 <div class="flex items-center justify-between gap-4 py-3">
                   <span class="min-w-0 text-sm">
                     <span class="font-semibold">@<%= disposition.post.person.handle %></span>
-                    <span class="text-muted">· <%= disposition.kind == "snoozed" ? "back tomorrow" : "skipped" %> · <%= CGI.unescapeHTML(disposition.post.body).truncate(90) %></span>
+                    <span class="text-muted-foreground">· <%= disposition.kind == "snoozed" ? "back tomorrow" : "skipped" %> · <%= CGI.unescapeHTML(disposition.post.body).truncate(90) %></span>
                   </span>
                   <%= lc_button_to "Return to queue", post_disposition_path(disposition.post), method: :delete, variant: :ghost, size: :sm, icon: "arrow-uturn-left" %>
                 </div>
@@ -48,14 +48,14 @@
       </section>
       <aside class="sticky top-6 flex flex-col gap-6">
         <div class="flex min-h-11 items-center">
-          <%= lc_heading "Your session", level: 2, size: :section %>
+          <%= lc_heading "Your session", level: 2, size: :heading %>
         </div>
         <%= lc_card class: "crm-session-card" do %>
           <div class="flex flex-col gap-5">
             <div class="flex items-end justify-between gap-4">
               <span class="text-5xl font-semibold tracking-tight tabular-nums">
                 <%= @daily_session.progress %>
-                <span class="text-2xl font-normal text-muted"> / 20</span>
+                <span class="text-2xl font-normal text-muted-foreground"> / 20</span>
               </span>
             </div>
             <div class="h-2 overflow-hidden rounded-full bg-background">
@@ -67,14 +67,14 @@
               <%= lc_text "Follow-ups stay separate. Take the time you need.", size: :small, tone: :muted %>
             </div>
             <% if @reports.any? %>
-              <div class="flex flex-col gap-3 rounded-2xl bg-card p-4" style="background: var(--card-bg)">
+              <div class="flex flex-col gap-3 rounded-2xl bg-card p-4">
                 <p class="text-sm font-semibold"><%= pluralize(@reports.size, "reply", plural: "replies") %> waiting for confirmation</p>
                 <ul class="flex flex-col gap-2">
                   <% @reports.each do |report| %>
                     <li class="flex items-center justify-between gap-2 text-sm">
                       <%= link_to "@#{report.post.person.handle}", report.post.person, class: "truncate font-medium text-primary" %>
                       <span class="flex items-center gap-1">
-                        <% if report.reply_url.present? && !demo? %><%= link_to "Your reply", report.reply_url, target: "_blank", rel: "noopener noreferrer", class: "text-xs text-muted hover:text-primary" %><% end %>
+                        <% if report.reply_url.present? && !demo? %><%= link_to "Your reply", report.reply_url, target: "_blank", rel: "noopener noreferrer", class: "text-xs text-muted-foreground hover:text-primary" %><% end %>
                         <%= lc_button_to "Undo", post_reply_report_path(report.post), method: :delete, variant: :ghost, size: :sm %>
                       </span>
                     </li>
@@ -102,7 +102,7 @@
         <% end %>
         <%= lc_card do %>
           <div class="flex flex-col gap-4">
-            <%= lc_heading "A lighter following list", level: 3, size: :card %>
+            <%= lc_heading "A lighter following list", level: 3, size: :subheading %>
             <%= lc_text "A few thoughtful decisions after your replies. Mutuals and people you keep are protected.", size: :small, tone: :muted %>
             <%= lc_button_link_to "Review follows", follow_reviews_path, variant: :secondary, size: :sm, icon: "arrow-right", icon_position: :end %>
           </div>
@@ -110,15 +110,15 @@
         <% if @pinned_people.any? %>
           <div class="flex flex-col gap-4">
             <div class="flex items-center justify-between">
-              <%= lc_heading "Pinned people", level: 3, size: :card %>
-              <%= lc_icon "bookmark", options: { class: "size-4 text-muted" } %>
+              <%= lc_heading "Pinned people", level: 3, size: :subheading %>
+              <%= lc_icon "bookmark", options: { class: "size-4 text-muted-foreground" } %>
             </div>
             <% @pinned_people.each do |person| %>
               <%= link_to person, class: "flex items-center gap-3" do %>
                 <%= person_avatar person, size: :sm %>
                 <span class="text-sm font-medium">
                   <%= person.name %>
-                  <span class="block text-xs font-normal text-muted">@<%= person.handle %>
+                  <span class="block text-xs font-normal text-muted-foreground">@<%= person.handle %>
                   </span>
                 </span>
               <% end %>

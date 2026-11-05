@@ -1,7 +1,7 @@
 <% content_for :title, "Compose" %>
 <div class="flex items-end justify-between gap-8 pb-6 pt-8">
   <div class="flex flex-col gap-3">
-    <%= lc_heading "Compose", level: 1, size: :page %>
+    <%= lc_heading "Compose", level: 1, size: :title %>
     <%= lc_text "Capture ideas, shape them into posts, and post them yourself on X.", tone: :muted %>
   </div>
   <%= render "tabs" %>
@@ -23,23 +23,23 @@
     <section class="flex min-w-0 flex-col gap-3" aria-labelledby="column-<%= status %>">
       <div class="flex items-baseline justify-between px-1">
         <h2 id="column-<%= status %>" class="text-sm font-semibold"><%= label %></h2>
-        <span class="text-xs tabular-nums text-muted"><%= @drafts.fetch(status, []).size %></span>
+        <span class="text-xs tabular-nums text-muted-foreground"><%= @drafts.fetch(status, []).size %></span>
       </div>
       <% if drafts.empty? %>
-        <p class="rounded-2xl border border-dashed border-border p-4 text-xs text-muted">
+        <p class="rounded-2xl border border-dashed border-border p-4 text-xs text-muted-foreground">
           <%= { "idea" => "Quick thoughts land here.", "drafting" => "Open an idea to start writing.", "ready" => "Drafts you're happy with.", "posted" => "Posted drafts link to the tweet after Check sent replies." }.fetch(status) %>
         </p>
       <% end %>
       <% drafts.each do |draft| %>
-        <%= lc_card padding: :compact, id: dom_id(draft) do %>
+        <%= lc_card padding: :sm, id: dom_id(draft) do %>
           <div class="flex flex-col gap-2">
             <%= link_to edit_draft_path(draft), class: "flex flex-col gap-1 hover:text-primary" do %>
               <span class="line-clamp-4 whitespace-pre-line text-sm"><%= draft.parts.first.presence || draft.topic.presence || draft.notes.to_s.truncate(140) %></span>
             <% end %>
-            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               <% if draft.topic.present? && draft.parts.any? %><span class="truncate"><%= draft.topic %></span><% end %>
               <% if draft.parts.any? %>
-                <span class="tabular-nums <%= 'font-semibold text-danger' if draft.over_limit? %>"><%= draft.thread? ? "Thread of #{draft.parts.size}" : "#{draft.part_lengths.first}/#{Draft::LIMIT}" %></span>
+                <span class="tabular-nums <%= 'font-semibold text-destructive' if draft.over_limit? %>"><%= draft.thread? ? "Thread of #{draft.parts.size}" : "#{draft.part_lengths.first}/#{Draft::LIMIT}" %></span>
               <% end %>
               <span class="ms-auto"><%= draft.posted_at ? draft.posted_at.strftime("%-d %b") : "#{time_ago_in_words(draft.updated_at)} ago" %></span>
             </div>
@@ -48,7 +48,7 @@
                 <%= lc_button_to draft_path(draft), method: :patch, params: { draft: { status: previous }, return_to: "board" }, variant: :ghost, size: :sm, title: "Move to #{Draft::STATUSES[previous]}", aria: { label: "Move to #{Draft::STATUSES[previous]}" } do %><%= lc_icon "arrow-left", options: { class: "size-4" } %><% end %>
               <% end %>
               <% if status == "posted" %>
-                <% if draft.posted_url && !demo? %><%= link_to "View on X", draft.posted_url, target: "_blank", rel: "noopener noreferrer", class: "text-xs font-medium text-primary hover:underline" %><% else %><span class="text-xs text-muted">Not matched to a tweet yet</span><% end %>
+                <% if draft.posted_url && !demo? %><%= link_to "View on X", draft.posted_url, target: "_blank", rel: "noopener noreferrer", class: "text-xs font-medium text-primary hover:underline" %><% else %><span class="text-xs text-muted-foreground">Not matched to a tweet yet</span><% end %>
               <% elsif (following = draft.next_status) %>
                 <%= lc_button_to draft_path(draft), method: :patch, params: { draft: { status: following }, return_to: "board" }, variant: :ghost, size: :sm, form: { class: "ms-auto" }, title: "Move to #{Draft::STATUSES[following]}" do %><%= following == "posted" ? "I posted it" : Draft::STATUSES[following] %><%= lc_icon "arrow-right", options: { class: "size-4" } %><% end %>
               <% end %>

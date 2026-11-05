@@ -30,7 +30,7 @@ export default class extends Controller {
     const over = parts.filter((part) => weightedLength(part) > LIMIT).length
     this.summaryTarget.textContent = parts.length === 0 ? "Empty draft"
       : `${parts.length === 1 ? "Single post" : `Thread of ${parts.length}`}${over ? ` · ${over} over ${LIMIT}` : ""}`
-    this.summaryTarget.classList.toggle("text-danger", over > 0)
+    this.summaryTarget.classList.toggle("text-destructive", over > 0)
     if (this.hasIntentTarget) {
       this.intentTarget.href = `https://x.com/intent/post?text=${encodeURIComponent(parts[0] || "")}`
     }
@@ -52,12 +52,12 @@ export default class extends Controller {
     body.className = "whitespace-pre-wrap break-words text-sm"
     body.textContent = text
     const meta = document.createElement("div")
-    meta.className = "flex items-center justify-between text-xs tabular-nums text-muted"
+    meta.className = "flex items-center justify-between text-xs tabular-nums text-muted-foreground"
     const position = document.createElement("span")
     position.textContent = total > 1 ? `${index + 1}/${total}` : ""
     const count = document.createElement("span")
     count.textContent = `${length}/${LIMIT}`
-    if (length > LIMIT) count.className = "font-semibold text-danger"
+    if (length > LIMIT) count.className = "font-semibold text-destructive"
     else if (length > LIMIT - 20) count.className = "font-semibold text-warning"
     meta.append(position, count)
     card.append(body, meta)

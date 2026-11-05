@@ -18,7 +18,7 @@ module PeopleHelper
   end
 
   def relative_day(time)
-    return tag.span("—", class: "text-muted") unless time
+    return tag.span("—", class: "text-muted-foreground") unless time
     tag.time("#{time_ago_in_words(time)} ago", datetime: time.iso8601, title: time.strftime("%-d %B %Y, %H:%M"))
   end
 

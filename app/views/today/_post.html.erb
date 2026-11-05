@@ -5,24 +5,24 @@
         <%= person_avatar post.person %>
         <span>
           <span class="block font-semibold"><%= post.person.name %></span>
-          <span class="text-sm text-muted">@<%= post.person.handle %> · <%= time_ago_in_words(post.published_at) %> ago</span>
+          <span class="text-sm text-muted-foreground">@<%= post.person.handle %> · <%= time_ago_in_words(post.published_at) %> ago</span>
         </span>
       <% end %>
       <%= person_actions(post.person) %>
     </div>
     <% if post.source == "grok" %>
-      <div class="flex flex-wrap items-center gap-2 text-xs text-muted">
+      <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <%= lc_badge "Unverified · from Grok", tone: :warning %>
         <span>Text, time, and author as Grok reported them. Open on X to check before replying.</span>
       </div>
     <% end %>
     <p class="whitespace-pre-line text-lg"><%= CGI.unescapeHTML(post.body) %></p>
     <div class="rounded-2xl bg-primary-soft/60 p-4 text-sm">
-      <p><span class="font-semibold">Why this fits</span> · <%= post.match_reason.presence || tag.span("No match reason saved for this tweet.", class: "text-muted") %></p>
-      <p class="mt-2 text-muted"><%= post.person.description.presence || "No bio collected. Check their profile on X before replying." %><% if post.person.x_id.nil? && post.person.description.present? %> <span class="text-xs">(bio from Grok)</span><% end %></p>
+      <p><span class="font-semibold">Why this fits</span> · <%= post.match_reason.presence || tag.span("No match reason saved for this tweet.", class: "text-muted-foreground") %></p>
+      <p class="mt-2 text-muted-foreground"><%= post.person.description.presence || "No bio collected. Check their profile on X before replying." %><% if post.person.x_id.nil? && post.person.description.present? %> <span class="text-xs">(bio from Grok)</span><% end %></p>
       <% if post.person.notes.present? %><p class="mt-2"><span class="font-semibold">Your note</span> · <%= post.person.notes %></p><% end %>
     </div>
-    <div class="flex flex-wrap items-center gap-2 text-xs text-muted">
+    <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
       <%= relationship_badge post.person.reply_state %>
       <%= relationship_badge post.person.follow_state(@graph) %>
       <span><%= post.reply_count.nil? ? "Reply count not collected" : "#{post.reply_count} replies at last check" %></span>
@@ -45,6 +45,6 @@
         <%= lc_button_to "Skip", post_disposition_path(post, kind: "skipped"), variant: :ghost, size: :sm, icon: "forward", title: "Hide this tweet" %>
       </div>
     </div>
-    <% if demo? %><p class="text-xs text-muted">Fictional example. Live links are disabled.</p><% end %>
+    <% if demo? %><p class="text-xs text-muted-foreground">Fictional example. Live links are disabled.</p><% end %>
   </div>
 <% end %>

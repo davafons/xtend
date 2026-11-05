@@ -27,7 +27,7 @@ module ApplicationHelper
     end
   end
 
-  def person_avatar(person, size: :base)
+  def person_avatar(person, size: :md)
     tone = %w[blue green orange sand][person.id.to_i % 4]
     if person.avatar_url.present? && !demo?
       lc_avatar(src: person.avatar_image_url, alt: "", size: size, class: "crm-avatar", loading: "lazy", referrerpolicy: "no-referrer", data: { avatar_tone: tone })

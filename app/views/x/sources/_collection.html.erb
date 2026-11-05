@@ -1,5 +1,5 @@
 <section id="collection" class="flex flex-col gap-4 scroll-mt-8">
-  <%= lc_heading "Collect a small sample", level: 2, size: :section %>
+  <%= lc_heading "Collect a small sample", level: 2, size: :heading %>
   <%= lc_card do %>
     <div class="flex flex-col gap-5">
       <%= lc_text "Each action reads one bounded page. Start with the four samples here; their combined standard-rate maximum is $2.10. A continuation always needs another click.", tone: :muted %>
@@ -11,13 +11,13 @@
         <% [["followers", "Sample followers", "$1.00 · up to 100"], ["following", "Sample following", "$1.00 · up to 100"], ["own_posts", "Sample your posts", "$0.05 · up to 10"], ["mentions", "Sample mentions", "$0.05 · up to 10"]].each do |dataset, label, cost| %>
           <div class="flex flex-col gap-2">
             <%= lc_button_to label, x_sync_runs_path, params: {dataset: dataset, request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: {"followers" => "user-group", "following" => "user-plus", "own_posts" => "document-text", "mentions" => "at-symbol"}.fetch(dataset), disabled: demo? || !@cycle || !X::Connection.current %>
-            <p class="text-xs text-muted"><%= cost %> at standard rates</p>
+            <p class="text-xs text-muted-foreground"><%= cost %> at standard rates</p>
           </div>
         <% end %>
       </div>
       <div class="flex flex-col gap-2">
         <%= lc_button_to "Refresh follower baseline", x_sync_runs_path, params: {dataset: "followers", mode: "refresh", request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: "arrow-path", disabled: demo? || !@cycle || !X::Connection.current %>
-        <p class="text-xs text-muted">Up to 200 followers per page. $0.20 maximum with recorded owned pricing, $2.00 at standard rates. One completed refresh also checks for follower losses.</p>
+        <p class="text-xs text-muted-foreground">Up to 200 followers per page. $0.20 maximum with recorded owned pricing, $2.00 at standard rates. One completed refresh also checks for follower losses.</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <% ["own_posts", "mentions"].each do |dataset| %>
@@ -37,7 +37,7 @@
               ["dm_events", "Collect DM activity", "envelope", "Up to 20 per page · $0.20, no owned rate"]].each do |dataset, label, icon, cost| %>
             <div class="flex flex-col gap-2">
               <%= lc_button_to label, x_sync_runs_path, params: {dataset: dataset, request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: icon, disabled: demo? || !@cycle || !connection&.granted?(X::Config::DATASET_SCOPES.fetch(dataset)) %>
-              <p class="text-xs text-muted"><%= cost %></p>
+              <p class="text-xs text-muted-foreground"><%= cost %></p>
             </div>
           <% end %>
         </div>
@@ -49,7 +49,7 @@
       <% if unknown_users.any? || unknown_parents.any? %>
         <div class="flex flex-col gap-3">
           <p class="text-sm font-semibold">Resolve missing context</p>
-          <p class="text-xs text-muted"><%= unknown_users.size %> unresolved people · <%= unknown_parents.size %> missing parent posts. Each action resolves up to 20, within the remaining budget.</p>
+          <p class="text-xs text-muted-foreground"><%= unknown_users.size %> unresolved people · <%= unknown_parents.size %> missing parent posts. Each action resolves up to 20, within the remaining budget.</p>
           <div class="flex flex-wrap gap-2">
             <% if unknown_users.any? %><%= lc_button_to "Resolve people", x_sync_runs_path, params: {dataset: "users", request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, disabled: demo? || !@cycle %><% end %>
             <% if unknown_parents.any? %><%= lc_button_to "Resolve parents", x_sync_runs_path, params: {dataset: "posts", request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, disabled: demo? || !@cycle %><% end %>
@@ -61,15 +61,15 @@
   <% if @runs.any? %>
     <%= lc_card do %>
       <div class="flex flex-col gap-5">
-        <%= lc_heading "Recent collection", level: 3, size: :card %>
+        <%= lc_heading "Recent collection", level: 3, size: :subheading %>
         <% @runs.each do |run| %>
           <div id="<%= dom_id(run) %>" data-request-key="<%= run.request_key %>" class="flex flex-col gap-2 border-b border-border pb-4 last:border-0 last:pb-0">
             <div class="flex items-start justify-between gap-3">
               <p class="text-sm font-semibold"><%= run.dataset.humanize %> · <%= run.mode.humanize %></p>
               <%= lc_badge run.status.humanize, tone: run.status == "completed" ? :success : :neutral %>
             </div>
-            <p class="text-xs text-muted"><%= run.resource_count %> resources · <%= run.page_number %> pages · <%= run.created_at.strftime("%-d %b, %H:%M") %></p>
-            <% if run.message.present? %><p class="text-xs text-muted"><%= run.message %></p><% end %>
+            <p class="text-xs text-muted-foreground"><%= run.resource_count %> resources · <%= run.page_number %> pages · <%= run.created_at.strftime("%-d %b, %H:%M") %></p>
+            <% if run.message.present? %><p class="text-xs text-muted-foreground"><%= run.message %></p><% end %>
             <% if X::SyncRun::ACTIVE_STATUSES.include?(run.status) %>
               <div><%= lc_button_to "Recover interrupted page", x_sync_run_path(run), method: :patch, params: {recover: "1"}, variant: :ghost, size: :sm, disabled: run.updated_at > 2.minutes.ago %></div>
             <% elsif run.status == "partial" || run.status == "ready" || (run.status == "paused" && run.page_number.zero?) || run.x_reads.where(status: "received").exists? %>

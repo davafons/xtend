@@ -1,12 +1,12 @@
 <% content_for :title, "Add a person" %>
 <div class="pt-8 pb-8">
-  <%= lc_heading "Someone worth remembering.", level: 1, size: :page %>
+  <%= lc_heading "Someone worth remembering.", level: 1, size: :title %>
 </div>
 <div class="max-w-xl">
   <%= lc_card do %>
     <%= form_with model: @person, class: "flex flex-col gap-5" do %>
       <% if @person.errors.any? %>
-        <%= lc_alert @person.errors.full_messages.to_sentence, tone: :danger %>
+        <%= lc_alert @person.errors.full_messages.to_sentence, tone: :destructive %>
       <% end %>
       <%= lc_field label: "Name", id: "person-name" do |field| %>
         <%= lc_input name: "person[name]", value: @person.name, required: true, **field %>

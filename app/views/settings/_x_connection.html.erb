@@ -3,15 +3,15 @@
     <div>
       <p class="font-semibold">Your X account</p>
       <% if X::Connection.current %>
-        <p class="mt-2 text-sm text-muted">Connected as @<%= X::Connection.current.username %>. Identity checked <%= time_ago_in_words(X::Connection.current.identity_checked_at) %> ago.</p>
+        <p class="mt-2 text-sm text-muted-foreground">Connected as @<%= X::Connection.current.username %>. Identity checked <%= time_ago_in_words(X::Connection.current.identity_checked_at) %> ago.</p>
       <% else %>
-        <p class="mt-2 text-sm text-muted">Connect your own X account for read-only access. This is a personal tool; there is no app signup or separate login.</p>
+        <p class="mt-2 text-sm text-muted-foreground">Connect your own X account for read-only access. This is a personal tool; there is no app signup or separate login.</p>
       <% end %>
     </div>
     <%= lc_badge X::Connection.current ? "Credentials saved" : "Not connected", tone: X::Connection.current ? :success : :warning %>
   </div>
   <% if X::Config.configured? %>
-    <p class="text-sm text-muted">Read-only access to posts, profiles, followers, following, likes, bookmarks, and DMs, plus refresh access. <% if X::Connection.current %>Granted now: <%= X::Connection.current.granted_scopes.split.to_sentence %>. <% end %>No posting, following, liking, or DM-sending permissions.</p>
+    <p class="text-sm text-muted-foreground">Read-only access to posts, profiles, followers, following, likes, bookmarks, and DMs, plus refresh access. <% if X::Connection.current %>Granted now: <%= X::Connection.current.granted_scopes.split.to_sentence %>. <% end %>No posting, following, liking, or DM-sending permissions.</p>
     <% if X::Config.callback_origin != request.base_url %>
       <%= lc_alert "Open the app at #{X::Config.callback_origin} before connecting so the callback uses the same browser session.", tone: :warning %>
     <% end %>
@@ -30,7 +30,7 @@
   <div class="rounded-2xl bg-background p-4">
     <p class="text-sm font-semibold">Exact callback URL</p>
     <p class="mt-2 break-all text-sm"><%= X::Config.redirect_uri.presence || "Not configured" %></p>
-    <p class="mt-2 text-xs text-muted">The callback path is <code>/x/connection/callback</code>. Register the complete configured URL exactly in the X developer console. The configured origin must match the browser session used to connect.</p>
+    <p class="mt-2 text-xs text-muted-foreground">The callback path is <code>/x/connection/callback</code>. Register the complete configured URL exactly in the X developer console. The configured origin must match the browser session used to connect.</p>
   </div>
-  <p class="text-xs text-muted">Connecting checks only your account identity, which may consume one API user read. It does not collect tweets or follows or start recurring jobs. Local disconnect removes saved tokens; revoke the app in X settings to remove X's authorization.</p>
+  <p class="text-xs text-muted-foreground">Connecting checks only your account identity, which may consume one API user read. It does not collect tweets or follows or start recurring jobs. Local disconnect removes saved tokens; revoke the app in X settings to remove X's authorization.</p>
 </div>

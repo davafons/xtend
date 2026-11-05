@@ -18,10 +18,10 @@ The existing the server tunnel from `../infra` (`tunnel-docker`, with `cloudflar
 
 1. Terraform: add an ingress entry to `cloudflare_zero_trust_tunnel_cloudflared_config.the server`, before the catch-all, routing `hostname = "<name>.example.com"` to `service = "http://localhost:23010"`. Also add the matching DNS record.
 2. Ansible: add a `twitter-crm` stack for the server that runs this `compose.yaml` with `APP_HOSTS` and `SECRET_KEY_BASE` from SSM, for example under `/xtend/`.
-3. Build the image where the sibling `lostcoords-ui` checkout exists, then create the owner:
+3. Build the image, then create the owner:
 
 ```sh
-docker build --build-context lostcoords-ui=../lostcoords-ui -t twitter-crm .
+docker build -t twitter-crm .
 docker compose exec web ./bin/rails users:create EMAIL=you@example.com
 ```
 
@@ -31,7 +31,7 @@ Cloudflare terminates TLS. Requests reach the container from Docker's private br
 
 Optional extra layer: a Cloudflare Access policy on every path except `/mcp` and `/up` adds a second login in front of the app. Grok Bot can't pass Access, so `/mcp` has to stay outside the policy.
 
-The `lostcoords-ui` gem is pinned to commit `19ef2a7` of the sibling checkout, which isn't on GitHub. The build copies that checkout's git history in as a named build context, so either build on a machine that has the sibling checkout, or push or tag that commit on `lostcoords/ui` and point the Gemfile at GitHub.
+The `lostcoords-ui` gem is pinned to the 0.7.0 commit on GitHub (`lostcoords/ui`), so the image builds anywhere with network access.
 
 ## Background jobs
 

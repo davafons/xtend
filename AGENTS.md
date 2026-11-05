@@ -15,9 +15,9 @@
 ## Rails and UI
 
 - Use `../wariwari` as a read-only Rails reference: conventional Rails, rich models, thin RESTful controllers, ERB, Hotwire, SQLite, Importmap, and Propshaft.
-- Use the actual `lostcoords-ui` gem from `../lostcoords-ui` for shared components. Gemfile pins its last working revision while the sibling checkout undergoes a foundation refactor. Use the Bundler-resolved README and helper API; do not patch or copy sibling components.
+- Use the actual `lostcoords-ui` gem. Gemfile pins the 0.7.0 commit from GitHub (`lostcoords/ui`); `../lostcoords-ui` is a read-only reference for its README and docs. Use the Bundler-resolved README and helper API; do not patch or copy sibling components.
 - Use the gem's rendering helpers, theme tokens, and Tailwind entry. Avoid copied component class lists, app-local primitive reimplementations, or a separate JavaScript framework.
-- Use Sanzo Wada combination 267 from https://colors.bible/#c=Blue~267 plus white. Derive theme tints and shades from the four `--wada-267-*` source tokens. Keep shared Heroicons and text labels for relationship and action cues.
+- The theme is dark only, modelled on X's "Lights out" theme: black background, `#16181C` cards, `#2F3336` borders, `#E7E9EA` text, `#71767B` secondary text, and `#1D9BF0` for actions. Set colors through the library's shadcn-style tokens in `app/assets/tailwind/tokens.css`. Keep shared Heroicons and text labels for relationship and action cues.
 - Code is grouped by domain: `X::` (API, OAuth, reads, sync), `Follow::` (snapshots and cleanup), `Grok::`, `Discovery::`, and `Mcp::`, with core CRM models at the top level. Put new code in the matching namespace.
 - Follow the installed/reference Ruby and Rails versions. Keep dependencies small and avoid service-object, presenter, and repository layers without a concrete need.
 - Do not modify sibling projects to make this application work.

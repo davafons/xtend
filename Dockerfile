@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build: docker build --build-context lostcoords-ui=../lostcoords-ui -t twitter-crm .
-# The lostcoords-ui gem is pinned to a commit of the sibling checkout; only its git history is copied in.
+# Build: docker build -t twitter-crm .
 ARG RUBY_VERSION=4.0.2
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 WORKDIR /rails
@@ -18,15 +17,10 @@ FROM base AS build
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential git libyaml-dev pkg-config && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
-COPY --from=lostcoords-ui .git /lostcoords-ui/.git
 COPY Gemfile Gemfile.lock ./
-# The lockfile records the sibling's host path. Re-resolving inside the image only rewrites that git source;
-# every gem version stays as locked. The adjusted lockfile is kept over the host copy below.
-RUN BUNDLE_DEPLOYMENT=0 BUNDLE_FROZEN=0 bundle install && \
-    cp Gemfile.lock /tmp/Gemfile.lock && \
+RUN bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git
 COPY . .
-RUN cp /tmp/Gemfile.lock Gemfile.lock && bundle check
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
 FROM base
