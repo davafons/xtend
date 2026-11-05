@@ -26,7 +26,7 @@ class Draft::Ideas
   # Questions people asked in replies to you.
   def questions
     ids = ReplyEvent.where(direction: "incoming").order(occurred_at: :desc).limit(300).pluck(:x_id)
-    XSourcePost.where(x_id: ids).order(published_at: :desc).to_a
+    X::SourcePost.where(x_id: ids).order(published_at: :desc).to_a
       .select { |post| strip_mentions(post.body).include?("?") }
       .reject { |post| drafted?(post) }
       .first(8)
@@ -66,7 +66,7 @@ class Draft::Ideas
   private
 
   def owned
-    @owner.present? ? XSourcePost.where(author_x_id: @owner, repost: false) : XSourcePost.none
+    @owner.present? ? X::SourcePost.where(author_x_id: @owner, repost: false) : X::SourcePost.none
   end
 
   def drafted?(post)

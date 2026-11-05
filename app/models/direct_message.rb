@@ -2,7 +2,7 @@
 class DirectMessage < ApplicationRecord
   HISTORY_WINDOW = 30.days
 
-  belongs_to :x_sync_run, optional: true
+  belongs_to :x_sync_run, class_name: "X::SyncRun", optional: true
   validates :x_id, presence: true, uniqueness: true
   validates :conversation_x_id, :partner_x_id, :occurred_at, presence: true
   validates :direction, inclusion: { in: %w[incoming outgoing] }
@@ -29,8 +29,8 @@ class DirectMessage < ApplicationRecord
   # API checks cover the 30 days before each check; a complete archive covers the account's whole life until it was generated.
   # Returns the start of the unbroken stretch that reaches the most recent check.
   def self.covered_since
-    windows = XSyncRun.where(dataset: "dm_events", status: "completed").pluck(:upper_bound).map { |checked| [checked - HISTORY_WINDOW, checked] }
-    windows += ArchiveImport.where(partial: false).pluck(:account_created_at, :generated_at)
+    windows = X::SyncRun.where(dataset: "dm_events", status: "completed").pluck(:upper_bound).map { |checked| [checked - HISTORY_WINDOW, checked] }
+    windows += X::ArchiveImport.where(partial: false).pluck(:account_created_at, :generated_at)
     merged = windows.sort_by(&:first).each_with_object([]) do |(from, to), stretches|
       if stretches.any? && from <= stretches.last.last
         stretches.last[1] = [stretches.last.last, to].max

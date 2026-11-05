@@ -20,7 +20,7 @@ class Person::Interactions
     ReplyEvent.where(person_id: ids).group(:person_id, :direction).maximum(:occurred_at).each do |(id, direction), at|
       signals[id] << Signal.new("reply", at, direction)
     end
-    XSourcePost.joins(:x_sync_run).where(x_sync_runs: { dataset: "mentions" }, author_x_id: x_ids, repost: false)
+    X::SourcePost.joins(:x_sync_run).where(x_sync_runs: { dataset: "mentions" }, author_x_id: x_ids, repost: false)
       .group(:author_x_id).maximum(:published_at).each do |x_id, at|
       signals[person_by_x_id.fetch(x_id)] << Signal.new("mention", at, "incoming")
     end
@@ -40,7 +40,7 @@ class Person::Interactions
   end
 
   def self.coverage
-    public_since = XSourcePost.joins(:x_sync_run).where(x_sync_runs: { dataset: %w[own_posts mentions] }).minimum(:published_at)
+    public_since = X::SourcePost.joins(:x_sync_run).where(x_sync_runs: { dataset: %w[own_posts mentions] }).minimum(:published_at)
     {
       "Replies and mentions" => public_since ? "since #{public_since.strftime('%-d %b %Y')}" : "not collected",
       "Likes" => engagement_coverage("like"),
@@ -58,8 +58,8 @@ class Person::Interactions
   def self.dm_coverage
     since = DirectMessage.covered_since
     return "not collected" unless since
-    archive = ArchiveImport.where(partial: false).maximum(:generated_at)
-    latest_api = XSyncRun.where(dataset: "dm_events", status: "completed").maximum(:upper_bound)
+    archive = X::ArchiveImport.where(partial: false).maximum(:generated_at)
+    latest_api = X::SyncRun.where(dataset: "dm_events", status: "completed").maximum(:upper_bound)
     text = "since #{since.strftime('%-d %b %Y')}"
     return text unless archive
     later_api = latest_api && latest_api > archive

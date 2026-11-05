@@ -33,7 +33,7 @@ class Person::Timeline
 
   def reply_entries
     events = person.reply_events.to_a
-    sources = XSourcePost.where(x_id: events.flat_map { |event| [event.x_id, event.target_x_id] }).index_by(&:x_id)
+    sources = X::SourcePost.where(x_id: events.flat_map { |event| [event.x_id, event.target_x_id] }).index_by(&:x_id)
     events.map do |event|
       outgoing = event.direction == "outgoing"
       title = outgoing ? "You replied to #{person.name}" : "#{person.name} replied to you"
@@ -66,7 +66,7 @@ class Person::Timeline
   def authored_entries
     return [] if person.x_id.blank?
     known = person.reply_events.map(&:x_id) + person.posts.map(&:x_id)
-    XSourcePost.where(author_x_id: person.x_id, repost: false).where.not(x_id: known).map do |source|
+    X::SourcePost.where(author_x_id: person.x_id, repost: false).where.not(x_id: known).map do |source|
       Entry.new(at: source.published_at, category: "conversation", icon: "chat-bubble-bottom-center-text",
         title: source.parent_x_id ? "Replied in a thread" : "Posted", body: text(source.body), url: status_url(source.x_id))
     end
@@ -115,7 +115,7 @@ class Person::Timeline
   end
 
   def following_entries
-    snapshots = FollowSnapshot.where(direction: "following").where.not(completed_at: nil).order(:observed_at).to_a
+    snapshots = Follow::Snapshot.where(direction: "following").where.not(completed_at: nil).order(:observed_at).to_a
     return [] if snapshots.empty?
     member_ids = person.follow_memberships.where(follow_snapshot_id: snapshots.map(&:id)).pluck(:follow_snapshot_id).to_set
     entries = []

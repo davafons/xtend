@@ -31,7 +31,7 @@ class Workspace < ApplicationRecord
   end
 
   def grok_context
-    graph = FollowGraph.latest
+    graph = Follow::Graph.latest
     {
       format: "twitter-crm-context-v1", exported_at: Time.current.iso8601,
       demo: Rails.configuration.x.demo, interests: interests,

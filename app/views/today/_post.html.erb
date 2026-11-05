@@ -39,7 +39,7 @@
       </div>
       <div class="flex items-center gap-1">
         <% if post.source == "grok" && !demo? %>
-          <%= lc_button_to "Verify on X", x_sync_runs_path, params: { dataset: "posts", post_x_id: post.x_id, return_to: "today", request_key: SecureRandom.uuid }, variant: :ghost, size: :sm, icon: "shield-check", title: "One paid post lookup, $0.005 standard", disabled: !XBillingCycle.current || !XConnection.current %>
+          <%= lc_button_to "Verify on X", x_sync_runs_path, params: { dataset: "posts", post_x_id: post.x_id, return_to: "today", request_key: SecureRandom.uuid }, variant: :ghost, size: :sm, icon: "shield-check", title: "One paid post lookup, $0.005 standard", disabled: !X::BillingCycle.current || !X::Connection.current %>
         <% end %>
         <%= lc_button_to "Tomorrow", post_disposition_path(post, kind: "snoozed"), variant: :ghost, size: :sm, icon: "clock", title: "Hide until tomorrow" %>
         <%= lc_button_to "Skip", post_disposition_path(post, kind: "skipped"), variant: :ghost, size: :sm, icon: "forward", title: "Hide this tweet" %>

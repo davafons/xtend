@@ -106,7 +106,7 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     person = Person.resolve_profile!(profile)
     snapshot("following", [person])
     snapshot("followers", [])
-    FollowReview.record!(person, "reported_unfollow")
+    Follow::Review.record!(person, "reported_unfollow")
     assert_equal "You follow", person.follow_state
     assert_empty Person.cleanup_candidates
   end
@@ -114,13 +114,13 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
   test "candidate import is idempotent and cannot confirm activity" do
     document = {format: "twitter-crm-discovery-v1", posts: [{x_id: "8001", body: "A real question about testing", published_at: Time.current.iso8601, person: profile, verified: true}]}.to_json
     assert_difference "Post.count", 1 do
-      CandidateImport.call(document)
+      Discovery::CandidateImport.call(document)
     end
     person = Person.first
     person.update!(notes: "my note")
     person.create_pin!
     assert_no_difference ["Post.count", "Person.count", "ReplyEvent.count", "Outreach.count"] do
-      CandidateImport.call(document)
+      Discovery::CandidateImport.call(document)
     end
     assert_equal "my note", person.reload.notes
     assert person.pin
@@ -128,8 +128,8 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
 
   test "malformed import rolls back all rows" do
     document = {format: "twitter-crm-discovery-v1", posts: [{x_id: "8001", body: "ok", published_at: Time.current.iso8601, person: profile}, {x_id: "bad"}]}.to_json
-    assert_raises CandidateImport::Invalid do
-      CandidateImport.call(document)
+    assert_raises Discovery::CandidateImport::Invalid do
+      Discovery::CandidateImport.call(document)
     end
     assert_equal 0, Post.count
     assert_equal 0, Person.count
@@ -181,8 +181,8 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
   end
 
   test "invalid array rows are a handled import error" do
-    assert_raises(CandidateImport::Invalid) do
-      CandidateImport.call({format: "twitter-crm-discovery-v1", posts: [[]]}.to_json)
+    assert_raises(Discovery::CandidateImport::Invalid) do
+      Discovery::CandidateImport.call({format: "twitter-crm-discovery-v1", posts: [[]]}.to_json)
     end
   end
 

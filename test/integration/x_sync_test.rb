@@ -5,20 +5,20 @@ require "tmpdir"
 class XSyncTest < ActionDispatch::IntegrationTest
   test "sample buttons persist one page and repeated form submission cannot refetch it" do
     Dir.mktmpdir do |directory|
-      TokenVault.stub(:key_path, Pathname.new(directory).join("key")) do
-        XConnection.connect!({"access_token" => "test", "expires_in" => 7200}, {"id" => "999", "username" => "owner"})
+      X::TokenVault.stub(:key_path, Pathname.new(directory).join("key")) do
+        X::Connection.connect!({"access_token" => "test", "expires_in" => 7200}, {"id" => "999", "username" => "owner"})
         calls = 0
         result = {"data" => [{"id" => "101", "username" => "builder", "name" => "Builder"}], "meta" => {}, "partial_errors" => false}
         client = Object.new
         client.define_singleton_method(:page) { |*args, **kwargs| calls += 1; result }
         key = SecureRandom.uuid
-        XClient.stub(:new, client) do
+        X::Client.stub(:new, client) do
           2.times { post x_sync_runs_path, params: {dataset: "followers", request_key: key} }
         end
         assert_equal 1, calls
         assert_equal 1, Person.count
-        assert_equal 1, XSyncRun.count
-        assert_equal "completed", XSyncRun.last.status
+        assert_equal 1, X::SyncRun.count
+        assert_equal "completed", X::SyncRun.last.status
         get settings_path
         assert_response :success
         assert_includes response.body, "1 complete records"
@@ -32,7 +32,7 @@ class XSyncTest < ActionDispatch::IntegrationTest
   test "follower history renders loss windows and post-follow reply timing" do
     person = Person.resolve_profile!(profile)
     [ [[], 20], [[person], 15], [[person], 10], [[], 5] ].each do |people, days|
-      FollowerPeriod.observe!(snapshot("followers", people, observed_at: days.days.ago))
+      Follow::FollowerPeriod.observe!(snapshot("followers", people, observed_at: days.days.ago))
     end
     ingest(occurred_at: 14.days.ago)
     get follower_history_path(view: "lost")
@@ -42,11 +42,11 @@ class XSyncTest < ActionDispatch::IntegrationTest
     get follower_history_path(view: "new")
     assert_includes response.body, "1.0–6.0 days"
     assert_includes response.body, "Mean range across 1 completed periods"
-    assert_equal 0, XRead.count
+    assert_equal 0, X::Read.count
   end
 
   test "billing observation aligns to provider cycle and never changes the allowance" do
-    cycle = XBillingCycle.current
+    cycle = X::BillingCycle.current
     post x_billing_cycles_path, params: {cycle: {starts_on: cycle.starts_on.to_s, ends_on: cycle.ends_on.to_s, spend_cents: "73"}}
     assert_redirected_to settings_path(anchor: "billing")
     assert_equal 730_000, cycle.reload.provider_spend_micros
@@ -56,8 +56,8 @@ class XSyncTest < ActionDispatch::IntegrationTest
   end
   test "a new search uses a provider-accepted time window without a failed first attempt" do
     Dir.mktmpdir do |directory|
-      TokenVault.stub(:key_path, Pathname.new(directory).join("key")) do
-        XConnection.connect!({"access_token" => "test", "expires_in" => 7200}, {"id" => "999", "username" => "owner"})
+      X::TokenVault.stub(:key_path, Pathname.new(directory).join("key")) do
+        X::Connection.connect!({"access_token" => "test", "expires_in" => 7200}, {"id" => "999", "username" => "owner"})
         calls = 0
         http = Object.new
         http.define_singleton_method(:request) do |request|
@@ -74,9 +74,9 @@ class XSyncTest < ActionDispatch::IntegrationTest
           post x_sync_runs_path, params: {dataset: "search", query: "Rails debugging", request_key: SecureRandom.uuid}
         end
         assert_equal 1, calls
-        assert_equal "completed", XSyncRun.last.status
-        assert_equal "committed", XRead.last.status
-        assert_equal 0, XRead.last.estimated_micros
+        assert_equal "completed", X::SyncRun.last.status
+        assert_equal "committed", X::Read.last.status
+        assert_equal 0, X::Read.last.estimated_micros
       end
     end
   end

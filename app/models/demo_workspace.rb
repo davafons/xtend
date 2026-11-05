@@ -37,8 +37,8 @@ class DemoWorkspace
       [ profiles[0], profiles[2] ].each_with_index do |person, index|
         ReplyEvent.ingest_verified!(profile: { x_id: person.x_id, handle: person.handle, name: person.name }, x_id: (72000 + index).to_s, target_x_id: (62000 + index).to_s, direction: "incoming", classification: "continuation", source: "demo", occurred_at: 14.days.ago, confirmed_at: Time.current)
       end
-      following = FollowSnapshot.create!(direction: "following", source: "demo", observed_at: Time.current, completed_at: Time.current)
-      followers = FollowSnapshot.create!(direction: "followers", source: "demo", observed_at: Time.current, completed_at: Time.current)
+      following = Follow::Snapshot.create!(direction: "following", source: "demo", observed_at: Time.current, completed_at: Time.current)
+      followers = Follow::Snapshot.create!(direction: "followers", source: "demo", observed_at: Time.current, completed_at: Time.current)
       [ 0, 1, 3, 4, 5, 6 ].each { |index| following.follow_memberships.create!(person: profiles[index]) }
       [ 0, 2, 3 ].each { |index| followers.follow_memberships.create!(person: profiles[index]) }
     end

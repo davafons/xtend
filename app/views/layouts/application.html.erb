@@ -22,7 +22,7 @@
               <%= lc_button_link_to label, path, variant: (active ? :secondary : :ghost), size: :sm, icon: icon, aria: { current: ("page" if active) } %>
             <% end %>
           </nav>
-          <span class="flex items-center gap-2 text-sm text-muted"><%= lc_icon XConnection.current ? "link" : "signal-slash", options: { class: "size-4" } %><%= demo? ? "Demo data" : (XConnection.current ? "X credentials saved" : "X not connected") %></span>
+          <span class="flex items-center gap-2 text-sm text-muted"><%= lc_icon X::Connection.current ? "link" : "signal-slash", options: { class: "size-4" } %><%= demo? ? "Demo data" : (X::Connection.current ? "X credentials saved" : "X not connected") %></span>
         </header>
         <main class="pb-16">
           <% flash.each do |kind, message| %><div class="mb-6"><%= lc_alert message, tone: (kind == "alert" ? :danger : :success) %></div><% end %>

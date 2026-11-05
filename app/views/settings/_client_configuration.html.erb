@@ -1,16 +1,16 @@
-<% saved = XClientConfiguration.current&.values || {} %>
+<% saved = X::ClientConfiguration.current&.values || {} %>
 <%= lc_section title: "X developer app" do %>
   <%= lc_card do %>
     <div class="flex flex-col gap-5">
       <p class="text-sm text-muted">Save your own developer app configuration on this computer. It stays encrypted locally and is never included in context exports.</p>
-      <%= lc_badge "Configuration source: #{XConfig.source.to_s.humanize}" %>
-      <% if XConnection.current %>
+      <%= lc_badge "Configuration source: #{X::Config.source.to_s.humanize}" %>
+      <% if X::Connection.current %>
         <%= lc_text "Disconnect X locally before changing client configuration. Your relationship data will stay in place.", size: :small, tone: :muted %>
       <% elsif demo? %>
         <%= lc_text "Configuration is disabled in the fictional demo workspace.", size: :small, tone: :muted %>
       <% else %>
-        <% if %i[environment credentials].include?(XConfig.source) %>
-          <%= lc_alert "#{XConfig.source.to_s.humanize} configuration takes precedence. A Client ID in that source selects all its configuration values; saved form values do not override it.", tone: :warning %>
+        <% if %i[environment credentials].include?(X::Config.source) %>
+          <%= lc_alert "#{X::Config.source.to_s.humanize} configuration takes precedence. A Client ID in that source selects all its configuration values; saved form values do not override it.", tone: :warning %>
         <% end %>
         <%= form_with url: x_client_configuration_path, method: :patch, class: "flex flex-col gap-4", data: { turbo: false } do %>
           <%= lc_field label: "OAuth Client ID", id: "x-client-id" do |field| %>
@@ -23,7 +23,7 @@
             <label class="flex items-center gap-3 text-sm"><input type="checkbox" name="x_client_configuration[clear_client_secret]" value="1">Remove the saved secret</label>
           <% end %>
           <%= lc_field label: "Exact redirect URI", id: "x-redirect-uri", hint: "Must exactly match the callback registered with X. The provider must accept this URL." do |field| %>
-            <%= lc_input name: "x_client_configuration[redirect_uri]", value: saved[:redirect_uri].presence || "#{request.base_url}#{XConfig::CALLBACK_PATH}", type: :url, required: true, **field %>
+            <%= lc_input name: "x_client_configuration[redirect_uri]", value: saved[:redirect_uri].presence || "#{request.base_url}#{X::Config::CALLBACK_PATH}", type: :url, required: true, **field %>
           <% end %>
           <div><%= lc_button "Save local configuration", type: :submit, size: :sm, icon: "lock-closed" %></div>
         <% end %>

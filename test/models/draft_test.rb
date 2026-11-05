@@ -26,8 +26,8 @@ class DraftTest < ActiveSupport::TestCase
   end
 
   test "ready drafts link to the matching sent post without reusing one tweet" do
-    run = XSyncRun.create!(dataset: "own_posts", owner_x_id: "999", request_key: SecureRandom.uuid, mode: "refresh", page_limit: 10, upper_bound: Time.current)
-    XSourcePost.create!(x_id: "5001", author_x_id: "999", body: "Shipping a tiny Rails CRM with SQLite &amp; Hotwire https://t.co/abc", published_at: 1.hour.ago, x_sync_run: run)
+    run = X::SyncRun.create!(dataset: "own_posts", owner_x_id: "999", request_key: SecureRandom.uuid, mode: "refresh", page_limit: 10, upper_bound: Time.current)
+    X::SourcePost.create!(x_id: "5001", author_x_id: "999", body: "Shipping a tiny Rails CRM with SQLite &amp; Hotwire https://t.co/abc", published_at: 1.hour.ago, x_sync_run: run)
     ready = Draft.create!(status: "ready", body: "Shipping a tiny Rails CRM with SQLite & Hotwire https://example.com")
     copy = Draft.create!(status: "ready", body: "Shipping a tiny Rails CRM with SQLite & Hotwire again")
     idea = Draft.create!(status: "idea", body: "Shipping a tiny Rails CRM with SQLite & Hotwire")

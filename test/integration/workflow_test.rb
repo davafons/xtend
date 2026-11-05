@@ -68,7 +68,7 @@ class WorkflowTest < ActionDispatch::IntegrationTest
     tweet = person.posts.create!(x_id: "8001", body: "Question", published_at: 1.hour.ago)
     post post_reply_report_path(tweet), params: {reply_url: "javascript:alert(1)"}
     assert_equal 0, ReplyReport.count
-    post imports_path
+    post discovery_imports_path
     assert_redirected_to settings_path
     assert_equal 0, ReplyEvent.count
   end

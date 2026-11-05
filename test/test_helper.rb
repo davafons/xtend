@@ -5,7 +5,7 @@ require "rails/test_help"
 class ActiveSupport::TestCase
   setup do
     Workspace.current.update!(owner_x_id: "999")
-    XBillingCycle.create!(starts_on: Date.current, ends_on: Date.current + 30, observed_at: Time.current)
+    X::BillingCycle.create!(starts_on: Date.current, ends_on: Date.current + 30, observed_at: Time.current)
   end
 
   def profile(x_id: "101", handle: "builder", name: "A Builder")
@@ -17,7 +17,7 @@ class ActiveSupport::TestCase
   end
 
   def snapshot(direction, people, complete: true, observed_at: Time.current)
-    record = FollowSnapshot.create!(direction: direction, source: "x_api", observed_at: observed_at, completed_at: (observed_at if complete))
+    record = Follow::Snapshot.create!(direction: direction, source: "x_api", observed_at: observed_at, completed_at: (observed_at if complete))
     people.each { |person| record.follow_memberships.create!(person: person) }
     record
   end

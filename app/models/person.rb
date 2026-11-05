@@ -1,14 +1,14 @@
 class Person < ApplicationRecord
   has_one :pin, dependent: :destroy
-  has_one :follow_protection, dependent: :destroy
-  has_many :follower_periods, dependent: :destroy
+  has_one :follow_protection, class_name: "Follow::Protection", dependent: :destroy
+  has_many :follower_periods, class_name: "Follow::FollowerPeriod", dependent: :destroy
   has_many :posts, dependent: :destroy
   has_many :reply_events, dependent: :destroy
-  has_many :follow_memberships, dependent: :destroy
-  has_many :follow_reviews, dependent: :destroy
+  has_many :follow_memberships, class_name: "Follow::Membership", dependent: :destroy
+  has_many :follow_reviews, class_name: "Follow::Review", dependent: :destroy
   has_many :engagements, primary_key: :x_id, foreign_key: :author_x_id, inverse_of: false
   has_many :direct_messages, primary_key: :x_id, foreign_key: :partner_x_id, inverse_of: false
-  has_many :grok_proposals, dependent: :destroy
+  has_many :grok_proposals, class_name: "Grok::Proposal", dependent: :destroy
 
   before_validation { self.handle = handle.to_s.delete_prefix("@").downcase.strip }
   validates :handle, presence: true, uniqueness: true, format: { with: /\A[a-z0-9_]{1,15}\z/ }
@@ -84,7 +84,7 @@ class Person < ApplicationRecord
     end
   end
 
-  def follow_state(graph = FollowGraph.latest)
+  def follow_state(graph = Follow::Graph.latest)
     graph.state_for(self)
   end
 
@@ -121,14 +121,14 @@ class Person < ApplicationRecord
   # Non-mutual, unprotected accounts with no observed interaction of any kind within the quiet period.
   # Someone with an older interaction is "quiet", never "no interaction".
   def self.cleanup_candidates(quiet_for: CLEANUP_QUIET_PERIOD)
-    following = FollowSnapshot.latest_complete("following")
-    followers = FollowSnapshot.latest("followers")
+    following = Follow::Snapshot.latest_complete("following")
+    followers = Follow::Snapshot.latest("followers")
     return none unless following && followers&.fresh?
 
     eligible = where(id: following.person_ids)
       .where.not(id: followers.person_ids)
-      .where.not(id: FollowProtection.select(:person_id))
-      .where.not(id: FollowReview.where(reviewed_on: Date.current).select(:person_id))
+      .where.not(id: Follow::Protection.select(:person_id))
+      .where.not(id: Follow::Review.where(reviewed_on: Date.current).select(:person_id))
     since = quiet_for.ago
     active = Interactions.index(eligible).reject { |_, interactions| interactions.quiet_since?(since) }.keys
     eligible.where.not(id: active).alphabetical

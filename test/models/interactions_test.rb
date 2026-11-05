@@ -3,10 +3,10 @@ require "minitest/mock"
 require "tmpdir"
 
 class InteractionsTest < ActiveSupport::TestCase
-  def connected(scopes: XConfig::SCOPES)
+  def connected(scopes: X::Config::SCOPES)
     Dir.mktmpdir do |directory|
-      TokenVault.stub(:key_path, Pathname.new(directory).join("key")) do
-        connection = XConnection.connect!({"access_token" => "t", "refresh_token" => "r", "expires_in" => 7200}, {"id" => "999", "username" => "owner"})
+      X::TokenVault.stub(:key_path, Pathname.new(directory).join("key")) do
+        connection = X::Connection.connect!({"access_token" => "t", "refresh_token" => "r", "expires_in" => 7200}, {"id" => "999", "username" => "owner"})
         connection.update!(granted_scopes: scopes.join(" "))
         yield connection
       end
@@ -29,8 +29,8 @@ class InteractionsTest < ActiveSupport::TestCase
   end
 
   def collect(dataset, *pages)
-    run = XSyncRun.start!(dataset: dataset, request_key: SecureRandom.uuid)
-    XClient.stub(:new, client_returning(*pages)) do
+    run = X::SyncRun.start!(dataset: dataset, request_key: SecureRandom.uuid)
+    X::Client.stub(:new, client_returning(*pages)) do
       pages.size.times { |page| run.fetch_page!(expected_page: page) }
     end
     run.reload
@@ -67,7 +67,7 @@ class InteractionsTest < ActiveSupport::TestCase
 
   test "DM collection keeps one-to-one metadata only and never message text" do
     connected do
-      payload = XPayload.page({"data" => [
+      payload = X::Payload.page({"data" => [
         {"id" => "11", "event_type" => "MessageCreate", "text" => "secret words", "dm_conversation_id" => "101-999", "sender_id" => "101", "created_at" => 2.days.ago.iso8601},
         {"id" => "12", "event_type" => "MessageCreate", "text" => "group chat", "dm_conversation_id" => "5555", "sender_id" => "101", "created_at" => 1.day.ago.iso8601}
       ], "meta" => {"result_count" => 2}}, dataset: "dm_events")
@@ -76,7 +76,7 @@ class InteractionsTest < ActiveSupport::TestCase
       assert_equal 1, DirectMessage.count
       message = DirectMessage.first
       assert_equal ["101", "incoming"], [message.partner_x_id, message.direction]
-      assert_not_includes XRead.last.payload.to_json, "secret words"
+      assert_not_includes X::Read.last.payload.to_json, "secret words"
 
       person = Person.resolve_profile!(profile)
       assert person.interactions.awaiting_dm_reply?
@@ -87,14 +87,14 @@ class InteractionsTest < ActiveSupport::TestCase
 
   test "sources need their read scope before any request" do
     connected(scopes: %w[tweet.read users.read follows.read offline.access]) do
-      error = assert_raises(XClient::Error) { XSyncRun.start!(dataset: "dm_events", request_key: SecureRandom.uuid) }
+      error = assert_raises(X::Client::Error) { X::SyncRun.start!(dataset: "dm_events", request_key: SecureRandom.uuid) }
       assert_match "dm.read", error.message
     end
   end
 
   test "likes use owned pricing only with evidence; DMs never do" do
-    cycle = XBillingCycle.current
-    cycle.update!(pricing_evidence: "trial", owned_configuration_digest: XConfig.fingerprint)
+    cycle = X::BillingCycle.current
+    cycle.update!(pricing_evidence: "trial", owned_configuration_digest: X::Config.fingerprint)
     assert_equal "owned", cycle.reserve!(dataset: "liked_posts", limit: 100).pricing_basis
     read = cycle.reserve!(dataset: "dm_events", limit: 20)
     assert_equal ["standard", 200_000], [read.pricing_basis, read.reserved_micros]
@@ -106,8 +106,8 @@ class InteractionsTest < ActiveSupport::TestCase
       setup_graph(liker, messaged, mentioner, quiet)
       collect("liked_posts", {"data" => [liked("50", author: "1", created_at: 2.days.ago), liked("51", author: "4", created_at: 200.days.ago)], "meta" => {}, "partial_errors" => false})
       collect("dm_events", {"data" => [dm("60", sender: "999", conversation: "2-999")], "meta" => {}, "partial_errors" => false})
-      mention_run = XSyncRun.create!(dataset: "mentions", owner_x_id: "999", request_key: SecureRandom.uuid, page_limit: 10, upper_bound: Time.current)
-      XSourcePost.create!(x_id: "70", author_x_id: "3", body: "@owner hi", published_at: 1.day.ago, x_sync_run: mention_run)
+      mention_run = X::SyncRun.create!(dataset: "mentions", owner_x_id: "999", request_key: SecureRandom.uuid, page_limit: 10, upper_bound: Time.current)
+      X::SourcePost.create!(x_id: "70", author_x_id: "3", body: "@owner hi", published_at: 1.day.ago, x_sync_run: mention_run)
 
       assert_equal [quiet.id], Person.cleanup_candidates.pluck(:id)
       assert_equal "like", Person::Interactions.for(quiet).latest.channel
@@ -118,12 +118,12 @@ class InteractionsTest < ActiveSupport::TestCase
   test "DM coverage is continuous only while checks are under 30 days apart" do
     connected do
       [70, 50, 25].each do |days|
-        XSyncRun.create!(dataset: "dm_events", owner_x_id: "999", request_key: SecureRandom.uuid, page_limit: 20,
+        X::SyncRun.create!(dataset: "dm_events", owner_x_id: "999", request_key: SecureRandom.uuid, page_limit: 20,
           upper_bound: days.days.ago, status: "completed")
       end
       assert_in_delta 100.days.ago.to_i, DirectMessage.covered_since.to_i, 5
-      XSyncRun.where(dataset: "dm_events").order(:upper_bound).last.update!(upper_bound: 1.day.ago)
-      XSyncRun.where(dataset: "dm_events").order(:upper_bound).second.update!(upper_bound: 65.days.ago)
+      X::SyncRun.where(dataset: "dm_events").order(:upper_bound).last.update!(upper_bound: 1.day.ago)
+      X::SyncRun.where(dataset: "dm_events").order(:upper_bound).second.update!(upper_bound: 65.days.ago)
       assert_in_delta 31.days.ago.to_i, DirectMessage.covered_since.to_i, 5
     end
   end

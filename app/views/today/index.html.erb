@@ -23,7 +23,7 @@
               <%= lc_heading "Your next conversation starts here.", level: 3, size: :card %>
               <%= lc_text "No suitable tweets are ready yet. Bring Grok source links or run a bounded search from Data & settings.", tone: :muted, class: "max-w-md" %>
               <%= lc_button_link_to "Set up your data", settings_path, icon: "arrow-right", icon_position: :end %>
-              <%= lc_text XConnection.current ? "X is connected. Collection starts only when you request it." : "Connect X to verify source links and replies.", size: :small, tone: :muted %>
+              <%= lc_text X::Connection.current ? "X is connected. Collection starts only when you request it." : "Connect X to verify source links and replies.", size: :small, tone: :muted %>
             </div>
           <% end %>
         <% end %>
@@ -82,7 +82,7 @@
                 </ul>
               </div>
             <% end %>
-            <% if !demo? && XConnection.current && XBillingCycle.current %>
+            <% if !demo? && X::Connection.current && X::BillingCycle.current %>
               <div class="flex flex-col gap-2">
                 <%= lc_button_to "Check sent replies", x_sync_runs_path, params: {dataset: "own_posts", mode: "refresh", request_key: SecureRandom.uuid, return_to: "today"}, variant: (@reports.any? ? :primary : :secondary), size: :sm, icon: "arrow-path" %>
                 <%= lc_text "Reads your posts since the last check from the X allowance#{" (last: #{@last_reply_check.created_at.strftime('%-d %b, %H:%M')})" if @last_reply_check}. Confirmed replies count here and update each person.", size: :caption, tone: :muted %>

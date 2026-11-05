@@ -6,7 +6,7 @@ class ArchiveImportFlowTest < ActionDispatch::IntegrationTest
     Dir.mktmpdir do |directory|
       path = File.join(directory, "notes.zip")
       File.write(path, "plain text")
-      post archive_imports_path, params: { file: Rack::Test::UploadedFile.new(path, "application/zip") }
+      post x_archive_imports_path, params: { file: Rack::Test::UploadedFile.new(path, "application/zip") }
       assert_redirected_to settings_path(anchor: "archive")
       follow_redirect!
       assert_includes response.body, "Choose the .zip file X sent you."

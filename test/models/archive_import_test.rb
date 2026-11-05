@@ -41,7 +41,7 @@ class ArchiveImportTest < ActiveSupport::TestCase
   teardown { FileUtils.remove_entry(@directory) }
 
   test "imports one-to-one DM metadata from legacy and encrypted chats without text" do
-    import = ArchiveImport.import!(archive)
+    import = X::ArchiveImport.import!(archive)
     assert_equal [3, 1], [import.direct_messages_count, import.skipped_count]
     assert_equal %w[incoming outgoing incoming], DirectMessage.order(:occurred_at).pluck(:direction)
     assert_equal ["101"], DirectMessage.distinct.pluck(:partner_x_id)
@@ -56,24 +56,24 @@ class ArchiveImportTest < ActiveSupport::TestCase
   end
 
   test "re-import adds nothing and another account's archive is refused" do
-    ArchiveImport.import!(archive)
-    assert_equal 0, ArchiveImport.import!(archive).direct_messages_count
-    error = assert_raises(ArchiveImport::Invalid) { ArchiveImport.import!(archive(owner: "555")) }
+    X::ArchiveImport.import!(archive)
+    assert_equal 0, X::ArchiveImport.import!(archive).direct_messages_count
+    error = assert_raises(X::ArchiveImport::Invalid) { X::ArchiveImport.import!(archive(owner: "555")) }
     assert_match "different X account", error.message
     assert_equal 3, DirectMessage.count
   end
 
   test "a partial archive does not claim coverage" do
-    ArchiveImport.import!(archive(partial: true))
+    X::ArchiveImport.import!(archive(partial: true))
     assert_nil DirectMessage.covered_since
     assert_equal 3, DirectMessage.count
   end
 
   test "malformed archives roll back and are handled" do
     path = archive(files: { "data/message-event.js" => [{ "messageEvent" => { "detail" => { "messageCreateEvent" => {} } } }] })
-    assert_raises(ArchiveImport::Invalid) { ArchiveImport.import!(path) }
+    assert_raises(X::ArchiveImport::Invalid) { X::ArchiveImport.import!(path) }
     assert_equal 0, DirectMessage.count
     File.write(File.join(@directory, "not.zip"), "plain")
-    assert_raises(ArchiveImport::Invalid) { ArchiveImport.import!(File.join(@directory, "not.zip")) }
+    assert_raises(X::ArchiveImport::Invalid) { X::ArchiveImport.import!(File.join(@directory, "not.zip")) }
   end
 end

@@ -14,7 +14,7 @@
         </div>
         <p class="text-xs text-muted">Cycle <%= @cycle.starts_on %> to <%= @cycle.ends_on %> (end exclusive). Console observation <%= time_ago_in_words(@cycle.observed_at) %> ago. Update it at least daily before collection.</p>
         <% if @cycle.remaining_micros <= @cycle.allowance_micros / 5 %><%= lc_alert "Less than 20% of the local allowance remains. Prefer cached context and relationship updates.", tone: :warning %><% end %>
-        <% uncertain = XRead.where(status: "uncertain").count %>
+        <% uncertain = X::Read.where(status: "uncertain").count %>
         <% if uncertain.positive? %><%= lc_alert "#{uncertain} request reservations have uncertain outcomes. Their full cost remains held.", tone: :warning %><% end %>
       <% end %>
       <%= form_with url: x_billing_cycles_path, class: "flex flex-col gap-4" do %>
@@ -40,7 +40,7 @@
           <% end %>
         <% end %>
         <% unless @workspace.collection_trial_completed_at %>
-          <p class="text-xs text-muted">First-collection trial remaining: <%= microdollars(XBillingCycle.trial_remaining_micros) %>, also limited by the cycle balance.</p>
+          <p class="text-xs text-muted">First-collection trial remaining: <%= microdollars(X::BillingCycle.trial_remaining_micros) %>, also limited by the cycle balance.</p>
           <%= lc_button_to "Finish reviewed collection trial", x_billing_cycle_path(@cycle), method: :patch, params: {finish_trial: "1"}, variant: :ghost, size: :sm, disabled: demo? %>
         <% end %>
       <% end %>

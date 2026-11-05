@@ -9,11 +9,11 @@ class PeopleController < ApplicationController
   }.freeze
 
   def index
-    @graph = FollowGraph.latest
+    @graph = Follow::Graph.latest
     @people = Person.all
     @people = @people.where("name LIKE ? OR handle LIKE ? OR notes LIKE ? OR description LIKE ?", *Array.new(4, "%#{Person.sanitize_sql_like(params[:q].to_s)}%")) if params[:q].present?
     @people = @people.pinned if params[:filter] == "pinned"
-    @people = @people.where(id: FollowProtection.select(:person_id)) if params[:filter] == "kept"
+    @people = @people.where(id: Follow::Protection.select(:person_id)) if params[:filter] == "kept"
     @people = @people.where.not(notes: [nil, ""]) if params[:filter] == "notes"
     if params[:follow].present?
       if @graph.complete?
@@ -23,7 +23,7 @@ class PeopleController < ApplicationController
         when "mutual" then @people.where(id: following).where(id: followers)
         when "following_only" then @people.where(id: following).where.not(id: followers)
         when "followers_only" then @people.where(id: followers).where.not(id: following)
-        when "lost" then @people.where(id: FollowerPeriod.ended.select(:person_id)).where.not(id: FollowerPeriod.ongoing.select(:person_id))
+        when "lost" then @people.where(id: Follow::FollowerPeriod.ended.select(:person_id)).where.not(id: Follow::FollowerPeriod.ongoing.select(:person_id))
         else @people
         end
       else
@@ -54,7 +54,7 @@ class PeopleController < ApplicationController
 
   def show
     @person = Person.includes(:pin, :follow_protection, :reply_events, :follow_reviews, :follower_periods, :posts, :engagements).find(params[:id])
-    @graph = FollowGraph.latest
+    @graph = Follow::Graph.latest
     @timeline = @person.timeline
     @category = Person::Timeline::CATEGORIES.key?(params[:show]) ? params[:show] : nil
     @entries = @category ? @timeline.select { |entry| entry.category == @category } : @timeline.entries
@@ -78,7 +78,7 @@ class PeopleController < ApplicationController
     if @person.update(params.require(:person).permit(:notes))
       redirect_to @person, notice: "Notes saved."
     else
-      @graph = FollowGraph.latest
+      @graph = Follow::Graph.latest
       @timeline = @person.timeline
       @entries = @timeline.entries
       render :show, status: :unprocessable_entity

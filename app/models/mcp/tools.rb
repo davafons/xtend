@@ -1,5 +1,5 @@
 # Tools that Grok Bot (or any MCP client) can call. Reads are bounded and scoped by the owner's sharing choices;
-# writes only stage research through GrokIntake. No tool posts, follows, messages, or runs paid X reads.
+# writes only stage research through Grok::Intake. No tool posts, follows, messages, or runs paid X reads.
 class Mcp::Tools
   class Invalid < StandardError; end
 
@@ -75,7 +75,7 @@ class Mcp::Tools
   end
 
   def get_owner_profile(_args)
-    { demo: @demo, handle: XConnection.current&.username, interests: @workspace.interests,
+    { demo: @demo, handle: X::Connection.current&.username, interests: @workspace.interests,
       session_goal: "Replies on #{DailySession::TARGET} distinct new target posts per session. Follow-ups in existing exchanges do not count.",
       discovery_filters: ["English only", "Posted in the last 7 days", "At most 50 replies", "No crypto, airdrops, engagement bait, follow-for-follow, or pure promotion", "No automated accounts"],
       shared_categories: { notes: @workspace.mcp_share_notes, dm_metadata: @workspace.mcp_share_dms },
@@ -97,7 +97,7 @@ class Mcp::Tools
     limit = bounded(args["limit"], 25, 50)
     offset = Integer(args["cursor"].presence || 0, exception: false)
     raise Invalid, "cursor must come from a previous list_people result." unless offset&.>=(0)
-    graph = FollowGraph.latest
+    graph = Follow::Graph.latest
     people = Person.order(:name, :id)
     if args["query"].present?
       term = "%#{Person.sanitize_sql_like(args['query'].to_s.first(100))}%"
@@ -111,7 +111,7 @@ class Mcp::Tools
     people = case filter
     when "all" then people
     when "pinned" then people.pinned
-    when "kept" then people.where(id: FollowProtection.select(:person_id))
+    when "kept" then people.where(id: Follow::Protection.select(:person_id))
     when "mutual" then people.where(id: following).where(id: followers)
     when "you_follow" then people.where(id: following)
     when "follows_you" then people.where(id: followers)
@@ -129,8 +129,8 @@ class Mcp::Tools
 
   def get_person_context(args)
     person = find_person!(args)
-    graph = FollowGraph.latest
-    recent = person.x_id ? XSourcePost.where(author_x_id: person.x_id, repost: false).order(published_at: :desc).limit(5) : []
+    graph = Follow::Graph.latest
+    recent = person.x_id ? X::SourcePost.where(author_x_id: person.x_id, repost: false).order(published_at: :desc).limit(5) : []
     recap = person.grok_proposals.latest_recap
     context = person_summary(person, graph, person.interactions).merge(
       profile_url: person.profile_url, location: person.location, website_url: person.website_url,
@@ -146,7 +146,7 @@ class Mcp::Tools
   def get_interaction_history(args)
     person = find_person!(args)
     limit = bounded(args["limit"], 20, 50)
-    bodies = XSourcePost.where(x_id: person.reply_events.select(:x_id)).pluck(:x_id, :body).to_h
+    bodies = X::SourcePost.where(x_id: person.reply_events.select(:x_id)).pluck(:x_id, :body).to_h
     events = person.reply_events.order(occurred_at: :desc).limit(limit).map do |event|
       { kind: "reply", direction: event.direction, classification: event.classification, at: event.occurred_at.iso8601,
         url: "https://x.com/i/web/status/#{event.x_id}", target_url: "https://x.com/i/web/status/#{event.target_x_id}",
@@ -174,13 +174,13 @@ class Mcp::Tools
     since = bounded(args["days"], 7, 30).days.ago
     ids = Post.where("published_at >= ? OR updated_at >= ?", since, since).pluck(:x_id)
     ids += ReplyEvent.where(direction: "outgoing", occurred_at: since..).pluck(:target_x_id)
-    ids += XSourcePost.where(published_at: since..).pluck(:x_id)
+    ids += X::SourcePost.where(published_at: since..).pluck(:x_id)
     { demo: @demo, since: since.iso8601, post_ids: ids.uniq.first(1000) }
   end
 
   def propose_candidate_posts(args)
     posts = args["posts"]
-    raise Invalid, "posts must be an array of 1 to 20 items." unless posts.is_a?(Array) && posts.size.between?(1, GrokIntake::MAX_ITEMS)
+    raise Invalid, "posts must be an array of 1 to 20 items." unless posts.is_a?(Array) && posts.size.between?(1, Grok::Intake::MAX_ITEMS)
     intake(args).call("posts" => posts).slice(:run_id, :posts)
   end
 
@@ -195,7 +195,7 @@ class Mcp::Tools
   private
 
   def intake(args)
-    GrokIntake.new(via: "mcp", run_id: args["run_id"])
+    Grok::Intake.new(via: "mcp", run_id: args["run_id"])
   end
 
   def person_summary(person, graph, interactions)

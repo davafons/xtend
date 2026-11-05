@@ -9,24 +9,24 @@
       <div class="grid grid-cols-2 gap-3">
         <% [["followers", "Sample followers", "$1.00 · up to 100"], ["following", "Sample following", "$1.00 · up to 100"], ["own_posts", "Sample your posts", "$0.05 · up to 10"], ["mentions", "Sample mentions", "$0.05 · up to 10"]].each do |dataset, label, cost| %>
           <div class="flex flex-col gap-2">
-            <%= lc_button_to label, x_sync_runs_path, params: {dataset: dataset, request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: {"followers" => "user-group", "following" => "user-plus", "own_posts" => "document-text", "mentions" => "at-symbol"}.fetch(dataset), disabled: demo? || !@cycle || !XConnection.current %>
+            <%= lc_button_to label, x_sync_runs_path, params: {dataset: dataset, request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: {"followers" => "user-group", "following" => "user-plus", "own_posts" => "document-text", "mentions" => "at-symbol"}.fetch(dataset), disabled: demo? || !@cycle || !X::Connection.current %>
             <p class="text-xs text-muted"><%= cost %> at standard rates</p>
           </div>
         <% end %>
       </div>
       <div class="flex flex-col gap-2">
-        <%= lc_button_to "Refresh follower baseline", x_sync_runs_path, params: {dataset: "followers", mode: "refresh", request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: "arrow-path", disabled: demo? || !@cycle || !XConnection.current %>
+        <%= lc_button_to "Refresh follower baseline", x_sync_runs_path, params: {dataset: "followers", mode: "refresh", request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: "arrow-path", disabled: demo? || !@cycle || !X::Connection.current %>
         <p class="text-xs text-muted">Up to 200 followers per page. $0.20 maximum with recorded owned pricing, $2.00 at standard rates. One completed refresh also checks for follower losses.</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <% ["own_posts", "mentions"].each do |dataset| %>
-          <%= lc_button_to "Refresh #{dataset == 'own_posts' ? 'sent replies' : 'incoming activity'}", x_sync_runs_path, params: {dataset: dataset, mode: "refresh", request_key: SecureRandom.uuid}, variant: :ghost, size: :sm, disabled: demo? || !@cycle || !XConnection.current %>
+          <%= lc_button_to "Refresh #{dataset == 'own_posts' ? 'sent replies' : 'incoming activity'}", x_sync_runs_path, params: {dataset: dataset, mode: "refresh", request_key: SecureRandom.uuid}, variant: :ghost, size: :sm, disabled: demo? || !@cycle || !X::Connection.current %>
         <% end %>
       </div>
       <div class="flex flex-col gap-3 border-t border-border pt-5">
         <p class="text-sm font-semibold">Private interactions</p>
-        <% connection = XConnection.current %>
-        <% missing = XConfig::DATASET_SCOPES.values.reject { |scope| connection&.granted?(scope) } %>
+        <% connection = X::Connection.current %>
+        <% missing = X::Config::DATASET_SCOPES.values.reject { |scope| connection&.granted?(scope) } %>
         <% if connection && missing.any? %>
           <%= lc_alert "Reconnect X to grant #{missing.to_sentence}. Your existing data is kept.", tone: :warning %>
         <% end %>
@@ -35,7 +35,7 @@
               ["bookmarks", "Collect bookmarks", "bookmark", "Up to 100 per page · $0.10 owned, $0.50 standard"],
               ["dm_events", "Collect DM activity", "envelope", "Up to 20 per page · $0.20, no owned rate"]].each do |dataset, label, icon, cost| %>
             <div class="flex flex-col gap-2">
-              <%= lc_button_to label, x_sync_runs_path, params: {dataset: dataset, request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: icon, disabled: demo? || !@cycle || !connection&.granted?(XConfig::DATASET_SCOPES.fetch(dataset)) %>
+              <%= lc_button_to label, x_sync_runs_path, params: {dataset: dataset, request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: icon, disabled: demo? || !@cycle || !connection&.granted?(X::Config::DATASET_SCOPES.fetch(dataset)) %>
               <p class="text-xs text-muted"><%= cost %></p>
             </div>
           <% end %>
@@ -43,8 +43,8 @@
         <%= lc_text "The first run reads from the newest item backwards; later runs stop once they reach items already saved. X doesn't report when you liked or bookmarked something, so the post date (or the previous check) is the earliest possible time. DMs keep only who sent each one-to-one message and when, never the text, and X serves only the last 30 days.", size: :small, tone: :muted %>
       </div>
       <%= lc_text "Replies update only after their author and parent evidence can be resolved. Old history enriches people without increasing today's outreach. Collection ends 15 seconds before each check, so a just-sent reply may need a later refresh.", size: :small, tone: :muted %>
-      <% unknown_users = XSyncRun.unresolved_user_ids %>
-      <% unknown_parents = XSyncRun.unresolved_parent_ids %>
+      <% unknown_users = X::SyncRun.unresolved_user_ids %>
+      <% unknown_parents = X::SyncRun.unresolved_parent_ids %>
       <% if unknown_users.any? || unknown_parents.any? %>
         <div class="flex flex-col gap-3">
           <p class="text-sm font-semibold">Resolve missing context</p>

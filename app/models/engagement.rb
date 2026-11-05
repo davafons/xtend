@@ -1,7 +1,7 @@
 class Engagement < ApplicationRecord
   KINDS = { "liked_posts" => "like", "bookmarks" => "bookmark" }.freeze
 
-  belongs_to :x_sync_run
+  belongs_to :x_sync_run, class_name: "X::SyncRun"
   validates :kind, inclusion: { in: KINDS.values }
   validates :post_x_id, uniqueness: { scope: :kind }
   validates :post_x_id, :author_x_id, :post_published_at, :observed_at, presence: true
@@ -19,7 +19,7 @@ class Engagement < ApplicationRecord
 
   def self.coverage(kind)
     dataset = KINDS.key(kind)
-    runs = XSyncRun.where(dataset: dataset, status: "completed")
+    runs = X::SyncRun.where(dataset: dataset, status: "completed")
     { complete: runs.where(mode: "backfill").exists?, checked_at: runs.maximum(:upper_bound), collected: where(kind: kind).exists? }
   end
 

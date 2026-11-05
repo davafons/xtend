@@ -30,7 +30,7 @@
       <%= lc_card do %>
         <div class="flex flex-col gap-5">
           <%= lc_text "Import a structured discovery file containing people and tweets. The import preserves your notes and pins.", tone: :muted %>
-          <%= form_with url: imports_path, multipart: true, class: "flex flex-col gap-4" do %>
+          <%= form_with url: discovery_imports_path, multipart: true, class: "flex flex-col gap-4" do %>
             <label for="discovery-file" class="text-sm font-semibold">Discovery JSON · up to 1 MB</label>
             <input id="discovery-file" name="file" type="file" accept="application/json,.json" required class="text-sm">
             <div>
@@ -45,10 +45,10 @@
       <%= lc_card do %>
         <div class="flex flex-col gap-5">
           <%= lc_text "Upload the .zip X sent you to fill in your full DM history, including encrypted chats the API can't see. Only the manifest, account, and DM files are opened. For one-to-one conversations it keeps who sent each message and when; message text is never stored, and encrypted contents stay encrypted.", tone: :muted %>
-          <% if (last_import = ArchiveImport.order(:created_at).last) %>
+          <% if (last_import = X::ArchiveImport.order(:created_at).last) %>
             <p class="text-sm">Last import <%= relative_day last_import.created_at %>: archive generated <%= last_import.generated_at.strftime("%-d %b %Y") %> · <%= pluralize(last_import.direct_messages_count, "new DM") %><%= " · partial archive, so coverage isn't claimed" if last_import.partial %></p>
           <% end %>
-          <%= form_with url: archive_imports_path, multipart: true, class: "flex flex-col gap-4" do %>
+          <%= form_with url: x_archive_imports_path, multipart: true, class: "flex flex-col gap-4" do %>
             <label for="archive-file" class="text-sm font-semibold">X archive · .zip</label>
             <input id="archive-file" name="file" type="file" accept="application/zip,.zip" required class="text-sm">
             <div><%= lc_button "Import DM history", type: :submit, variant: :secondary, size: :sm, icon: "arrow-up-tray" %></div>

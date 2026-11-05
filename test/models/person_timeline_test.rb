@@ -7,7 +7,7 @@ class PersonTimelineTest < ActiveSupport::TestCase
     snapshot("following", [person], observed_at: 3.days.ago)
     snapshot("following", [], observed_at: 2.hours.ago)
     person.create_pin!
-    FollowReview.record!(person, "keep")
+    Follow::Review.record!(person, "keep")
 
     entries = person.reload.timeline.entries
     assert_equal entries.map(&:at), entries.map(&:at).sort.reverse
@@ -31,14 +31,14 @@ class PersonTimelineTest < ActiveSupport::TestCase
 
   test "follower baseline is not presented as a known follow date" do
     person = Person.resolve_profile!(profile)
-    FollowerPeriod.observe!(snapshot("followers", [person], observed_at: 1.hour.ago))
+    Follow::FollowerPeriod.observe!(snapshot("followers", [person], observed_at: 1.hour.ago))
     entry = person.timeline.find { |item| item.category == "follows" }
     assert_equal "Already following you at the first complete follower check", entry.title
     assert_match "start date is unknown", entry.detail
   end
 
   test "profile details from X are sanitized and kept across sparse refreshes" do
-    row = XPayload.profile({ "id" => "101", "username" => "builder", "name" => "A Builder", "location" => "Tokyo",
+    row = X::Payload.profile({ "id" => "101", "username" => "builder", "name" => "A Builder", "location" => "Tokyo",
       "profile_banner_url" => "https://pbs.twimg.com/profile_banners/101/1700000000", "created_at" => "2015-03-01T00:00:00.000Z",
       "public_metrics" => { "followers_count" => 1234, "following_count" => 56, "tweet_count" => 7890 },
       "entities" => { "url" => { "urls" => [ { "expanded_url" => "https://example.com" } ] } } })
@@ -48,7 +48,7 @@ class PersonTimelineTest < ActiveSupport::TestCase
     assert_equal 2015, person.joined_x_at.year
     Person.resolve_profile!(profile)
     assert_equal 1234, person.reload.followers_count
-    bad = XPayload.profile({ "id" => "5", "username" => "x", "name" => "X", "public_metrics" => { "followers_count" => "lots" },
+    bad = X::Payload.profile({ "id" => "5", "username" => "x", "name" => "X", "public_metrics" => { "followers_count" => "lots" },
       "entities" => { "url" => { "urls" => [ { "expanded_url" => "javascript:alert(1)" } ] } } })
     assert_nil bad["followers_count"]
     assert_nil bad["website_url"]
@@ -57,8 +57,8 @@ class PersonTimelineTest < ActiveSupport::TestCase
   test "profile avatars only accept X image hosts" do
     row = { "id" => "5", "username" => "builder", "name" => "Builder" }
     assert_equal "https://pbs.twimg.com/profile_images/1/a_normal.jpg",
-      XPayload.profile(row.merge("profile_image_url" => "https://pbs.twimg.com/profile_images/1/a_normal.jpg"))["profile_image_url"]
-    assert_nil XPayload.profile(row.merge("profile_image_url" => "https://evil.example/x.jpg"))["profile_image_url"]
+      X::Payload.profile(row.merge("profile_image_url" => "https://pbs.twimg.com/profile_images/1/a_normal.jpg"))["profile_image_url"]
+    assert_nil X::Payload.profile(row.merge("profile_image_url" => "https://evil.example/x.jpg"))["profile_image_url"]
     person = Person.resolve_profile!(profile.merge(avatar_url: "https://pbs.twimg.com/profile_images/1/a_normal.jpg"))
     assert_equal "https://pbs.twimg.com/profile_images/1/a_bigger.jpg", person.avatar_image_url
     Person.resolve_profile!(profile)

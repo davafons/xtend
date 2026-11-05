@@ -27,7 +27,7 @@ class Draft < ApplicationRecord
     where(status: %w[ready posted], posted_x_id: nil).find_each do |draft|
       key = draft.match_key
       next if key.size < 20
-      post = XSourcePost.where(author_x_id: owner, repost: false).where.not(x_id: where.not(posted_x_id: nil).select(:posted_x_id))
+      post = X::SourcePost.where(author_x_id: owner, repost: false).where.not(x_id: where.not(posted_x_id: nil).select(:posted_x_id))
         .order(published_at: :desc).find { |candidate| normalize(candidate.body).start_with?(key) }
       draft.update!(status: "posted", posted_x_id: post.x_id, posted_at: post.published_at) if post
     end

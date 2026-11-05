@@ -87,7 +87,7 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_equal "created", result["structuredContent"]["posts"].first["status"]
     assert_includes tool("list_known_posts")["structuredContent"]["post_ids"], "8101"
     assert_equal 1, tool("get_session_state")["structuredContent"]["queue"]["unverified_from_grok"]
-    assert_equal 0, XRead.count
+    assert_equal 0, X::Read.count
 
     get root_path
     assert_includes response.body, "Unverified · from Grok"
@@ -111,7 +111,7 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_match "1 staged", flash[:notice]
     get person_path(@person)
     assert_includes response.body, "Proposed recap"
-    patch grok_proposal_path(GrokProposal.last), params: { decision: "accept" }
+    patch grok_proposal_path(Grok::Proposal.last), params: { decision: "accept" }
     follow_redirect!
     assert_includes response.body, "Ships Rails tools."
   end

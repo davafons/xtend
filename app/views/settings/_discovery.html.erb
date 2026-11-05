@@ -4,10 +4,10 @@
     <div class="flex flex-col gap-5">
       <%= lc_text "Use your Grok Bot's public search, then paste its JSON block here. Grok's public search uses no X API credits, and its candidates go straight to Today labeled Unverified, with no paid lookup.", tone: :muted %>
       <%= lc_button_to "Refresh saved matches", refresh_discovery_suggestions_path, variant: :ghost, size: :sm, icon: "funnel" %>
-      <%= lc_copy_button "Copy discovery prompt", value: DiscoverySuggestion.grok_prompt, variant: :secondary, size: :sm %>
-      <%= lc_collapsible title: "Read the prompt" do %><p class="whitespace-pre-wrap text-sm pt-4"><%= DiscoverySuggestion.grok_prompt %></p><% end %>
+      <%= lc_copy_button "Copy discovery prompt", value: Discovery::Suggestion.grok_prompt, variant: :secondary, size: :sm %>
+      <%= lc_collapsible title: "Read the prompt" do %><p class="whitespace-pre-wrap text-sm pt-4"><%= Discovery::Suggestion.grok_prompt %></p><% end %>
       <%= form_with url: grok_intakes_path, class: "flex flex-col gap-4" do %>
-        <%= lc_field label: "Grok results", id: "grok-output", hint: "Paste Grok's whole answer. The app reads only its #{GrokIntake::FORMAT} JSON block: up to 20 posts, profiles, and recaps." do |field| %><%= lc_textarea "", name: "grok_output", rows: 6, maxlength: 100_000, required: true, **field %><% end %>
+        <%= lc_field label: "Grok results", id: "grok-output", hint: "Paste Grok's whole answer. The app reads only its #{Grok::Intake::FORMAT} JSON block: up to 20 posts, profiles, and recaps." do |field| %><%= lc_textarea "", name: "grok_output", rows: 6, maxlength: 100_000, required: true, **field %><% end %>
         <div><%= lc_button "Import Grok results", type: :submit, size: :sm, icon: "arrow-down-tray" %></div>
       <% end %>
       <% unverified = Post.opportunities.where(source: "grok").count %>
@@ -17,10 +17,10 @@
         <%= lc_field label: "X source links", id: "discovery-links", hint: "Up to 20 post URLs, one per line. Numeric author IDs are not required." do |field| %><%= lc_textarea "", name: "links", rows: 4, maxlength: 20000, required: true, **field %><% end %>
         <div><%= lc_button "Save source links", type: :submit, variant: :secondary, size: :sm, icon: "link" %></div>
       <% end %>
-      <% pending = DiscoverySuggestion.unresolved.count %>
+      <% pending = Discovery::Suggestion.unresolved.count %>
       <% if pending.positive? %>
         <p class="text-sm"><%= pending %> source links need post verification.</p>
-        <%= lc_button_to "Resolve saved links", x_sync_runs_path, params: {dataset: "posts", purpose: "discovery", request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, disabled: demo? || !@cycle || !XConnection.current %>
+        <%= lc_button_to "Resolve saved links", x_sync_runs_path, params: {dataset: "posts", purpose: "discovery", request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, disabled: demo? || !@cycle || !X::Connection.current %>
         <p class="text-xs text-muted">Up to 20 posts ($0.10 standard maximum), then resolve missing people separately if needed.</p>
       <% end %>
       <% end %>
@@ -32,7 +32,7 @@
         <%= hidden_field_tag :dataset, "search" %>
         <%= hidden_field_tag :request_key, SecureRandom.uuid %>
         <%= lc_field label: "Builder conversation search", id: "discovery-query", hint: "Up to 10 posts per click, $0.05 standard maximum. English and repost filters are added." do |field| %><%= lc_input name: "query", value: '("Ruby on Rails" OR SQLite OR "coding agents" OR "Claude Code") (question OR debugging OR tradeoff OR stuck OR learned) -crypto -airdrop -blockchain -web3', minlength: 3, maxlength: 256, required: true, **field %><% end %>
-        <div><%= lc_button "Find 10 posts", type: :submit, variant: :secondary, size: :sm, icon: "magnifying-glass", disabled: demo? || !@cycle || !XConnection.current %></div>
+        <div><%= lc_button "Find 10 posts", type: :submit, variant: :secondary, size: :sm, icon: "magnifying-glass", disabled: demo? || !@cycle || !X::Connection.current %></div>
       <% end %>
     <% end %>
   <% end %>

@@ -6,9 +6,9 @@ class TodayController < ApplicationController
     @pending = ReplyReport.count
     @pinned_people = Person.pinned.alphabetical.limit(4)
     @review_count = Person.cleanup_candidates.count
-    @graph = FollowGraph.latest
+    @graph = Follow::Graph.latest
     @reports = ReplyReport.includes(post: :person).order(created_at: :desc)
     @set_aside = PostDisposition.where(updated_at: Date.current.all_day).includes(post: :person).order(updated_at: :desc).limit(20)
-    @last_reply_check = XSyncRun.where(dataset: "own_posts").order(created_at: :desc).first
+    @last_reply_check = X::SyncRun.where(dataset: "own_posts").order(created_at: :desc).first
   end
 end
