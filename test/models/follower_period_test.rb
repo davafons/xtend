@@ -8,6 +8,7 @@ class FollowerPeriodTest < ActiveSupport::TestCase
   end
 
   test "baseline unknown starts stay separate from observed losses and refollows" do
+    freeze_time
     person = Person.resolve_profile!(profile)
     first = observed([person], at: 20.days.ago)
     period = Follow::FollowerPeriod.first
