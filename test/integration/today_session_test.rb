@@ -34,6 +34,6 @@ class TodaySessionTest < ActionDispatch::IntegrationTest
     post x_sync_runs_path, params: { dataset: "own_posts", mode: "refresh", request_key: SecureRandom.uuid, return_to: "today" }
     assert_redirected_to root_path
     post x_sync_runs_path, params: { dataset: "own_posts", mode: "refresh", request_key: SecureRandom.uuid, return_to: "https://evil.example" }
-    assert_redirected_to settings_path(anchor: "collection")
+    assert_redirected_to x_sources_path(anchor: "collection")
   end
 end

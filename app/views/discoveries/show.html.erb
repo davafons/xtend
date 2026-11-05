@@ -1,0 +1,27 @@
+<% content_for :title, "Discover" %>
+<div class="flex flex-col gap-3 pb-8 pt-8">
+  <%= lc_heading "Find conversations worth joining.", level: 1, size: :page %>
+  <%= lc_text "Bring in candidate posts for Today. Grok research costs no X credits; paid lookups and search are marked.", tone: :muted %>
+</div>
+<div class="grid grid-cols-2 items-start gap-8">
+  <div class="flex flex-col gap-8">
+    <%= render "grok" %>
+  </div>
+  <div class="flex flex-col gap-8">
+    <%= lc_section title: "Bring discovery results" do %>
+      <%= lc_card do %>
+        <div class="flex flex-col gap-5">
+          <%= lc_text "Import a structured discovery file containing people and tweets. The import preserves your notes and pins.", tone: :muted %>
+          <%= form_with url: discovery_imports_path, multipart: true, class: "flex flex-col gap-4" do %>
+            <label for="discovery-file" class="text-sm font-semibold">Discovery JSON · up to 1 MB</label>
+            <input id="discovery-file" name="file" type="file" accept="application/json,.json" required class="text-sm">
+            <div>
+              <%= lc_button "Import candidates", type: :submit, variant: :secondary, size: :sm, icon: "arrow-up-tray" %>
+            </div>
+          <% end %>
+          <%= lc_text "This does not verify replies or follow status.", size: :small, tone: :muted %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

@@ -3,6 +3,18 @@ module ApplicationHelper
     number_to_currency(value.to_i / 1_000_000.0, precision: 3)
   end
 
+  def navigation_sections
+    [
+      [ "Work", [ [ "Today", root_path, "sun" ], [ "Discover", discovery_path, "magnifying-glass" ], [ "People", people_path, "users" ], [ "Compose", drafts_path, "pencil-square" ] ] ],
+      [ "Relationships", [ [ "Follow review", follow_reviews_path, "user-minus" ], [ "Followers", follower_history_path, "chart-bar" ] ] ],
+      [ "Data", [ [ "X data", x_sources_path, "circle-stack" ], [ "Grok", grok_connector_path, "sparkles" ], [ "Spending", x_billing_cycles_path, "banknotes" ] ] ]
+    ]
+  end
+
+  def navigation_active?(path)
+    path == root_path ? current_page?(path) : request.path.start_with?(path)
+  end
+
   def demo?
     Rails.configuration.x.demo
   end

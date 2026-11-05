@@ -6,8 +6,8 @@ class Discovery::SuggestionsController < ApplicationController
 
   def create
     count = Discovery::Suggestion.capture_links!(params[:links])
-    redirect_to settings_path(anchor: "discovery"), notice: "Saved #{count} source links. No API calls or verified relationship changes were made."
+    redirect_to discovery_path, notice: "Saved #{count} source links. No API calls or verified relationship changes were made."
   rescue Discovery::Suggestion::Invalid => error
-    redirect_to settings_path(anchor: "discovery"), alert: error.message
+    redirect_to discovery_path, alert: error.message
   end
 end

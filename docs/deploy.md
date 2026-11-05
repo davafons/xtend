@@ -10,7 +10,7 @@ Nothing has been deployed yet. This page lists what a deployment needs. The owne
 | `SECRET_KEY_BASE` | Signs sessions and hashes connector tokens. Generate it with `openssl rand -hex 64` and keep it stable: changing it signs everyone out and invalidates connector tokens. |
 | `/data` volume | Holds `production.sqlite3`, the job queue in `production_queue.sqlite3`, and `x-token.key`, which encrypts saved X tokens. Back up both together. A database backup without the key can't decrypt X tokens. |
 | TLS in front | The app assumes HTTPS (`assume_ssl`, `force_ssl`, secure cookies, HSTS). Cloudflare Tunnel terminates TLS and forwards to port 3000. |
-| X developer app | Each workspace saves its own X app in Data & settings. Its callback must be `https://<host>/x/connection/callback`. Owned-rate pricing only applies to the owner's own app. |
+| X developer app | Each workspace saves its own X app in Settings. Its callback must be `https://<host>/x/connection/callback`. Owned-rate pricing only applies to the owner's own app. |
 
 ## Build and run on the server
 

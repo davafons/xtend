@@ -18,7 +18,7 @@ class XSyncTest < ActionDispatch::IntegrationTest
           end
           assert_equal 0, calls, "the request only queues the read"
           assert_equal "queued", X::SyncRun.last.status
-          get settings_path
+          get x_sources_path
           assert_includes response.body, "Reading from X in the background"
           perform_enqueued_jobs
         end
@@ -26,7 +26,7 @@ class XSyncTest < ActionDispatch::IntegrationTest
         assert_equal 1, Person.count
         assert_equal 1, X::SyncRun.count
         assert_equal "completed", X::SyncRun.last.status
-        get settings_path
+        get x_sources_path
         assert_response :success
         assert_includes response.body, "1 complete records"
         get follower_history_path
@@ -55,7 +55,7 @@ class XSyncTest < ActionDispatch::IntegrationTest
   test "billing observation aligns to provider cycle and never changes the allowance" do
     cycle = X::BillingCycle.current
     post x_billing_cycles_path, params: {cycle: {starts_on: cycle.starts_on.to_s, ends_on: cycle.ends_on.to_s, spend_cents: "73"}}
-    assert_redirected_to settings_path(anchor: "billing")
+    assert_redirected_to x_billing_cycles_path
     assert_equal 730_000, cycle.reload.provider_spend_micros
     assert_equal 1000, Current.workspace.monthly_budget_cents
     post x_billing_cycles_path, params: {cycle: {starts_on: cycle.starts_on.to_s, ends_on: cycle.ends_on.to_s, spend_cents: "73.1"}}

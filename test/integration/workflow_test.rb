@@ -34,19 +34,21 @@ class WorkflowTest < ActionDispatch::IntegrationTest
     assert_equal 1000, workspace.reload.monthly_budget_cents
     assert_equal "Builder tooling", workspace.builder_interests
     assert_equal "999", workspace.owner_x_id
-    get settings_path
+    get x_billing_cycles_path
     assert_response :success
     assert_includes response.body, "$10.00"
     assert_includes response.body, "cannot verify or change your X billing cap"
+    get x_sources_path
     assert_includes response.body, "A continuation always needs another click"
   end
 
   test "invalid allowance is rejected without overwriting the saved amount" do
     workspace = Current.workspace
     workspace.update!(monthly_budget_cents: 1775)
-    patch settings_path, params: {workspace: {monthly_budget_cents: "10.50"}}
-    assert_response :unprocessable_content
+    patch settings_path, params: {workspace: {monthly_budget_cents: "10.50"}}, headers: {"HTTP_REFERER" => x_billing_cycles_url}
+    assert_redirected_to x_billing_cycles_url
     assert_equal 1775, workspace.reload.monthly_budget_cents
+    follow_redirect!
     assert_includes response.body, "Monthly budget cents must be an integer"
   end
 
@@ -69,7 +71,7 @@ class WorkflowTest < ActionDispatch::IntegrationTest
     post post_reply_report_path(tweet), params: {reply_url: "javascript:alert(1)"}
     assert_equal 0, ReplyReport.count
     post discovery_imports_path
-    assert_redirected_to settings_path
+    assert_redirected_to discovery_path
     assert_equal 0, ReplyEvent.count
   end
   test "fictional demo renders populated views without live links" do
@@ -77,7 +79,7 @@ class WorkflowTest < ActionDispatch::IntegrationTest
     Rails.configuration.x.demo = true
     DemoWorkspace.seed!
     assert_equal 12, DailySession.current.progress
-    [root_path, people_path, follow_reviews_path, settings_path, person_path(Person.first)].each do |path|
+    [root_path, people_path, follow_reviews_path, settings_path, discovery_path, x_sources_path, grok_connector_path, x_billing_cycles_path, person_path(Person.first)].each do |path|
       get path
       assert_response :success
     end

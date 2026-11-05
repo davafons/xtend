@@ -32,15 +32,15 @@ class X::SyncRunsController < ApplicationController
     else
       run.enqueue_page!(expected_page: Integer(params.require(:page)))
     end
-    redirect_to settings_path(anchor: "collection"), notice: result_message(run)
+    redirect_to x_sources_path(anchor: "collection"), notice: result_message(run)
   rescue X::Client::Error, ArgumentError => error
-    redirect_to settings_path(anchor: "collection"), alert: error.message
+    redirect_to x_sources_path(anchor: "collection"), alert: error.message
   end
 
   private
 
   def return_path
-    params[:return_to] == "today" ? root_path : settings_path(anchor: "collection")
+    { "today" => root_path, "discovery" => discovery_path }.fetch(params[:return_to].to_s) { x_sources_path(anchor: "collection") }
   end
 
   def result_message(run)

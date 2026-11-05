@@ -1,0 +1,20 @@
+<aside class="sticky top-0 flex h-screen w-60 shrink-0 flex-col gap-6 overflow-y-auto border-r border-border bg-background px-4 py-6">
+  <%= link_to "Twitter CRM", root_path, class: "px-3 font-bold text-lg tracking-tight" %>
+  <nav class="flex flex-1 flex-col gap-6" aria-label="Main navigation">
+    <% navigation_sections.each do |heading, items| %>
+      <div class="flex flex-col gap-1">
+        <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted"><%= heading %></p>
+        <% items.each do |label, path, icon| %>
+          <% active = navigation_active?(path) %>
+          <%= lc_button_link_to label, path, variant: (active ? :secondary : :ghost), size: :sm, icon: icon, class: "w-full justify-start", aria: { current: ("page" if active) } %>
+        <% end %>
+      </div>
+    <% end %>
+  </nav>
+  <div class="flex flex-col gap-2 border-t border-border pt-4">
+    <%= lc_button_link_to "Settings", settings_path, variant: (navigation_active?(settings_path) ? :secondary : :ghost), size: :sm, icon: "cog-6-tooth", class: "w-full justify-start", aria: { current: ("page" if navigation_active?(settings_path)) } %>
+    <p class="flex items-center gap-2 px-3 text-xs text-muted"><%= lc_icon X::Connection.current ? "link" : "signal-slash", options: { class: "size-4" } %><%= demo? ? "Demo data" : (X::Connection.current ? "X connected" : "X not connected") %></p>
+    <p class="truncate px-3 text-xs text-muted" title="<%= Current.user&.email_address %>"><%= Current.user&.email_address %></p>
+    <%= lc_button_to "Sign out", session_path, method: :delete, variant: :ghost, size: :sm, icon: "arrow-right-start-on-rectangle", class: "w-full justify-start" %>
+  </div>
+</aside>

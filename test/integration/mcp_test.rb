@@ -104,7 +104,7 @@ class McpTest < ActionDispatch::IntegrationTest
   end
 
   test "settings shows the token once, paste intake works, and proposals are reviewed on the person page" do
-    get settings_path
+    get grok_connector_path
     assert_includes response.body, "Grok Bot connector (MCP)"
     assert_not_includes response.body, @token
     post mcp_token_path
@@ -116,7 +116,7 @@ class McpTest < ActionDispatch::IntegrationTest
 
     paste = "Results:\n```json\n" + { format: "twitter-crm-grok-v1", recaps: [{ handle: "builder", summary: "Ships Rails tools." }] }.to_json + "\n```"
     post grok_intakes_path, params: { grok_output: paste }
-    assert_redirected_to settings_path(anchor: "discovery")
+    assert_redirected_to discovery_path
     assert_match "1 staged", flash[:notice]
     get person_path(@person)
     assert_includes response.body, "Proposed recap"

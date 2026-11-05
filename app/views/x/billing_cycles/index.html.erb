@@ -1,0 +1,8 @@
+<% content_for :title, "Spending" %>
+<div class="flex flex-col gap-3 pb-8 pt-8">
+  <%= lc_heading "X API spending.", level: 1, size: :page %>
+  <%= lc_text "The local allowance, the provider billing cycle, and what this app has reserved.", tone: :muted %>
+</div>
+<div class="max-w-2xl">
+  <%= render "billing" %>
+</div>

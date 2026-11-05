@@ -40,8 +40,8 @@ class X::BillingCycle < ApplicationRecord
 
   def reserve!(dataset:, limit:, run: nil)
     with_lock do
-      raise LimitExceeded, "Review the current X billing cycle in Data & settings before reading X." unless starts_on <= Date.current && ends_on > Date.current
-      raise LimitExceeded, "Update the X console spend observation before collecting more data." if observed_at < 24.hours.ago
+      raise LimitExceeded, "Review the current X billing cycle on Spending before reading X." unless starts_on <= Date.current && ends_on > Date.current
+      raise LimitExceeded, "Update the X console spend observation on Spending before collecting more data." if observed_at < 24.hours.ago
       basis = owned_pricing? && %w[followers following own_posts mentions liked_posts bookmarks].include?(dataset) ? "owned" : "standard"
       rate = basis == "owned" ? 1000 : (%w[own_posts mentions posts search liked_posts bookmarks].include?(dataset) ? 5000 : 10_000)
       reservation = limit * rate

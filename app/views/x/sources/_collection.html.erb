@@ -2,9 +2,10 @@
   <%= lc_heading "Collect a small sample", level: 2, size: :section %>
   <%= lc_card do %>
     <div class="flex flex-col gap-5">
-      <%= lc_text "Each action reads one bounded page. Start with the four samples below; their combined standard-rate maximum is $2.10. A continuation always needs another click.", tone: :muted %>
+      <%= lc_text "Each action reads one bounded page. Start with the four samples here; their combined standard-rate maximum is $2.10. A continuation always needs another click.", tone: :muted %>
       <% unless @cycle %>
-        <%= lc_alert "Record the current billing cycle and account spend below before reading X.", tone: :warning %>
+        <%= lc_alert "Record the current billing cycle and account spend on Spending before reading X.", tone: :warning %>
+        <div><%= lc_button_link_to "Open Spending", x_billing_cycles_path, variant: :secondary, size: :sm %></div>
       <% end %>
       <div class="grid grid-cols-2 gap-3">
         <% [["followers", "Sample followers", "$1.00 · up to 100"], ["following", "Sample following", "$1.00 · up to 100"], ["own_posts", "Sample your posts", "$0.05 · up to 10"], ["mentions", "Sample mentions", "$0.05 · up to 10"]].each do |dataset, label, cost| %>

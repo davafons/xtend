@@ -16,6 +16,7 @@ Rails.application.routes.draw do
   end
   resource :daily_session, only: :update
   resource :settings, only: [ :show, :update ]
+  resource :discovery, only: :show
   resource :context_export, only: :show
 
   # Follower snapshots and cleanup
@@ -35,7 +36,8 @@ Rails.application.routes.draw do
   # X API
   namespace :x do
     resources :sync_runs, only: [ :create, :update ]
-    resources :billing_cycles, only: [ :create, :update ]
+    resource :sources, only: :show
+    resources :billing_cycles, only: [ :index, :create, :update ]
     resources :archive_imports, only: :create
     resource :connection, only: [ :create, :update, :destroy ] do
       get :callback
@@ -45,6 +47,7 @@ Rails.application.routes.draw do
 
   # Grok Bot
   namespace :grok do
+    resource :connector, only: :show
     resources :intakes, only: :create
     resources :proposals, only: :update
   end

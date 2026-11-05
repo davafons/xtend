@@ -1,4 +1,9 @@
 class X::BillingCyclesController < ApplicationController
+  def index
+    @workspace = Current.workspace
+    @cycle = X::BillingCycle.current
+  end
+
   def create
     values = params.require(:cycle)
     starts_on = Date.iso8601(values.fetch(:starts_on))
@@ -9,9 +14,9 @@ class X::BillingCyclesController < ApplicationController
     raise ArgumentError, "Existing cycle dates cannot change after reads are recorded." if cycle.persisted? && cycle.ends_on != ends_on
     cycle.save!
     cycle.observe!(spend_cents: spend_cents)
-    redirect_to settings_path(anchor: "billing"), notice: "X account spend observation saved. Other apps may consume the same account allowance."
+    redirect_to x_billing_cycles_path, notice: "X account spend observation saved. Other apps may consume the same account allowance."
   rescue ArgumentError, Date::Error, ActiveRecord::RecordInvalid, X::BillingCycle::LimitExceeded => error
-    redirect_to settings_path(anchor: "billing"), alert: error.message
+    redirect_to x_billing_cycles_path, alert: error.message
   end
 
   def update
@@ -27,8 +32,8 @@ class X::BillingCyclesController < ApplicationController
       cycle.update!(pricing_evidence: evidence, owned_configuration_digest: X::Config.fingerprint)
       notice = "Owned-pricing evidence recorded for the current developer app. Estimates remain separate from actual account billing."
     end
-    redirect_to settings_path(anchor: "billing"), notice: notice
+    redirect_to x_billing_cycles_path, notice: notice
   rescue ArgumentError, ActiveRecord::RecordInvalid => error
-    redirect_to settings_path(anchor: "billing"), alert: error.message
+    redirect_to x_billing_cycles_path, alert: error.message
   end
 end

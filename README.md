@@ -17,10 +17,10 @@ The review URL is `https://twitter-crm.localhost`. `parcela status` shows Rails 
 Every page requires sign-in. Create your account once per database, typing the password when asked:
 
 ```bash
-parcela --path . run -- bin/rails users:create EMAIL=you@example.com
+PARCELA_DATA_DIR=~/.local/state/parcela/environments/<id>/data bin/rails users:create EMAIL=you@example.com
 ```
 
-The first user joins the existing workspace and its data.
+`parcela ls` shows the environment ID. `parcela run` can't be used while the environment is up, because it holds the environment lock. The first user joins the existing workspace and its data.
 
 Parcela runs database preparation and the Tailwind build before startup. SQLite lives in `PARCELA_DATA_DIR` when provided, otherwise `storage/`. Real mode starts empty and makes no X requests.
 
@@ -43,7 +43,7 @@ The existing Birdclaw checkout was considered as a data foundation. Its document
 
 ## Candidate import
 
-Upload JSON from Data & settings. The format is `twitter-crm-discovery-v1`, with up to 200 posts and a 1 MB limit. Each post has `x_id`, `body`, `published_at` in ISO-8601, optional `language`, `topic`, `match_reason`, and a `person` object containing numeric-string `x_id`, `handle`, `name`, and optional `description`.
+Upload JSON on Discover. The format is `twitter-crm-discovery-v1`, with up to 200 posts and a 1 MB limit. Each post has `x_id`, `body`, `published_at` in ISO-8601, optional `language`, `topic`, `match_reason`, and a `person` object containing numeric-string `x_id`, `handle`, `name`, and optional `description`.
 
 Imports are transactional and idempotent by stable IDs. They cannot submit verified replies or follow memberships. Existing private notes, pins, and keep choices survive profile enrichment. Invalid data rolls back the entire file.
 
@@ -69,13 +69,13 @@ Tests exercise domain behavior and HTTP persistence, including populated demo re
 
 The [POC specification](docs/poc-spec.md) defines intended scope. The [cost calculator](scripts/estimate-x-costs.py) is a planning tool; displayed allowances do not configure X billing controls.
 
-New workspaces default to a **$10 monthly API allowance**. Existing saved allowances stay unchanged until explicitly edited under Data & settings → API allowance. Enter integer USD cents (`1000` means `$10.00`). This local setting cannot verify or change the X console billing-cycle cap or report actual provider spend; use the X developer console for those controls. Graph and discovery reads start only through explicit manual actions and require a current billing-cycle observation.
+New workspaces default to a **$10 monthly API allowance**. Existing saved allowances stay unchanged until explicitly edited on Spending. Enter integer USD cents (`1000` means `$10.00`). This local setting cannot verify or change the X console billing-cycle cap or report actual provider spend; use the X developer console for those controls. Graph and discovery reads start only through explicit manual actions and require a current billing-cycle observation.
 
 ## Connect your personal X account
 
 Create or inspect your own developer app in the X console. Enable OAuth 2.0 and the read scopes `tweet.read users.read follows.read offline.access`. A confidential web app also requires its client secret.
 
-On **Data & settings**, use the **X developer app** form to save the OAuth Client ID, masked Client Secret, and exact redirect URI. The configuration is encrypted locally under a purpose separate from account tokens. Saved secrets are never rendered into the form or included in context exports. A blank secret preserves the saved value only for the same Client ID; use the explicit removal checkbox to clear it.
+On **Settings**, use the **X developer app** form to save the OAuth Client ID, masked Client Secret, and exact redirect URI. The configuration is encrypted locally under a purpose separate from account tokens. Saved secrets are never rendered into the form or included in context exports. A blank secret preserves the saved value only for the same Client ID; use the explicit removal checkbox to clear it.
 
 Environment configuration remains supported through `X_CLIENT_ID`, optional `X_CLIENT_SECRET`, and `X_REDIRECT_URI`. Alternatively run `bin/rails credentials:edit` and add an `x` mapping with `client_id`, `client_secret`, and `redirect_uri`. Precedence is environment, Rails credentials, then local form. A Client ID selects the whole source, so an environment client cannot accidentally use a different app's saved secret. Never put values in chat or commit plaintext keys.
 
@@ -93,7 +93,7 @@ The initial token response may omit `scope` when it is unchanged, as permitted b
 
 ## Use the connected workspace
 
-Open **Data & settings** to review the current provider-cycle observation, remaining allowance, source coverage, and recent page results. Each collection action reads one bounded page. **Read next page** continues that source, and duplicate submissions cannot refetch an already committed page.
+Open **Spending** for the provider-cycle observation and remaining allowance, and **X data** for source coverage and recent page results. Each collection action reads one bounded page. **Read next page** continues that source, and duplicate submissions cannot refetch an already committed page.
 
 Use **Refresh follower baseline** before cleanup when follower data is more than 24 hours old. Its completed result also updates Followers. The first snapshot is a baseline, so loss dates and follower lifetimes appear only after later observations. See [follower metrics](docs/follower-metrics.md).
 

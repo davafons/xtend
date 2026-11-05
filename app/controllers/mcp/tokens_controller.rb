@@ -7,6 +7,6 @@ class Mcp::TokensController < ApplicationController
 
   def destroy
     Current.workspace.revoke_mcp_token!
-    redirect_to settings_path(anchor: "connector"), notice: "Connector token revoked. MCP clients using it are now refused."
+    redirect_to grok_connector_path, notice: "Connector token revoked. MCP clients using it are now refused."
   end
 end

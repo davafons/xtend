@@ -31,7 +31,7 @@
     <div class="flex flex-col items-start gap-4">
       <%= lc_heading "Fresh follow data comes first.", level: 2, size: :card %>
       <%= lc_text "We need a complete follower list from the last 24 hours before suggesting anyone. Missing data should never put a mutual in your cleanup queue.", tone: :muted %>
-      <%= lc_button_link_to "Review data sources", settings_path, variant: :secondary %>
+      <%= lc_button_link_to "Review data sources", x_sources_path, variant: :secondary %>
     </div>
   <% end %>
 <% elsif @candidates.empty? %>
