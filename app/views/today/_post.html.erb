@@ -1,4 +1,4 @@
-<%= lc_card id: dom_id(post), class: "crm-post-card @container", data: { controller: "outreach", outreach_id_value: post.id } do %>
+<%= lc_card id: dom_id(post), class: "@container", data: { controller: "outreach", outreach_id_value: post.id } do %>
   <div class="flex flex-col gap-5">
     <div class="flex items-start justify-between gap-4">
       <%= link_to person_path(post.person), class: "flex items-center gap-3" do %>
@@ -17,7 +17,7 @@
       </div>
     <% end %>
     <p class="whitespace-pre-line text-lg"><%= CGI.unescapeHTML(post.body) %></p>
-    <div class="rounded-2xl bg-primary-soft/60 p-4 text-sm">
+    <div class="rounded-2xl bg-tile p-4 text-sm">
       <p><span class="font-semibold">Why this fits</span> · <%= post.match_reason.presence || tag.span("No match reason saved for this tweet.", class: "text-muted-foreground") %></p>
       <p class="mt-2 text-muted-foreground"><%= post.person.description.presence || "No bio collected. Check their profile on X before replying." %><% if post.person.x_id.nil? && post.person.description.present? %> <span class="text-xs">(bio from Grok)</span><% end %></p>
       <% if post.person.notes.present? %><p class="mt-2"><span class="font-semibold">Your note</span> · <%= post.person.notes %></p><% end %>

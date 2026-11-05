@@ -20,7 +20,7 @@
       <% else %>
         <div><%= lc_button_to "Create connector token", mcp_token_path, variant: :secondary, size: :sm, icon: "key" %></div>
       <% end %>
-      <div class="flex flex-col gap-3 border-t border-border pt-5">
+      <div class="flex flex-col gap-3 pt-2">
         <p class="text-sm font-semibold">Shared with the connector</p>
         <p class="text-sm text-muted-foreground">Always: interests, people, public profiles, follow and reply states, pins, keeps, collected public posts, likes, and bookmarks.</p>
         <% [[:mcp_share_notes, "Your private notes"], [:mcp_share_dms, "DM metadata (who and when, never text)"]].each do |field, label| %>

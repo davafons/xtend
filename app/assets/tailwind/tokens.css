@@ -1,58 +1,20 @@
-/* Dark only, modelled on X's "Lights out" theme: true black, near-white text, X blue for actions.
-   Unlayered, so these values win over the library's layered light and dark defaults. */
+/* Dark only. The library's dark theme moved to X's true black: one neutral scale, and white
+   for actions, as in the library default. Cards follow --muted and secondary buttons follow
+   --accent; the remaining settings (borders, inputs, status colors, shadows) keep the library's
+   dark values. Unlayered, so these values win over the library's layered defaults. */
 :root,
 html[data-theme="dark"] {
   color-scheme: dark;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-  --background: #000000;
-  --foreground: #e7e9ea;
-  --card: #16181c;
-  --card-foreground: var(--foreground);
-  --popover: #000000;
-  --popover-foreground: var(--foreground);
-  --primary: #1d9bf0;
-  --primary-foreground: #ffffff;
-  --secondary: #202327;
-  --secondary-foreground: var(--foreground);
-  --muted: #16181c;
-  --muted-foreground: #71767b;
-  --accent: #1d1f23;
-  --accent-foreground: var(--foreground);
-  --destructive: #f4212e;
-  --success: #00ba7c;
-  --warning: #ffd400;
-  --border: #2f3336;
-  --input: #202327;
-  --ring: color-mix(in oklab, #1d9bf0 60%, transparent);
-
-  --radius: 0.5rem;
-  --lc-card-radius: 1rem;
-  --lc-card-border: 1px solid var(--border);
-  --lc-tile-bg: #202327;
-  --lc-input-hover: #2a2d31;
-  --lc-scrim: rgb(91 112 131 / 0.4);
-  --lc-shadow: 0 0 15px rgb(255 255 255 / 0.2), 0 0 3px 1px rgb(255 255 255 / 0.15);
-  --lc-glass-fill: rgb(0 0 0 / 0.65);
+  --background: oklch(0% 0 0deg);
+  --foreground: oklch(93% 0 0deg);
+  --muted: oklch(17% 0 0deg);
+  --accent: oklch(23% 0 0deg);
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
   --container-page: 82rem;
-
-  --crm-session-bg: color-mix(in oklab, var(--primary) 10%, var(--card));
-  --crm-avatar-blue: color-mix(in oklab, #1d9bf0 22%, #000);
-  --crm-avatar-blue-ink: #8ecdf8;
-  --crm-avatar-green: color-mix(in oklab, #00ba7c 22%, #000);
-  --crm-avatar-green-ink: #7fdcbd;
-  --crm-avatar-orange: color-mix(in oklab, #ff7a00 22%, #000);
-  --crm-avatar-orange-ink: #ffbc80;
-  --crm-avatar-sand: color-mix(in oklab, #7856ff 24%, #000);
-  --crm-avatar-sand-ink: #bcabff;
 }
-
-.crm-avatar[data-avatar-tone="blue"] { background: var(--crm-avatar-blue); color: var(--crm-avatar-blue-ink); }
-.crm-avatar[data-avatar-tone="green"] { background: var(--crm-avatar-green); color: var(--crm-avatar-green-ink); }
-.crm-avatar[data-avatar-tone="orange"] { background: var(--crm-avatar-orange); color: var(--crm-avatar-orange-ink); }
-.crm-avatar[data-avatar-tone="sand"] { background: var(--crm-avatar-sand); color: var(--crm-avatar-sand-ink); }
-.crm-session-card { --lc-card-bg: var(--crm-session-bg); --lc-card-border: 1px solid color-mix(in oklab, var(--primary) 35%, var(--border)); }
 
 .crm-timeline-entry::before { content: ""; position: absolute; inset-block: 1.75rem 0.25rem; inset-inline-start: calc(0.75rem - 1px); width: 2px; background: var(--border); }
 .crm-timeline-entry:has(+ li:not(.crm-timeline-entry))::before, .crm-timeline-entry:last-child::before { display: none; }
-.crm-post-card[data-opened] { --lc-card-border: 1px solid color-mix(in oklab, var(--primary) 55%, var(--border)); }

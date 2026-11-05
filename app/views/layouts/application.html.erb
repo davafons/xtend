@@ -22,7 +22,7 @@
             <% flash.each do |kind, message| %><div class="mb-6 mt-6"><%= lc_alert message, tone: (kind == "alert" ? :destructive : :success) %></div><% end %>
             <%= yield %>
           </main>
-          <footer class="flex items-center justify-between gap-4 border-t border-border py-6 text-xs text-muted-foreground"><span>Twitter CRM</span><span>English discovery · You write every reply</span></footer>
+          <footer class="flex items-center justify-between gap-4 py-6 text-xs text-muted-foreground"><span>Twitter CRM</span><span>English discovery · You write every reply</span></footer>
         <% end %>
       </div>
     </div>

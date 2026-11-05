@@ -73,7 +73,7 @@
                     <p class="text-sm font-semibold"><%= entry.title %></p>
                     <time class="shrink-0 text-xs tabular-nums text-muted-foreground" datetime="<%= entry.at.iso8601 %>"><%= entry.at.strftime("%H:%M") %></time>
                   </div>
-                  <% if entry.context %><p class="mt-1 line-clamp-2 border-s-2 border-border ps-3 text-xs text-muted-foreground"><%= entry.context %></p><% end %>
+                  <% if entry.context %><p class="mt-1 line-clamp-2 rounded-lg bg-tile px-3 py-2 text-xs text-muted-foreground"><%= entry.context %></p><% end %>
                   <% if entry.body %><p class="mt-2 whitespace-pre-line text-sm"><%= entry.body %></p><% end %>
                   <% if entry.detail || entry.url %>
                     <p class="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
@@ -86,7 +86,7 @@
             <% end %>
           </ol>
         <% end %>
-        <p class="mt-2 border-t border-border pt-4 text-xs text-muted-foreground">Built from all collected replies, posts, DM metadata, likes, bookmarks, and complete follow checks. Coverage is partial; follow dates fall between checks rather than at exact times.</p>
+        <p class="mt-2 text-xs text-muted-foreground">Built from all collected replies, posts, DM metadata, likes, bookmarks, and complete follow checks. Coverage is partial; follow dates fall between checks rather than at exact times.</p>
       <% end %>
     </div>
   </section>

@@ -50,7 +50,7 @@
         <div class="flex min-h-11 items-center">
           <%= lc_heading "Your session", level: 2, size: :heading %>
         </div>
-        <%= lc_card class: "crm-session-card" do %>
+        <%= lc_card do %>
           <div class="flex flex-col gap-5">
             <div class="flex items-end justify-between gap-4">
               <span class="text-5xl font-semibold tracking-tight tabular-nums">
@@ -58,7 +58,7 @@
                 <span class="text-2xl font-normal text-muted-foreground"> / 20</span>
               </span>
             </div>
-            <div class="h-2 overflow-hidden rounded-full bg-background">
+            <div class="h-2 overflow-hidden rounded-full bg-tile">
               <div class="h-full rounded-full bg-primary" style="width: <%= @daily_session.percent %>%">
               </div>
             </div>
@@ -67,7 +67,7 @@
               <%= lc_text "Follow-ups stay separate. Take the time you need.", size: :small, tone: :muted %>
             </div>
             <% if @reports.any? %>
-              <div class="flex flex-col gap-3 rounded-2xl bg-card p-4">
+              <div class="flex flex-col gap-3 rounded-2xl bg-tile p-4">
                 <p class="text-sm font-semibold"><%= pluralize(@reports.size, "reply", plural: "replies") %> waiting for confirmation</p>
                 <ul class="flex flex-col gap-2">
                   <% @reports.each do |report| %>

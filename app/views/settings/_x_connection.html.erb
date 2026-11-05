@@ -27,7 +27,7 @@
     <%= lc_text "Save your OAuth Client ID, Client Secret if required, and exact redirect URI in the local developer-app form. Environment configuration and Rails encrypted credentials are also supported.", size: :small, tone: :muted %>
     <%= lc_button "Connect X", disabled: true, variant: :secondary, size: :sm %>
   <% end %>
-  <div class="rounded-2xl bg-background p-4">
+  <div class="rounded-2xl bg-tile p-4">
     <p class="text-sm font-semibold">Exact callback URL</p>
     <p class="mt-2 break-all text-sm"><%= X::Config.redirect_uri.presence || "Not configured" %></p>
     <p class="mt-2 text-xs text-muted-foreground">The callback path is <code>/x/connection/callback</code>. Register the complete configured URL exactly in the X developer console. The configured origin must match the browser session used to connect.</p>
