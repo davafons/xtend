@@ -25,11 +25,11 @@ function render({ settings, state }) {
   const result = state.lastResult;
   $("last").textContent = state.lastSentAt
     ? `Last sent ${new Date(state.lastSentAt).toLocaleTimeString()}` +
-      (result && result.posts !== undefined ? `: ${result.posts} posts, ${result.people_added} new people, ${result.likes} likes, ${result.bookmarks} bookmarks` : "")
+      (result && result.posts !== undefined ? `: ${result.posts} posts, ${result.interactions || 0} interactions, ${result.follows || 0} follow edges, ${result.people_added} new people` : "")
     : "Nothing sent yet.";
   const totals = state.totals;
   $("totals").textContent = totals.posts || totals.people_added
-    ? `Since install: ${totals.posts || 0} posts · ${totals.people_added || 0} new people · ${totals.people_updated || 0} profile refreshes`
+    ? `Since install: ${totals.posts || 0} posts · ${totals.interactions || 0} interactions · ${totals.follows || 0} follow edges · ${totals.people_added || 0} new people`
     : "";
   $("auto").checked = settings.auto;
   $("paused").checked = settings.paused;

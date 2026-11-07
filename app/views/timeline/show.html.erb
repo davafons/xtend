@@ -1,0 +1,47 @@
+<% content_for :title, "Timeline" %>
+<% filters = request.query_parameters.except("page") %>
+<div class="flex flex-col gap-3 pb-6 pt-8">
+  <%= lc_heading(@timeline.person ? "#{@timeline.person.name}'s posts" : "Timeline", level: 1, size: :title) %>
+  <%= lc_text "Your own copy of what your network posted, from posts you collected or scrolled past on x.com. Counts are the latest the capture saw, not live numbers.", tone: :muted, class: "max-w-3xl" %>
+</div>
+
+<%= form_with url: timeline_path, method: :get, class: "mb-6 flex flex-wrap items-center gap-2", data: { controller: "auto-submit", turbo_action: "replace" } do %>
+  <% if @timeline.person %>
+    <%= hidden_field_tag :person_id, @timeline.person.id %>
+    <%= lc_button_link_to "Everyone", timeline_path(filters.except("person_id")), variant: :ghost, size: :sm, icon: "x-mark" %>
+  <% else %>
+    <%= lc_select Network::Timeline::WHO.map { |key, label| [ label, key ] }, name: "who", selected: @timeline.who, aria: { label: "Whose posts" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
+    <% if @tags.any? %>
+      <%= lc_select [ [ "Any tag", "" ], *@tags.map { |tag| [ "##{tag.name}", tag.name ] } ], name: "tag", selected: @timeline.tag, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
+    <% end %>
+  <% end %>
+  <%= lc_select Network::Timeline::KINDS.map { |key, label| [ label, key ] }, name: "kind", selected: @timeline.kind, aria: { label: "Posts or replies" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
+  <%= lc_select [ [ "Last 7 days", "7d" ], [ "Last 30 days", "30d" ], [ "Last 90 days", "90d" ], [ "All time", "all" ] ], name: "period", selected: @timeline.period, aria: { label: "Period" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
+  <%= lc_select [ [ "Latest", "latest" ], [ "Most liked", "likes" ], [ "Most viewed", "views" ], [ "Most replied", "replies" ] ], name: "sort", selected: @timeline.sort, aria: { label: "Sort" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
+  <%= lc_switch "With media", name: "media", checked: @timeline.media, data: { action: "auto-submit#submit" } %>
+  <%= lc_input name: "q", value: @timeline.query, type: :search, placeholder: "Search posts", aria: { label: "Search posts" }, class: "w-56" %>
+  <span class="ms-auto text-sm tabular-nums text-muted-foreground"><%= pluralize(number_with_delimiter(@timeline.count), "post") %></span>
+<% end %>
+
+<div class="grid grid-cols-[minmax(0,40rem)] gap-6">
+  <% if @timeline.posts.empty? %>
+    <%= lc_card class: "py-10" do %>
+      <div class="flex flex-col items-center gap-2 text-center">
+        <%= lc_heading "No posts here yet.", level: 2, size: :subheading %>
+        <%= lc_text "Browse x.com with the capture extension on, or widen the filters.", tone: :muted, size: :small %>
+      </div>
+    <% end %>
+  <% else %>
+    <%= lc_card padding: :none do %>
+      <ol class="flex flex-col divide-y divide-border">
+        <% @timeline.posts.each do |post| %>
+          <li class="px-5 py-4" id="post_<%= post.x_id %>"><%= render "timeline/post", post: post, timeline: @timeline %></li>
+        <% end %>
+      </ol>
+    <% end %>
+    <div class="flex items-center justify-between">
+      <div><% if @timeline.page > 1 %><%= lc_button_link_to "Newer", timeline_path(filters.merge("page" => @timeline.page - 1)), variant: :secondary, size: :sm, icon: "arrow-left" %><% end %></div>
+      <div><% if @timeline.next_page? %><%= lc_button_link_to "Older", timeline_path(filters.merge("page" => @timeline.page + 1)), variant: :secondary, size: :sm, icon: "arrow-right", icon_position: :end %><% end %></div>
+    </div>
+  <% end %>
+</div>

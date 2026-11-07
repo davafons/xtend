@@ -75,6 +75,22 @@ class Mcp::Tools
           tags: { type: "array", maxItems: 8, items: { type: "string", maxLength: 40 } },
           reason: { type: "string", description: "Short public evidence for the tags, such as the bio or recent posts." }) } } } },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } },
+    { name: "list_network_posts", title: "Network posts",
+      description: "Posts from the owner's network that he collected or scrolled past on x.com, with the counts last seen (likes, reposts, replies, quotes, bookmarks, views). Use them as references for style and topics. Counts are not live, and coverage is only what was captured.",
+      inputSchema: { type: "object", properties: PERSON_REF.merge(
+        who: { type: "string", enum: Network::Timeline::WHO.keys, description: "network (default): The owner's people and the owner; seen: everything he was shown." },
+        kind: { type: "string", enum: Network::Timeline::KINDS.keys, description: "Defaults to posts (no replies)." },
+        sort: { type: "string", enum: Network::Timeline::SORTS.keys },
+        period: { type: "string", enum: Network::Timeline::PERIODS.keys, description: "Defaults to 30d." },
+        tag: { type: "string" }, query: { type: "string", description: "Text the post contains." },
+        with_media: { type: "boolean" }, limit: { type: "integer", minimum: 1, maximum: 40 }) },
+      annotations: { readOnlyHint: true } },
+    { name: "get_network", title: "Network connections",
+      description: "Who interacts with whom among the owner's people (replies, quotes, reposts, mentions, likes) and captured follow edges. With a person, their connections; without, the most connected people, the busiest pairs, and outside accounts several of his people talk to. A missing connection is not proof of none.",
+      inputSchema: { type: "object", properties: PERSON_REF.merge(
+        period: { type: "string", enum: Network::Graph::PERIODS.keys, description: "Defaults to 90d." },
+        tag: { type: "string" }) },
+      annotations: { readOnlyHint: true } },
     { name: "list_post_drafts", title: "List post drafts",
       description: "The owner's saved ideas and drafts for his own posts, newest first, with their alternative versions. Use draft IDs with add_post_variations.",
       inputSchema: { type: "object", properties: {
@@ -235,6 +251,35 @@ class Mcp::Tools
     intake(args).call("tags" => assignments).slice(:run_id, :tags)
   end
 
+  def list_network_posts(args)
+    person = find_person!(args) if args["person_id"].present? || args["handle"].present?
+    timeline = Network::Timeline.new(who: args["who"], kind: args["kind"], sort: args["sort"], period: args["period"], tag: args["tag"],
+      person: person, query: args["query"], media: args["with_media"] ? "1" : nil)
+    limit = bounded(args["limit"], 20, 40)
+    { total: timeline.count, coverage: "Only posts captured from x.com or collected through the API; counts are as last seen.",
+      posts: timeline.posts.first(limit).map { |post| network_post(post, timeline) } }
+  end
+
+  def get_network(args)
+    period = Network::Graph::PERIODS.key?(args["period"]) ? args["period"] : "90d"
+    if args["person_id"].present? || args["handle"].present?
+      person = find_person!(args)
+      neighborhood = Network::Neighborhood.new(person)
+      return { person: { id: person.id, handle: person.handle, name: person.name },
+        interacts_with: neighborhood.partners.map { |partner, kinds| { id: partner.id, handle: partner.handle, name: partner.name, interactions: kinds } },
+        followed_by: neighborhood.followed_by.map { |other| { id: other.id, handle: other.handle } },
+        follows: neighborhood.follows.map { |other| { id: other.id, handle: other.handle } },
+        saved_posts: neighborhood.saved_posts, coverage: "Partial: only what was captured or collected." }
+    end
+    graph = Network::Graph.new(period: period, tag: args["tag"], include_owner: false, outside: true)
+    handles = graph.nodes.to_h { |node| [ node[:id], node[:handle] ] }
+    { period: period,
+      most_connected: graph.nodes.reject { |node| node[:outside] }.sort_by { |node| -node[:weight] }.first(20).map { |node| node.slice(:handle, :name, :person_id, :follow_state, :tags, :weight) },
+      busiest_pairs: graph.links.sort_by { |link| -link[:weight] }.first(20).map { |link| { from: handles[link[:source]], to: handles[link[:target]], interactions: link[:kinds] } },
+      outside_accounts: graph.nodes.select { |node| node[:outside] }.sort_by { |node| -node[:weight] }.first(20).map { |node| node.slice(:handle, :name, :followers, :weight) },
+      people_without_connections: graph.isolated_count, coverage: "Partial: only what was captured or collected." }
+  end
+
   def list_post_drafts(args)
     stage = args["stage"]
     raise Invalid, "stage must be one of #{Draft::STATUSES.keys.join(", ")}." if stage && !Draft::STATUSES.key?(stage)
@@ -267,6 +312,16 @@ class Mcp::Tools
     texts = Array(texts).map { |text| text.to_s.strip.first(5000) }.reject(&:blank?) if texts.is_a?(Array)
     raise Invalid, "texts must be an array of 1 to #{MAX_VARIATIONS} non-empty strings." unless texts.is_a?(Array) && texts.size.between?(1, MAX_VARIATIONS)
     texts
+  end
+
+  def network_post(post, timeline)
+    author = timeline.people[post.author_x_id] || timeline.accounts[post.author_x_id]
+    quoted = timeline.quoted[post.quoted_x_id]
+    { url: "https://x.com/i/status/#{post.x_id}", author: author&.handle || (post.author_x_id == Current.workspace.owner_x_id ? "david" : nil),
+      text: CGI.unescapeHTML(post.body), published_at: post.published_at.iso8601, reply: post.reply_to_x_id.present?,
+      counts: post.slice(:reply_count, :like_count, :repost_count, :quote_count, :bookmark_count, :view_count).compact,
+      counts_as_of: post.metrics_observed_at&.iso8601, media: post.media_kinds&.split(","), has_link: post.has_link,
+      quoted_text: quoted && CGI.unescapeHTML(quoted.body).first(500) }.compact
   end
 
   def draft_summary(draft)

@@ -5,3 +5,7 @@ pin "@hotwired/turbo-rails", to: "turbo.min.js"
 pin "@hotwired/stimulus", to: "stimulus.min.js"
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
+pin "d3-force" # @3.0.1
+pin "d3-dispatch" # @3.0.2
+pin "d3-quadtree" # @3.0.2
+pin "d3-timer" # @3.0.2

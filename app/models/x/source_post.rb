@@ -4,7 +4,11 @@ class X::SourcePost < ApplicationRecord
   validates :x_id, uniqueness: { scope: :workspace_id }
   scope :collected, -> { joins(:x_sync_run).where.not(x_sync_runs: { mode: "capture" }) }
 
-  def self.capture!(row, run:)
+  COUNTS = %i[like_count repost_count quote_count bookmark_count view_count].freeze
+
+  # details come from browser captures: counts, media, links, and quote/repost ids. Counts only move forward in
+  # time, so a sighting without counts never erases earlier ones.
+  def self.capture!(row, run:, details: nil, at: Time.current)
     references = row.fetch("referenced_posts")
     parent = references.find { |ref| ref.fetch("type") == "replied_to" }
     record = find_or_initialize_by(x_id: row.fetch("id"))
@@ -13,8 +17,23 @@ class X::SourcePost < ApplicationRecord
       body: row.fetch("text"), language: row["lang"], published_at: Time.iso8601(row.fetch("created_at")),
       repost: references.any? { |ref| ref.fetch("type") == "retweeted" })
     record.reply_count = row["reply_count"] if row.key?("reply_count")
+    record.first_seen_at ||= at
+    if details
+      record.assign_attributes(details.slice(:quoted_x_id, :reposted_x_id).compact)
+      # A post's media and links don't change, but a sighting can omit them (a repost, a trimmed embed).
+      record.media_kinds = details[:media_kinds] if details[:media_kinds]
+      record.has_link ||= details[:has_link] == true
+      counts = details.slice(*COUNTS).compact
+      record.assign_attributes(counts.merge(metrics_observed_at: at)) if counts.any?
+    end
     record.x_sync_run = run if record.x_sync_run.nil? || record.x_sync_run.outranked_by?(run)
     record.save!
+    record.record_reply_interaction
+  end
+
+  def record_reply_interaction
+    return unless reply_to_x_id
+    X::Interaction.record!(kind: "reply", source: author_x_id, target: reply_to_x_id, post: x_id, target_post: parent_x_id, occurred_at: published_at)
   end
 
   def self.reconcile_all!

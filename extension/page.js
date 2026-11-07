@@ -4,7 +4,8 @@
   const OPERATIONS = new Set([
     "HomeTimeline", "HomeLatestTimeline", "SearchTimeline", "UserTweets", "UserOriginalsTimeline", "UserTweetsAndReplies",
     "TweetDetail", "TweetResultByRestId", "Likes", "Bookmarks", "UserByScreenName", "UserByRestId",
-    "Followers", "Following", "BlueVerifiedFollowers",
+    "Followers", "Following", "BlueVerifiedFollowers", "FollowersYouKnow", "ListLatestTweetsTimeline", "UserMedia",
+    "Favoriters", "Retweeters",
   ]);
   const GRAPHQL = /\/i\/api\/graphql\/[^/]+\/([A-Za-z]+)/;
   const requests = new WeakMap();

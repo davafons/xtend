@@ -7,6 +7,9 @@ class Engagement < ApplicationRecord
   validates :post_x_id, uniqueness: { scope: [ :workspace_id, :kind ] }
   validates :post_x_id, :author_x_id, :post_published_at, :observed_at, presence: true
 
+  # Likes are public interactions in the network graph; bookmarks are private and stay out of it.
+  after_save :record_interaction, if: -> { kind == "like" }
+
   # Returns :new, :known, or :skipped so a refresh can stop once it reaches earlier evidence.
   def self.capture!(row, kind:, run:, observed_after: nil)
     return :skipped if row.fetch("author_id") == Current.workspace.owner_x_id
@@ -28,5 +31,11 @@ class Engagement < ApplicationRecord
   # A refresh narrows that to "after the previous complete check".
   def earliest_at
     [post_published_at, observed_after].compact.max
+  end
+
+  private
+
+  def record_interaction
+    X::Interaction.record!(kind: "like", source: Current.workspace.owner_x_id, target: author_x_id, post: post_x_id, target_post: post_x_id, at: observed_at)
   end
 end

@@ -2,7 +2,7 @@
 <%= lc_section title: "Browser capture", id: "capture", class: "scroll-mt-8" do %>
   <%= lc_card do %>
     <div class="flex flex-col gap-5">
-      <%= lc_text "The Twitter CRM extension forwards what x.com already loaded while you browse: timeline, search, profile, thread, like, and bookmark pages. It sends no requests to X and costs nothing, but it only covers what you scrolled past, so it never completes a follower snapshot or a like history.", tone: :muted %>
+      <%= lc_text "The Twitter CRM extension forwards what x.com already loaded while you browse: timelines, lists, search, profiles, threads, your likes and bookmarks, follow lists, and \"Liked by\" and \"Reposted by\" lists. That fills the Timeline and Network pages. It sends no requests to X and costs nothing, but it only covers what you scrolled past, so it never completes a follower snapshot or a like history.", tone: :muted %>
       <div class="flex items-start justify-between gap-4">
         <div>
           <p class="font-semibold">Extension token</p>
@@ -27,7 +27,7 @@
       <% if @capture_totals.values.any?(&:positive?) %>
         <p class="text-sm">Added from capture in the last 7 days: <%= pluralize(@capture_totals[:posts], "post") %> · <%= pluralize(@capture_totals[:likes], "like") %> · <%= pluralize(@capture_totals[:bookmarks], "bookmark") %></p>
       <% end %>
-      <%= lc_text "Install: load the extension folder in this repository unpacked from brave://extensions with Developer mode on. Batches from a different X account are refused.", size: :small, tone: :muted %>
+      <%= lc_text "Install: load the extension folder in this repository unpacked from brave://extensions with Developer mode on, then enter #{request.base_url} and the token in its options. Batches from a different X account are refused.", size: :small, tone: :muted %>
     </div>
   <% end %>
 <% end %>

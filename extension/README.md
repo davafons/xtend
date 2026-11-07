@@ -2,7 +2,8 @@
 
 A Brave/Chrome extension that forwards what x.com already loaded while you browse to your Twitter CRM.
 
-- **No requests to X.** It copies GraphQL responses the web app received for timelines, search, profiles, threads, likes, bookmarks, and follow lists. It never starts, changes, or repeats a request, and never reads DMs.
+- **No requests to X.** It copies GraphQL responses the web app received for timelines, lists, search, profiles, threads, likes, bookmarks, follow lists ("Followers", "Following", "Followers you know"), and "Liked by" / "Reposted by" lists. It never starts, changes, or repeats a request, and never reads DMs.
+- **What the CRM keeps.** Every account it sees goes in a directory; only people you showed interest in (visited profiles, likes, bookmarks, reply exchanges) become people. Posts you were shown and posts touching your people are saved with their counts at each sighting, and replies, quotes, reposts, mentions, likes, and follow edges feed the Network page.
 - **Only what you saw.** Coverage is limited to what you scrolled past. The CRM never treats a capture as a complete follower list or like history.
 - **Only your account.** The CRM refuses batches when the browser is signed in to a different X account than the workspace.
 
@@ -10,7 +11,7 @@ A Brave/Chrome extension that forwards what x.com already loaded while you brows
 
 1. In the CRM, open **X data → Browser capture** and create a capture token.
 2. Open `brave://extensions`, turn on **Developer mode**, choose **Load unpacked**, and select this `extension` folder.
-3. In the extension's options, enter the CRM address (default `https://twitter-crm.localhost`) and the token, then **Save and test**.
+3. In the extension's options, enter the CRM address (default `https://xtend.example.com`; use `https://twitter-crm.localhost` for local development) and the token, then **Save and test**. `/x/captures` bypasses Cloudflare Access and is authenticated by the token.
 
 Browse x.com as usual. The toolbar badge counts pages waiting to be sent. The popup has **Send to CRM**, an automatic one-minute send toggle, and **Pause capture**. Captures queue in extension storage while the CRM is unreachable.
 

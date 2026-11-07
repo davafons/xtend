@@ -2,13 +2,23 @@
 # Captures cost nothing and make no X requests, but they only cover what was on screen: they never complete
 # a follow snapshot or a like/bookmark backfill, and they never count as proof that something didn't happen.
 #
-# People are added only when the owner showed interest: authors of timeline, search, profile, liked, and
-# bookmarked posts, and anyone in a reply exchange with the owner. Other profiles only refresh existing people.
+# What a batch keeps:
+# - Accounts: every profile it contains, in the X::Account directory.
+# - People: added only when the owner showed interest (a visited profile, a liked or bookmarked post, or a reply
+#   exchange with the owner). Other profiles only refresh existing people.
+# - Posts: what the owner was shown (timeline, search, profile, list, thread entries), plus anything written by,
+#   replying to, or quoting the owner's network (the owner and people in the CRM). Counts are saved per sighting.
+# - The graph: replies, quotes, reposts, and body mentions between accounts; likes and reposts from engagement
+#   lists; and follow edges from follow lists.
 class X::Capture
   class Rejected < StandardError; end
   MAX_RESPONSES = 100
   MAX_RESPONSE_BYTES = 4.megabytes
   ENGAGEMENT_KINDS = { likes: "like", bookmarks: "bookmark" }.freeze
+  LISTED_PURPOSES = %i[discovery context likes bookmarks].freeze
+  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows].freeze
+
+  Parsed = Struct.new(:payload, :purpose, :variables)
 
   def self.ingest!(...) = new(...).ingest!
 
@@ -21,25 +31,32 @@ class X::Capture
     # An empty batch is the extension's connection test: it checks the token and the signed-in X account.
     raise Rejected, "Send at most #{MAX_RESPONSES} responses per batch." unless responses.is_a?(Array) && responses.size <= MAX_RESPONSES
     @batch_key = batch_key
-    @payloads = responses.filter_map { |response| parse(response) }
-    @result = Hash.new(0).merge(responses: responses.size, ignored: responses.size - @payloads.size)
+    @parsed = responses.filter_map { |response| parse(response) }
+    @result = Hash.new(0).merge(responses: responses.size, ignored: responses.size - @parsed.size)
     @runs = {}
     @counts = Hash.new(0)
+    @now = Time.current
   end
 
   def ingest!
-    posts = @payloads.map { |payload, _| payload.posts }.reduce({}, :merge)
-    profiles = @payloads.map { |payload, _| payload.profiles }.reduce({}, :merge)
-    @result[:skipped] = @payloads.sum { |payload, _| payload.skipped }
+    posts = @parsed.map { |item| item.payload.posts }.reduce({}, :merge)
+    profiles = @parsed.map { |item| item.payload.profiles }.reduce({}, :merge)
+    details = @parsed.map { |item| item.payload.details }.reduce({}, :merge)
+    @result[:skipped] = @parsed.sum { |item| item.payload.skipped }
     ActiveRecord::Base.transaction do
+      save_accounts(profiles)
       save_profiles(profiles, addable_people(posts))
-      touched = save_posts(posts)
+      saved = save_posts(posts, details)
+      save_observations(saved, details)
+      save_post_interactions(saved, posts, details)
       save_engagements(posts)
-      reconcile(touched)
+      save_engagement_lists(posts)
+      save_follow_edges
+      reconcile(saved)
       Draft.link_published! if posts.each_value.any? { |row| row["author_id"] == @owner }
       @runs.each { |key, run| run.update!(resource_count: @counts[key], page_limit: @counts[key].clamp(1, 1000)) }
     end
-    @result
+    [ :responses, :ignored, :skipped, :conflicts, *RESULT_KEYS ].index_with { |key| @result[key] }
   end
 
   private
@@ -48,21 +65,29 @@ class X::Capture
     return unless response.is_a?(Hash) && X::WebPayload::OPERATIONS.key?(response["operation"])
     body = response["body"]
     return unless body.is_a?(String) && body.bytesize <= MAX_RESPONSE_BYTES
+    variables = response["variables"].is_a?(Hash) ? response["variables"] : {}
     payload = X::WebPayload.new(response["operation"], JSON.parse(body))
     purpose = payload.purpose
     # Only the owner's own Likes page is evidence of the owner's likes.
-    purpose = :context if purpose == :likes && response.dig("variables", "userId").to_s != @owner
-    [payload, purpose]
+    purpose = :context if purpose == :likes && variables["userId"].to_s != @owner
+    Parsed.new(payload, purpose, variables)
   rescue JSON::ParserError
     nil
   end
 
+  def save_accounts(profiles)
+    verified = @parsed.flat_map { |item| item.payload.verified_ids.to_a }.to_set
+    rows = profiles.values.reject { |row| row["id"] == @owner }.map { |row| row.merge("verified" => verified.include?(row["id"])) }
+    X::Account.observe!(rows, at: @now)
+    @result[:accounts] += rows.size
+  end
+
   def addable_people(posts)
     ids = Set.new
-    @payloads.each do |payload, purpose|
-      case purpose
-      when :discovery, :likes, :bookmarks then ids.merge(payload.entry_post_ids.filter_map { |id| posts.dig(id, "author_id") })
-      when :profile then ids.merge(payload.profiles.keys)
+    @parsed.each do |item|
+      case item.purpose
+      when :likes, :bookmarks then ids.merge(item.payload.entry_post_ids.filter_map { |id| posts.dig(id, "author_id") })
+      when :profile then ids.merge(item.payload.profiles.keys)
       end
     end
     posts.each_value do |row|
@@ -82,26 +107,99 @@ class X::Capture
     end
   end
 
-  # Keeps the owner's posts, replies to the owner, and posts by people already in the CRM.
-  def save_posts(posts)
-    known = Person.where(x_id: posts.each_value.map { |row| row["author_id"] }.uniq).pluck(:x_id).to_set
-    listed = @payloads.select { |_, purpose| purpose == :discovery }.flat_map { |payload, _| payload.entry_post_ids }.to_set
+  def network
+    @network ||= Person.where.not(x_id: nil).pluck(:x_id).to_set << @owner
+  end
+
+  def listed_ids
+    @listed_ids ||= @parsed.select { |item| LISTED_PURPOSES.include?(item.purpose) }.flat_map { |item| item.payload.entry_post_ids }.to_set
+  end
+
+  # Keeps what the owner was shown and anything that touches the network; strangers talking to strangers inside
+  # someone else's thread are dropped.
+  def save_posts(posts, details)
+    discovery = @parsed.select { |item| item.purpose == :discovery }.flat_map { |item| item.payload.entry_post_ids }.to_set
     posts.each_value.filter_map do |row|
-      next unless row["author_id"] == @owner || row["in_reply_to_user_id"] == @owner || known.include?(row["author_id"])
-      purpose = listed.include?(row["id"]) && row["author_id"] != @owner ? "discovery" : "context"
-      X::SourcePost.capture!(row, run: run("posts", purpose))
+      quoted_author = posts.dig(details.dig(row["id"], :quoted_x_id), "author_id")
+      reposted_author = posts.dig(details.dig(row["id"], :reposted_x_id), "author_id")
+      next unless listed_ids.include?(row["id"]) || [ row["author_id"], row["in_reply_to_user_id"], quoted_author, reposted_author ].any? { |id| network.include?(id) }
+      purpose = discovery.include?(row["id"]) && row["author_id"] != @owner ? "discovery" : "context"
+      X::SourcePost.capture!(row, run: run("posts", purpose), details: details[row["id"]], at: @now)
       @result[:posts] += 1
       row["id"]
     end
   end
 
+  def save_observations(saved, details)
+    saved = saved.to_set
+    @parsed.each do |item|
+      item.payload.entry_post_ids.uniq.each do |id|
+        metrics = details[id]&.slice(*X::PostObservation::METRICS)&.compact
+        next unless saved.include?(id) && metrics.present?
+        X::PostObservation.record!(id, surface: item.payload.surface, metrics: metrics, at: @now)
+        @result[:observations] += 1
+      end
+    end
+  end
+
+  def save_post_interactions(saved, posts, details)
+    authors = posts.transform_values { |row| row["author_id"] }
+    saved.each do |id|
+      row = posts.fetch(id)
+      detail = details[id] || {}
+      author = row["author_id"]
+      occurred = Time.iso8601(row["created_at"])
+      if (quoted = detail[:quoted_x_id])
+        interact("quote", author, authors[quoted] || X::SourcePost.find_by(x_id: quoted)&.author_x_id, id, quoted, occurred)
+      end
+      if (original = detail[:reposted_x_id])
+        interact("repost", author, authors[original] || X::SourcePost.find_by(x_id: original)&.author_x_id, id, original, occurred)
+      end
+      Array(detail[:mention_ids]).each { |mentioned| interact("mention", author, mentioned, id, nil, occurred) unless mentioned == row["in_reply_to_user_id"] }
+    end
+  end
+
+  def interact(kind, source, target, post, target_post, occurred)
+    return unless X::Interaction.record!(kind: kind, source: source, target: target, post: post, target_post: target_post, occurred_at: occurred, at: @now)
+    @result[:interactions] += 1
+  end
+
   def save_engagements(posts)
-    @payloads.each do |payload, purpose|
-      next unless (kind = ENGAGEMENT_KINDS[purpose])
-      payload.entry_post_ids.each do |id|
+    @parsed.each do |item|
+      next unless (kind = ENGAGEMENT_KINDS[item.purpose])
+      item.payload.entry_post_ids.each do |id|
         next unless (row = posts[id])
         state = Engagement.capture!(row, kind: kind, run: run(Engagement::KINDS.key(kind)))
         @result[kind.pluralize.to_sym] += 1 if state == :new
+        interact("like", @owner, row["author_id"], id, id, nil) if kind == "like"
+      end
+    end
+  end
+
+  # "Liked by" lists are only shown on the owner's own posts; "Reposted by" lists on any post whose author is known.
+  def save_engagement_lists(posts)
+    @parsed.each do |item|
+      next unless %i[likers reposters].include?(item.purpose)
+      post = item.variables["tweetId"].to_s
+      next unless post.match?(/\A\d{1,30}\z/)
+      author = posts.dig(post, "author_id") || X::SourcePost.find_by(x_id: post)&.author_x_id
+      author ||= @owner if item.purpose == :likers
+      next unless author
+      kind = item.purpose == :likers ? "like" : "repost"
+      item.payload.entry_user_ids.each { |user| interact(kind, user, author, post, post, nil) }
+    end
+  end
+
+  def save_follow_edges
+    @parsed.each do |item|
+      next unless item.purpose == :people
+      user = item.variables["userId"].to_s
+      next unless user.match?(/\A\d{1,30}\z/)
+      following = item.payload.operation == "Following"
+      item.payload.entry_user_ids.each do |listed|
+        follower, followed = following ? [ user, listed ] : [ listed, user ]
+        X::FollowEdge.record!(follower: follower, followed: followed, seen_on: item.payload.operation, at: @now)
+        @result[:follows] += 1
       end
     end
   end
@@ -117,10 +215,10 @@ class X::Capture
   end
 
   def run(dataset, purpose = nil)
-    key = [dataset, purpose].compact.join("-")
+    key = [ dataset, purpose ].compact.join("-")
     @counts[key] += 1
     @runs[key] ||= X::SyncRun.find_or_create_by!(request_key: "capture-#{@batch_key}-#{key}") do |run|
-      now = Time.current.change(usec: 0)
+      now = @now.change(usec: 0)
       run.assign_attributes(dataset: dataset, mode: "capture", status: "completed", owner_x_id: @owner,
         page_limit: 1, page_number: 1, upper_bound: now, finished_at: now, parameters: purpose ? { "purpose" => purpose } : {})
     end

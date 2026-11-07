@@ -17,7 +17,7 @@ class XCaptureEndpointTest < ActionDispatch::IntegrationTest
     sign_out
     send_batch
     assert_response :success
-    assert_equal 1, response.parsed_body["people_added"]
+    assert_equal [ 1, 1, 0 ], response.parsed_body.values_at("posts", "accounts", "people_added")
     assert Current.workspace.reload.capture_token_used_at
   end
 

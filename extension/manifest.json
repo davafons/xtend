@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Twitter CRM Capture",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Forwards what x.com already loaded while you browse to your Twitter CRM. Sends no requests to X.",
   "permissions": ["storage", "unlimitedStorage", "alarms", "cookies"],
-  "host_permissions": ["https://x.com/*", "https://twitter-crm.localhost/*"],
+  "host_permissions": ["https://x.com/*", "https://xtend.example.com/*", "https://twitter-crm.localhost/*"],
   "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
   "background": { "service_worker": "background.js", "type": "module" },
   "content_scripts": [

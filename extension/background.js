@@ -1,5 +1,5 @@
 // Queues captured responses in extension storage and sends them to the CRM in batches, on demand or every minute.
-const DEFAULT_SETTINGS = { crmUrl: "https://twitter-crm.localhost", token: "", auto: true, paused: false };
+const DEFAULT_SETTINGS = { crmUrl: "https://xtend.example.com", token: "", auto: true, paused: false };
 const MAX_QUEUE = 2000;
 const MAX_BATCH_RESPONSES = 50;
 const MAX_BATCH_BYTES = 6 * 1024 * 1024;
@@ -112,7 +112,7 @@ function flush() {
       const byOperation = { ...current.byOperation };
       for (const item of responses) byOperation[item.operation] = Math.max((byOperation[item.operation] || 1) - 1, 0);
       const totals = { ...current.totals };
-      for (const field of ["posts", "people_added", "people_updated", "likes", "bookmarks"]) {
+      for (const field of ["posts", "people_added", "people_updated", "likes", "bookmarks", "accounts", "interactions", "follows", "observations"]) {
         totals[field] = (totals[field] || 0) + (result.body[field] || 0);
       }
       await setState({ pending: Math.max(current.pending - batchKeys.length, 0), byOperation, totals,

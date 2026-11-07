@@ -1,0 +1,13 @@
+# One account following another, as seen on a follow list. Lists are only what was scrolled, so a missing edge
+# never means someone doesn't follow. The owner's own lists stay authoritative in Follow::Snapshot.
+class X::FollowEdge < ApplicationRecord
+  include WorkspaceScoped
+  self.table_name = "x_follows"
+
+  def self.record!(follower:, followed:, seen_on:, at: Time.current)
+    return if follower.blank? || followed.blank? || follower == followed
+    edge = find_or_initialize_by(follower_x_id: follower, followed_x_id: followed)
+    edge.first_seen_at ||= at
+    edge.update!(last_seen_at: at, seen_on: seen_on)
+  end
+end

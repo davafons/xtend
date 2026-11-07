@@ -7,7 +7,7 @@
   <%= render "tabs" %>
 </div>
 
-<div class="grid grid-cols-[minmax(0,40rem)_20rem] items-start justify-between gap-8">
+<div class="grid grid-cols-[minmax(0,40rem)] gap-8">
   <div class="flex flex-col gap-6">
     <%= lc_card do %>
       <%= form_with model: @draft do %>
@@ -68,14 +68,4 @@
     <% end %>
   </div>
 
-  <aside class="sticky top-6 flex flex-col gap-4">
-    <%= lc_card do %>
-      <div class="flex flex-col gap-3">
-        <%= lc_heading "Save ideas from Grok", level: 2, size: :subheading %>
-        <%= lc_text "Your Grok bot can save ideas here through the connector. Try:", size: :small, tone: :muted %>
-        <p class="rounded-xl bg-tile p-3 text-sm">“Save this as a tweet idea: … and add three variations with different hooks.”</p>
-        <%= lc_text "Grok's versions show its badge, and every draft keeps the alternatives and the history of its text.", size: :small, tone: :muted %>
-      </div>
-    <% end %>
-  </aside>
 </div>

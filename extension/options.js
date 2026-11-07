@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 
 async function load() {
   const { settings = {} } = await chrome.storage.local.get("settings");
-  $("crmUrl").value = settings.crmUrl || "https://twitter-crm.localhost";
+  $("crmUrl").value = settings.crmUrl || "https://xtend.example.com";
   $("token").value = settings.token || "";
 }
 

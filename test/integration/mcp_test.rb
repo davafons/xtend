@@ -152,4 +152,22 @@ class McpTest < ActionDispatch::IntegrationTest
     assert tool("save_post_idea", { "texts" => [ "x" ], "inspiration_url" => "javascript:alert(1)" })["isError"]
     assert_equal 0, X::Read.count
   end
+
+  test "Grok reads network posts with counts and the network around a person" do
+    alice = Person.resolve_profile!(profile(x_id: "401", handle: "alice"))
+    Person.resolve_profile!(profile(x_id: "402", handle: "bob"))
+    run = X::SyncRun.create!(dataset: "posts", owner_x_id: Current.workspace.owner_x_id, request_key: SecureRandom.uuid, mode: "capture", status: "completed", page_limit: 1, upper_bound: Time.current)
+    X::SourcePost.capture!({ "id" => "4100", "author_id" => "401", "text" => "Ship small", "created_at" => 1.hour.ago.iso8601, "referenced_posts" => [] },
+      run: run, details: { like_count: 120, view_count: 5000, has_link: false })
+    X::SourcePost.capture!({ "id" => "4101", "author_id" => "402", "text" => "@alice agreed", "created_at" => 30.minutes.ago.iso8601, "in_reply_to_user_id" => "401",
+      "referenced_posts" => [ { "id" => "4100", "type" => "replied_to" } ] }, run: run)
+
+    posts = tool("list_network_posts", { "sort" => "likes" }).fetch("structuredContent").fetch("posts")
+    assert_equal [ "alice", "Ship small", 120 ], posts.first.values_at("author", "text").push(posts.first.dig("counts", "like_count"))
+    network = tool("get_network", { "handle" => "alice" }).fetch("structuredContent")
+    assert_equal [ [ "bob", { "reply" => 1 } ] ], network["interacts_with"].map { |item| item.values_at("handle", "interactions") }
+    overview = tool("get_network").fetch("structuredContent")
+    assert_equal [ { "from" => "bob", "to" => "alice", "interactions" => { "reply" => 1 } } ], overview["busiest_pairs"]
+    assert_equal alice.id, overview["most_connected"].first["person_id"]
+  end
 end

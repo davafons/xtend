@@ -78,6 +78,37 @@
         <% end %>
       </div>
     <% end %>
+    <% neighborhood = Network::Neighborhood.new(@person) %>
+    <%= lc_card do %>
+      <div class="flex flex-col gap-4" id="network">
+        <%= lc_heading "In your network", level: 2, size: :subheading %>
+        <% if neighborhood.empty? %>
+          <%= lc_text "No interactions with your other people collected yet.", size: :small, tone: :muted %>
+        <% end %>
+        <% if neighborhood.partners.any? %>
+          <ol class="flex flex-col gap-2">
+            <% neighborhood.partners.each do |partner, kinds| %>
+              <li class="flex items-center gap-2">
+                <%= person_avatar partner, size: :sm %>
+                <%= link_to partner.name, partner, class: "min-w-0 grow truncate text-sm font-medium hover:underline" %>
+                <span class="shrink-0 text-xs text-muted-foreground" title="<%= kinds.map { |kind, count| "#{count} #{kind.pluralize(count)}" }.join(", ") %>"><%= kinds.values.sum %></span>
+              </li>
+            <% end %>
+          </ol>
+        <% end %>
+        <% [ [ "Followed by", neighborhood.followed_by ], [ "Follows", neighborhood.follows ] ].each do |label, people| %>
+          <% next if people.empty? %>
+          <div class="flex flex-col gap-2">
+            <p class="text-sm text-muted-foreground"><%= label %></p>
+            <div class="flex flex-wrap gap-1"><% people.each do |other| %><%= link_to other, title: other.name do %><%= person_avatar other, size: :sm %><% end %><% end %></div>
+          </div>
+        <% end %>
+        <div class="flex flex-wrap gap-1">
+          <%= lc_button_link_to "#{pluralize(neighborhood.saved_posts, "saved post")}", timeline_path(person_id: @person.id, kind: "all", period: "all"), variant: :ghost, size: :sm, icon: "queue-list" %>
+          <%= lc_button_link_to "Network", network_path(period: "all"), variant: :ghost, size: :sm, icon: "share" %>
+        </div>
+      </div>
+    <% end %>
     <%= lc_card do %>
       <div class="flex flex-col gap-4">
         <%= lc_heading "Keep them in your circle", level: 2, size: :subheading %>
