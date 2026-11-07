@@ -12,7 +12,7 @@ module ApplicationHelper
   end
 
   def navigation_active?(path)
-    path == root_path ? current_page?(path) : request.path.start_with?(path)
+    request.path.start_with?(path) || (path == people_path && current_page?(root_path))
   end
 
   def demo?
@@ -42,7 +42,13 @@ module ApplicationHelper
     lc_badge(class: MEANING_CLASSES.fetch(meaning), &block)
   end
 
-  def person_avatar(person, size: :md, **options)
+  # A ring in the follow relationship's color: green both ways, blue you follow, amber they follow.
+  RING_CLASSES = { both: "ring-success", you: "ring-you", them: "ring-warning" }.freeze
+
+  def person_avatar(person, size: :md, ring: nil, **options)
+    ring_class = RING_CLASSES[state_meaning(ring)] if ring
+    options[:class] = [ options[:class], ("ring-2 ring-offset-2 ring-offset-card #{ring_class}" if ring_class) ].compact.join(" ").presence
+    options.compact!
     if person.avatar_url.present? && !demo?
       lc_avatar(src: person.avatar_image_url, alt: "", size: size, loading: "lazy", referrerpolicy: "no-referrer", **options)
     else

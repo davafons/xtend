@@ -53,7 +53,18 @@ class PeopleController < ApplicationController
         "(SELECT COUNT(*) FROM reply_events WHERE reply_events.person_id = people.id) AS reply_total")
       .order(Arel.sql(SORTS.fetch(@sort)))
       .offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
+    @recent = recent_people if @page == 1 && helpers.people_filter_params.except(:sort).empty?
   end
+
+  # Pinned people first, then whoever you replied with most recently.
+  def recent_people
+    Person.includes(:pin, :reply_events)
+      .select("people.*", "(SELECT MAX(occurred_at) FROM reply_events WHERE reply_events.person_id = people.id) AS last_reply_at")
+      .where(id: ReplyEvent.select(:person_id)).or(Person.where(id: Pin.select(:person_id)))
+      .order(Arel.sql("(SELECT 1 FROM pins WHERE pins.person_id = people.id) IS NULL, last_reply_at DESC"))
+      .limit(4).to_a
+  end
+  private :recent_people
 
   def show
     @person = Person.includes(:pin, :follow_protection, :reply_events, :follow_reviews, :follower_periods, :posts, :engagements, :tags).find(params[:id])

@@ -121,8 +121,9 @@ class Person < ApplicationRecord
     avatar_url&.sub(/_normal(\.\w+)\z/, "_bigger\\1")
   end
 
-  def banner_image_url
-    "#{banner_url}/1500x500" if banner_url.present?
+  # X serves banners at fixed sizes; cards use 600x200, the profile header 1500x500.
+  def banner_image_url(size = "1500x500")
+    "#{banner_url}/#{size}" if banner_url.present?
   end
 
   def profile_url

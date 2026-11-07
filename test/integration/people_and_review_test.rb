@@ -6,9 +6,13 @@ class PeopleAndReviewTest < ActionDispatch::IntegrationTest
     recent = ingest(person_profile: profile(x_id: "2", handle: "recent", name: "Zz Recent")).person
     get people_path
     assert_response :success
-    assert_operator response.body.index("Zz Recent"), :<, response.body.index("Aa Quiet")
+    assert_select "#recent-people + div a", text: /Zz Recent/
+    assert_select "#recent-people + div a", text: /Aa Quiet/, count: 0
+    table = response.body[response.body.index("<table")..]
+    assert_operator table.index("Zz Recent"), :<, table.index("Aa Quiet")
     get people_path(sort: "name")
-    assert_operator response.body.index("Aa Quiet"), :<, response.body.index("Zz Recent")
+    table = response.body[response.body.index("<table")..]
+    assert_operator table.index("Aa Quiet"), :<, table.index("Zz Recent")
     get people_path(state: "You replied only", q: "recent")
     assert_select "tbody tr", 1
     assert_includes response.body, recent.name

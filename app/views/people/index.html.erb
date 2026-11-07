@@ -22,6 +22,34 @@
   <% if people_filter_params.except(:sort).any? %><%= lc_button_link_to "Clear", people_path(people_filter_params.slice(:sort)), variant: :ghost, size: :sm, icon: "x-mark" %><% end %>
   <span class="ms-auto text-sm tabular-nums text-muted-foreground"><%= pluralize(@count, "person", plural: "people") %></span>
 <% end %>
+<% if @recent.present? %>
+  <section class="mb-8 flex flex-col gap-3" aria-labelledby="recent-people">
+    <%= lc_heading "Recent conversations", level: 2, size: :heading, id: "recent-people" %>
+    <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <% @recent.each do |person| %>
+        <%= lc_card href: person_path(person), padding: :none, class: "gap-0 overflow-hidden" do %>
+          <% if person.banner_url.present? && !demo? %>
+            <%= image_tag person.banner_image_url("600x200"), alt: "", loading: "lazy", referrerpolicy: "no-referrer", class: "aspect-[3/1] w-full bg-tile object-cover" %>
+          <% else %>
+            <div class="aspect-[3/1] w-full bg-tile"></div>
+          <% end %>
+          <div class="flex flex-col gap-3 px-4 pb-4">
+            <%= person_avatar person, size: :lg, ring: person.follow_state(@graph), class: "-mt-6" %>
+            <div class="min-w-0">
+              <p class="flex items-center gap-1.5 font-semibold">
+                <span class="truncate"><%= person.name %></span>
+                <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
+              </p>
+              <p class="truncate text-sm text-muted-foreground">@<%= person.handle %></p>
+            </div>
+            <p class="text-sm text-muted-foreground">Last reply <%= relative_day person.last_interaction_at %></p>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+
 <% if params[:follow].present? && !@graph.complete? %><p class="mb-4"><%= lc_badge "Follow filters need complete follower and following checks", tone: :warning %></p><% end %>
 
 <% if @people.empty? %>
@@ -47,19 +75,16 @@
             <th scope="col"><%= people_sort_header "Person", "name" %></th>
             <th scope="col" class="text-end"><%= people_sort_header "Followers", "followers" %></th>
             <th scope="col">Follow</th>
-            <th scope="col">Replies</th>
-            <th scope="col" class="text-end"><%= people_sort_header "Count", "replies" %></th>
+            <th scope="col"><%= people_sort_header "Replies", "replies" %></th>
             <th scope="col"><%= people_sort_header "Last reply", "recent" %></th>
-            <th scope="col">Tags · notes · bio</th>
-            <th scope="col"><span class="sr-only">Open</span></th>
           </tr>
         </thead>
         <tbody>
           <% @people.each do |person| %>
             <tr>
-              <th scope="row" class="font-normal">
-                <%= link_to person, class: "flex min-w-56 items-center gap-3" do %>
-                  <%= person_avatar person %>
+              <th scope="row" class="min-w-72 max-w-md font-normal">
+                <%= link_to person, class: "flex items-center gap-3" do %>
+                  <%= person_avatar person, ring: person.follow_state(@graph) %>
                   <span class="min-w-0">
                     <span class="flex items-baseline gap-1.5 font-semibold">
                       <span class="truncate"><%= person.name %></span>
@@ -69,26 +94,24 @@
                     <span class="block text-xs text-muted-foreground">@<%= person.handle %></span>
                   </span>
                 <% end %>
+                <% if person.tags.any? %><span class="mt-2 flex flex-wrap gap-1 ps-11"><% person.tags.each do |tag| %><%= tag_chip tag.name %><% end %></span><% end %>
+                <% summary = person.notes.presence || person.description.presence %>
+                <% if summary %><span class="mt-1 line-clamp-1 ps-11 text-sm <%= "text-muted-foreground" unless person.notes.present? %>" title="<%= summary %>"><%= summary %></span><% end %>
               </th>
               <td class="whitespace-nowrap text-end text-sm tabular-nums"><%= compact_count person.followers_count %></td>
               <td class="whitespace-nowrap"><%= relationship_badge person.follow_state(@graph) %></td>
-              <td class="whitespace-nowrap"><%= relationship_badge person.reply_state %></td>
-              <td class="whitespace-nowrap text-end text-xs tabular-nums text-muted-foreground" title="Replies from you · replies from them">
-                <% if person.reply_events.any? %>
-                  <span class="inline-flex items-center gap-0.5 text-you"><%= lc_icon "arrow-up-right", options: { class: "size-3", "aria-hidden": true } %><%= person.outgoing_count %></span>
-                  <span class="ms-2 inline-flex items-center gap-0.5 text-success"><%= lc_icon "arrow-down-left", options: { class: "size-3", "aria-hidden": true } %><%= person.incoming_count %></span>
-                <% else %>—<% end %>
+              <td class="whitespace-nowrap">
+                <span class="flex items-center gap-3">
+                  <%= relationship_badge person.reply_state %>
+                  <% if person.reply_events.any? %>
+                    <span class="text-xs tabular-nums" title="Replies from you · replies from them">
+                      <span class="inline-flex items-center gap-0.5 text-you"><%= lc_icon "arrow-up-right", options: { class: "size-3", "aria-hidden": true } %><%= person.outgoing_count %></span>
+                      <span class="ms-1.5 inline-flex items-center gap-0.5 text-success"><%= lc_icon "arrow-down-left", options: { class: "size-3", "aria-hidden": true } %><%= person.incoming_count %></span>
+                    </span>
+                  <% end %>
+                </span>
               </td>
               <td class="whitespace-nowrap text-sm"><%= relative_day person.last_interaction_at %></td>
-              <td class="max-w-md text-sm">
-                <% if person.tags.any? %><span class="mb-1 flex flex-wrap gap-1"><% person.tags.each do |tag| %><%= tag_chip tag.name %><% end %></span><% end %>
-                <% if person.notes.present? %>
-                  <span class="line-clamp-2"><%= person.notes %></span>
-                <% else %>
-                  <span class="line-clamp-2 text-muted-foreground"><%= person.description.presence || "—" %></span>
-                <% end %>
-              </td>
-              <td class="text-end"><%= link_to person, class: "inline-flex text-muted-foreground hover:text-primary", aria: { label: "Open #{person.name}" } do %><%= lc_icon "chevron-right", options: { class: "size-4" } %><% end %></td>
             </tr>
           <% end %>
         </tbody>

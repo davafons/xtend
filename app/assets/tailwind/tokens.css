@@ -17,3 +17,25 @@
   --color-message: var(--crm-message);
   --color-grok: var(--crm-grok);
 }
+
+/* The signature: the three meaning colors you (blue), grok (teal), and like (pink) in one gradient.
+   It marks the app itself, so it appears only on the wordmark and the active navigation item. */
+.crm-signature-text {
+  background: linear-gradient(90deg, var(--crm-you), var(--crm-grok) 55%, var(--crm-like));
+  background-clip: text;
+  color: transparent;
+}
+
+.crm-signature-mark {
+  position: relative;
+}
+
+.crm-signature-mark::before {
+  content: "";
+  position: absolute;
+  inset-block: 0.375rem;
+  inset-inline-start: -1rem;
+  width: 3px;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, var(--crm-you), var(--crm-grok), var(--crm-like));
+}
