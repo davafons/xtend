@@ -17,6 +17,11 @@
       <div class="min-w-0 flex-1">
         <%= lc_container do %>
           <main id="main" class="<%= lc_stack_class(gap: :section) %> py-section">
+            <% if Current.workspace %>
+              <%= lc_search label: "Search and commands", src: search_path, trigger: "Search people, tags, drafts, posts, or jump to a page…", placeholder: "Search or type a command…", empty: "Nothing matches %{query}", class: "w-full" do %>
+                <%= render "searches/results", search: Search.new(nil) %>
+              <% end %>
+            <% end %>
             <% if Current.workspace && X::SyncRun.active.exists? %>
               <div data-controller="refresh" data-refresh-at-value="<%= Time.current.to_f %>" role="status"><%= lc_alert "Reading from X in the background. This page updates when it finishes.", tone: :neutral %></div>
             <% end %>

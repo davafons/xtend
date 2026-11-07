@@ -21,6 +21,7 @@ Rails.application.routes.draw do
   end
   resource :network, only: :show, controller: "network"
   resource :timeline, only: :show, controller: "timeline"
+  resource :search, only: :show
   resource :settings, only: [ :show, :update ]
   resource :context_export, only: :show
 

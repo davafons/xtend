@@ -1,0 +1,7 @@
+<% content_for :title, "Search" %>
+<h1 class="sr-only">Search</h1>
+<%= form_with url: search_path, method: :get, class: lc_inline_class(gap: :related) do %>
+  <%= lc_input name: "q", value: @search.query, type: :search, placeholder: "Search people, tags, drafts, and posts…", aria: { label: "Search" }, class: "min-w-56 flex-1" %>
+  <%= lc_button "Search", type: :submit, variant: :secondary %>
+<% end %>
+<%= lc_card padding: :sm do %><%= render "searches/results", search: @search %><% end %>

@@ -1,0 +1,49 @@
+<%# The palette's rows: commands always, then what the query matched. Blank, it shows pages, actions and recent people. %>
+<% matching = ->(rows) { search.blank? ? rows : rows.select { |title, _, _, keywords| "#{title} #{keywords}".downcase.include?(search.query.downcase) } } %>
+<% pages = navigation_sections.flat_map { |section, items| items.map { |label, path, icon| [ label, path, icon, section ] } } + [ [ "Settings", settings_path, "cog-6-tooth", "workspace interests account" ] ] %>
+<% actions = [
+     [ "New idea", drafts_path, "light-bulb", "compose draft tweet post write" ],
+     [ "Add a person", new_person_path, "user-plus", "create contact" ],
+     [ "Ideas to post about", ideas_drafts_path, "sparkles", "replies expand focus grok angles" ],
+     [ "Collect from X", x_sources_path(anchor: "collection"), "arrow-down-tray", "sample sync refresh likes bookmarks dms" ],
+     [ "Browser capture", x_sources_path(anchor: "capture"), "puzzle-piece", "extension token" ],
+     [ "Record X spend", x_billing_cycles_path, "banknotes", "billing cycle budget allowance" ]
+   ] %>
+<% unless search.blank? %>
+  <% if search.people.any? %>
+    <%= lc_search_group "People" do %>
+      <% search.people.each do |person| %>
+        <%= lc_search_result person.name, person_path(person), detail: [ "@#{person.handle}", person.description.presence&.truncate(70) ].compact.join(" · "), icon: "user" %>
+      <% end %>
+    <% end %>
+  <% end %>
+  <% if search.tags.any? %>
+    <%= lc_search_group "Tags" do %>
+      <% search.tags.each do |tag| %><%= lc_search_result "##{tag.name}", people_path(tag: tag.name), detail: "People with this tag", icon: "tag" %><% end %>
+    <% end %>
+  <% end %>
+  <% if search.drafts.any? %>
+    <%= lc_search_group "Drafts" do %>
+      <% search.drafts.each do |draft| %><%= lc_search_result (draft.title.presence || "Untitled draft"), edit_draft_path(draft), detail: Draft::STATUSES.fetch(draft.status).singularize, icon: "pencil-square" %><% end %>
+    <% end %>
+  <% end %>
+  <%= lc_search_group "Everywhere" do %>
+    <%= lc_search_result "People matching “#{search.query}”", people_path(q: search.query), detail: "Search names, handles, bios, and notes", icon: "users" %>
+    <%= lc_search_result "Saved posts matching “#{search.query}”", timeline_path(q: search.query, who: "seen", period: "all", kind: "all"), detail: pluralize(number_with_delimiter(search.post_count), "post"), icon: "queue-list" %>
+  <% end %>
+<% end %>
+<% if (rows = matching.(actions)).any? %>
+  <%= lc_search_group "Actions" do %>
+    <% rows.each do |title, path, icon, keywords| %><%= lc_search_result title, path, icon: icon, keywords: keywords %><% end %>
+  <% end %>
+<% end %>
+<% if (rows = matching.(pages)).any? %>
+  <%= lc_search_group "Go to" do %>
+    <% rows.each do |title, path, icon, keywords| %><%= lc_search_result title, path, icon: icon, keywords: keywords %><% end %>
+  <% end %>
+<% end %>
+<% if search.blank? && search.recent_people.any? %>
+  <%= lc_search_group "Recent conversations" do %>
+    <% search.recent_people.each do |person| %><%= lc_search_result person.name, person_path(person), detail: "@#{person.handle}", icon: "chat-bubble-left-right" %><% end %>
+  <% end %>
+<% end %>
