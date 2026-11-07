@@ -44,10 +44,9 @@
         <thead>
           <tr>
             <th scope="col">Account</th>
-            <th scope="col" class="text-end">Followers</th>
+            <th scope="col" class="text-end max-xl:hidden">Followers</th>
             <th scope="col">Last post</th>
             <th scope="col">Last interaction</th>
-            <th scope="col">Bio</th>
             <th scope="col" class="text-end">Decision</th>
           </tr>
         </thead>
@@ -55,17 +54,19 @@
           <% @candidates.each do |person| %>
             <tr id="<%= dom_id(person, :review) %>">
               <th scope="row" class="align-top font-normal">
-                <%= link_to person, class: "flex min-w-52 items-center gap-heading" do %>
-                  <%= person_avatar person %>
-                  <span class="min-w-0">
-                    <span class="flex items-center gap-1.5 font-semibold"><span class="truncate"><%= person.name %></span><% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 text-primary", "aria-label": "Pinned" } %><% end %></span>
-                    <span class="block text-caption text-muted-foreground">@<%= person.handle %></span>
-                    <span class="mt-tight block text-caption text-muted-foreground"><%= safe_join([("Joined #{person.joined_x_at.strftime('%b %Y')}" if person.joined_x_at), (person.location.truncate(24) if person.location.present?)].compact, " · ") %></span>
-                    <% if cleanup.mutual?(person) %><%= relationship_badge "Mutual" %><% end %>
-                  </span>
-                <% end %>
+                <div class="<%= lc_stack_class(gap: :related) %> max-w-xs">
+                  <%= render "people/identity", person: person %>
+                  <div class="<%= lc_stack_class(gap: :tight) %> ps-11">
+                    <span class="flex flex-wrap items-center gap-related text-caption text-muted-foreground">
+                      <% if cleanup.mutual?(person) %><%= relationship_badge "Mutual" %><% end %>
+                      <%= safe_join([ ("Joined #{person.joined_x_at.strftime('%b %Y')}" if person.joined_x_at), (person.location.truncate(24) if person.location.present?) ].compact, " · ") %>
+                    </span>
+                    <span class="line-clamp-2 text-small <%= "text-muted-foreground" if person.description.blank? %>"><%= person.description.presence || "No bio collected." %></span>
+                    <% if person.notes.present? %><span class="line-clamp-2 text-caption"><strong>Your note:</strong> <%= person.notes %></span><% end %>
+                  </div>
+                </div>
               </th>
-              <td class="whitespace-nowrap align-top text-end text-small tabular-nums">
+              <td class="whitespace-nowrap align-top text-end text-small tabular-nums max-xl:hidden">
                 <%= compact_count person.followers_count %>
                 <% if person.following_count %><span class="block text-caption text-muted-foreground">follows <%= compact_count person.following_count %></span><% end %>
                 <% if person.posts_count %><span class="block text-caption text-muted-foreground"><%= compact_count person.posts_count %> posts</span><% end %>
@@ -80,7 +81,7 @@
                 <% end %>
               </td>
               <% interactions = cleanup.interactions.fetch(person.id) %>
-              <td class="min-w-48 align-top text-small">
+              <td class="min-w-36 align-top text-small">
                 <% if (latest = interactions.latest) %>
                   <span class="block font-medium">Quiet for <%= "up to " if latest.approximate? %><%= pluralize((Date.current - latest.at.to_date).to_i, "day") %></span>
                   <span class="block text-caption text-muted-foreground"><%= interaction_label(latest) %></span>
@@ -90,9 +91,8 @@
                 <% end %>
                 <% if interactions.awaiting_dm_reply? %><%= lc_badge "They sent the last DM", tone: :warning, class: "mt-tight" %><% end %>
               </td>
-              <td class="max-w-xs align-top text-small"><span class="line-clamp-3 <%= 'text-muted-foreground' if person.description.blank? %>"><%= person.description.presence || "No bio collected." %></span><% if person.notes.present? %><span class="mt-tight block line-clamp-2 text-caption"><strong>Your note:</strong> <%= person.notes %></span><% end %></td>
               <td class="align-top">
-                <div class="flex items-center justify-end gap-tight">
+                <div class="flex flex-wrap items-center justify-end gap-tight max-xl:w-44">
                   <% unless demo? %><%= lc_icon_button_link_to "Open @#{person.handle} on X", person.profile_url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open on X" %><% end %>
                   <%= lc_button_to "Keep", follow_reviews_path(review_filters.merge(person_id: person.id, decision: "keep")), variant: :secondary, size: :sm, icon: "shield-check" %>
                   <%= lc_icon_button_to "Defer until tomorrow", follow_reviews_path(review_filters.merge(person_id: person.id, decision: "defer")), icon: "clock", size: :sm, title: "Defer until tomorrow" %>

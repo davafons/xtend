@@ -63,7 +63,7 @@
           <thead>
             <tr>
               <th scope="col"><%= people_sort_header "Person", "name" %></th>
-              <th scope="col" class="text-end"><%= people_sort_header "Followers", "followers" %></th>
+              <th scope="col" class="text-end max-xl:hidden"><%= people_sort_header "Followers", "followers" %></th>
               <th scope="col">Follow</th>
               <th scope="col"><%= people_sort_header "Replies", "replies" %></th>
               <th scope="col"><%= people_sort_header "Last reply", "recent" %></th>
@@ -72,32 +72,22 @@
           <tbody>
             <% @people.each do |person| %>
               <tr>
-                <th scope="row" class="min-w-72 max-w-md font-normal">
+                <th scope="row" class="font-normal">
                   <div class="<%= lc_stack_class(gap: :related) %>">
-                    <%= link_to person, class: "flex items-center gap-heading" do %>
-                      <%= person_avatar person, ring: person.follow_state(@graph) %>
-                      <span class="min-w-0">
-                        <span class="flex items-baseline gap-tight text-label">
-                          <span class="truncate"><%= person.name %></span>
-                          <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
-                          <% if person.follow_protection %><span class="shrink-0 text-caption font-normal text-success" title="Protected from cleanup">· kept</span><% end %>
-                        </span>
-                        <span class="block text-caption text-muted-foreground">@<%= person.handle %></span>
-                      </span>
-                    <% end %>
+                    <%= render "people/identity", person: person, ring: person.follow_state(@graph) %>
                     <% summary = person.notes.presence || person.description.presence %>
                     <% if person.tags.any? || summary %>
-                      <div class="<%= lc_stack_class(gap: :tight) %> ps-11">
+                      <div class="<%= lc_stack_class(gap: :tight) %> max-w-sm ps-11">
                         <% if person.tags.any? %><span class="flex flex-wrap gap-tight"><% person.tags.each do |tag| %><%= tag_chip tag.name %><% end %></span><% end %>
                         <% if summary %><span class="line-clamp-1 text-small <%= "text-muted-foreground" unless person.notes.present? %>" title="<%= summary %>"><%= summary %></span><% end %>
                       </div>
                     <% end %>
                   </div>
                 </th>
-                <td class="whitespace-nowrap text-end text-small tabular-nums"><%= compact_count person.followers_count %></td>
+                <td class="whitespace-nowrap text-end text-small tabular-nums max-xl:hidden"><%= compact_count person.followers_count %></td>
                 <td class="whitespace-nowrap"><%= relationship_badge person.follow_state(@graph) %></td>
-                <td class="whitespace-nowrap">
-                  <span class="flex items-center gap-heading">
+                <td>
+                  <span class="flex flex-wrap items-center gap-x-heading gap-y-tight">
                     <%= relationship_badge person.reply_state %>
                     <% if person.reply_events.any? %>
                       <span class="text-caption tabular-nums" title="Replies from you · replies from them">
@@ -107,7 +97,7 @@
                     <% end %>
                   </span>
                 </td>
-                <td class="whitespace-nowrap text-small"><%= relative_day person.last_interaction_at %></td>
+                <td class="text-small"><%= relative_day person.last_interaction_at %></td>
               </tr>
             <% end %>
           </tbody>

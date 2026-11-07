@@ -105,8 +105,10 @@ module ApplicationHelper
   end
 
   # Links between views of one page, as the library's segmented control. Items are [label, path, current].
-  def view_tabs(label, items)
-    lc_toggle_group(label: label, as: :nav, class: "w-fit") do
+  # Many items wrap as pills instead of running past the page.
+  def view_tabs(label, items, pills: items.size > 5)
+    options = pills ? { variant: :pills, size: :sm } : { class: "w-fit max-w-full" }
+    lc_toggle_group(label: label, as: :nav, **options) do
       safe_join(items.map { |text, path, current| lc_toggle_group_item(text, href: path, current: current) })
     end
   end

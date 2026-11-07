@@ -1,0 +1,14 @@
+<%# The name cell of a people table: avatar, name and handle at a fixed width that fits most names; longer ones
+    end in an ellipsis and show in full on hover. %>
+<%# locals: (person:, ring: nil) -%>
+<%= link_to person, class: "flex items-center gap-heading", title: "#{person.name} · @#{person.handle}" do %>
+  <%= person_avatar person, ring: ring %>
+  <span class="w-40 min-w-0">
+    <span class="flex items-center gap-tight text-label">
+      <span class="truncate"><%= person.name %></span>
+      <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
+      <% if person.follow_protection %><span class="shrink-0 text-caption font-normal text-success" title="Protected from cleanup">· kept</span><% end %>
+    </span>
+    <span class="block truncate text-caption text-muted-foreground">@<%= person.handle %></span>
+  </span>
+<% end %>

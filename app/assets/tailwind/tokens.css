@@ -40,9 +40,20 @@
   background: linear-gradient(180deg, var(--crm-you), var(--crm-grok), var(--crm-like));
 }
 
-/* Collapsed, the sidebar keeps icons; labels stay for screen readers and in each link's title. */
-.crm-sidebar[data-collapsed] [data-slot="nav-group-title"],
-.crm-sidebar[data-collapsed] [data-slot="nav-link"] > span {
+/* The sidebar rail: icons only, when you collapsed it, or below 1280px unless you expanded it. */
+@custom-variant rail {
+  &:where(.crm-sidebar[data-collapsed], .crm-sidebar[data-collapsed] *) {
+    @slot;
+  }
+  @media (width < 80rem) {
+    &:where(.crm-sidebar:not([data-expanded]), .crm-sidebar:not([data-expanded]) *) {
+      @slot;
+    }
+  }
+}
+
+/* On the rail, labels stay for screen readers and in each link's title. */
+.crm-sidebar[data-collapsed] :is([data-slot="nav-group-title"], [data-slot="nav-link"] > span) {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -53,4 +64,19 @@
 
 .crm-sidebar[data-collapsed] [data-slot="nav-link"] {
   justify-content: center;
+}
+
+@media (width < 80rem) {
+  .crm-sidebar:not([data-expanded]) :is([data-slot="nav-group-title"], [data-slot="nav-link"] > span) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .crm-sidebar:not([data-expanded]) [data-slot="nav-link"] {
+    justify-content: center;
+  }
 }
