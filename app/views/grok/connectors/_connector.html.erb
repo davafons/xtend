@@ -14,11 +14,11 @@
       <% if workspace.mcp_token_digest %>
         <p class="text-sm text-muted-foreground">Created <%= relative_day workspace.mcp_token_created_at %> · <%= workspace.mcp_token_used_at ? "last used #{time_ago_in_words(workspace.mcp_token_used_at)} ago" : "not used yet" %></p>
         <div class="flex flex-wrap gap-2">
-          <%= lc_button_to "Replace token", mcp_token_path, variant: :secondary, size: :sm, icon: "arrow-path" %>
+          <%= lc_button_to "Replace token", mcp_token_path, variant: :secondary, size: :sm, icon: "arrow-path", data: { turbo: false } %>
           <%= lc_button_to "Revoke token", mcp_token_path, method: :delete, variant: :ghost, size: :sm, icon: "no-symbol" %>
         </div>
       <% else %>
-        <div><%= lc_button_to "Create connector token", mcp_token_path, variant: :secondary, size: :sm, icon: "key" %></div>
+        <div><%= lc_button_to "Create connector token", mcp_token_path, variant: :secondary, size: :sm, icon: "key", data: { turbo: false } %></div>
       <% end %>
       <div class="flex flex-col gap-3 pt-2">
         <p class="text-sm font-semibold">Shared with the connector</p>

@@ -107,6 +107,8 @@ class McpTest < ActionDispatch::IntegrationTest
     get grok_connector_path
     assert_includes response.body, "Grok Bot connector (MCP)"
     assert_not_includes response.body, @token
+    # The token page renders instead of redirecting, which Turbo Drive ignores, so the form must skip Turbo.
+    assert_select "form[action=?] button[data-turbo=false]", mcp_token_path
     post mcp_token_path
     assert_response :success
     new_token = response.body[/crm_[A-Za-z0-9_-]{20,}/]
