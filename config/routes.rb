@@ -1,6 +1,6 @@
 Rails.application.routes.draw do
   resource :session, only: [ :new, :create, :destroy ]
-  root "today#index"
+  root "people#index"
 
   # Core CRM
   resources :people, only: [ :index, :show, :new, :create, :update ] do
@@ -8,16 +8,10 @@ Rails.application.routes.draw do
     resource :follow_protection, only: [ :create, :destroy ], controller: "follow/protections"
     resources :tags, only: [ :create, :destroy ], controller: "person_tags"
   end
-  resources :posts, only: [] do
-    resource :disposition, only: [ :create, :destroy ], controller: "post_dispositions"
-    resource :reply_report, only: [ :create, :destroy ]
-  end
   resources :drafts, except: :show do
     get :ideas, on: :collection
   end
-  resource :daily_session, only: :update
   resource :settings, only: [ :show, :update ]
-  resource :discovery, only: :show
   resource :context_export, only: :show
 
   # Follower snapshots and cleanup
@@ -25,14 +19,6 @@ Rails.application.routes.draw do
     resources :reviews, only: [ :index, :create ]
   end
   get "/follow/history", to: "follow/history#index", as: :follower_history
-
-  # Discovery of reply targets
-  namespace :discovery do
-    resources :suggestions, only: :create do
-      post :refresh, on: :collection
-    end
-    resources :imports, only: :create
-  end
 
   # X API
   namespace :x do

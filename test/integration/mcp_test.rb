@@ -89,7 +89,7 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_equal 20, tool("get_session_state")["structuredContent"]["target"]
   end
 
-  test "proposing candidates stages them for Today without X reads" do
+  test "proposing candidates stages them without X reads" do
     result = tool("propose_candidate_posts", { "posts" => [{ "url" => "https://x.com/builder/status/8101", "text" => "How do you test Rails jobs?",
       "published_at" => 1.hour.ago.iso8601, "match_reason" => "Rails testing question" }] })
     assert_not result["isError"]
@@ -97,10 +97,6 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_includes tool("list_known_posts")["structuredContent"]["post_ids"], "8101"
     assert_equal 1, tool("get_session_state")["structuredContent"]["queue"]["unverified_from_grok"]
     assert_equal 0, X::Read.count
-
-    get root_path
-    assert_includes response.body, "Unverified · from Grok"
-    assert_includes response.body, "Verify on X"
   end
 
   test "settings shows the token once, paste intake works, and proposals are reviewed on the person page" do
@@ -118,7 +114,7 @@ class McpTest < ActionDispatch::IntegrationTest
 
     paste = "Results:\n```json\n" + { format: "twitter-crm-grok-v1", recaps: [{ handle: "builder", summary: "Ships Rails tools." }] }.to_json + "\n```"
     post grok_intakes_path, params: { grok_output: paste }
-    assert_redirected_to discovery_path
+    assert_redirected_to grok_connector_path
     assert_match "1 staged", flash[:notice]
     get person_path(@person)
     assert_includes response.body, "Proposed recap"

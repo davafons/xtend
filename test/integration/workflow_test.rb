@@ -52,34 +52,12 @@ class WorkflowTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Monthly budget cents must be an integer"
   end
 
-  test "manual reply report cannot advance confirmed progress" do
-    person = Person.resolve_profile!(profile)
-    tweet = person.posts.create!(x_id: "8001", body: "A useful question", published_at: 1.hour.ago)
-    session = DailySession.current
-    post post_reply_report_path(tweet), params: {confirmed: true, source: "x_api"}
-    assert_redirected_to root_path
-    assert_equal 1, ReplyReport.count
-    assert_equal 0, session.reload.progress
-    assert_equal 0, ReplyEvent.count
-    delete post_reply_report_path(tweet)
-    assert_equal 0, ReplyReport.count
-  end
-
-  test "wrong reply URL and bad import are handled without changing data" do
-    person = Person.resolve_profile!(profile)
-    tweet = person.posts.create!(x_id: "8001", body: "Question", published_at: 1.hour.ago)
-    post post_reply_report_path(tweet), params: {reply_url: "javascript:alert(1)"}
-    assert_equal 0, ReplyReport.count
-    post discovery_imports_path
-    assert_redirected_to discovery_path
-    assert_equal 0, ReplyEvent.count
-  end
   test "fictional demo renders populated views without live links" do
     original = Rails.configuration.x.demo
     Rails.configuration.x.demo = true
     DemoWorkspace.seed!
     assert_equal 12, DailySession.current.progress
-    [root_path, people_path, follow_reviews_path, settings_path, discovery_path, x_sources_path, grok_connector_path, x_billing_cycles_path, person_path(Person.first)].each do |path|
+    [root_path, people_path, follow_reviews_path, settings_path, x_sources_path, grok_connector_path, x_billing_cycles_path, person_path(Person.first)].each do |path|
       get path
       assert_response :success
     end

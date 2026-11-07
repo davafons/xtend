@@ -40,7 +40,7 @@ class X::SyncRunsController < ApplicationController
   private
 
   def return_path
-    { "today" => root_path, "discovery" => discovery_path }.fetch(params[:return_to].to_s) { x_sources_path(anchor: "collection") }
+    x_sources_path(anchor: "collection")
   end
 
   def result_message(run)

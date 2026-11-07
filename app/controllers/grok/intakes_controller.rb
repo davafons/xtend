@@ -11,6 +11,6 @@ class Grok::IntakesController < ApplicationController
   private
 
   def return_path
-    params[:return_to] == "grok" ? grok_connector_path(anchor: "tags") : discovery_path
+    grok_connector_path(anchor: params[:return_to] == "grok" ? "tags" : nil)
   end
 end
