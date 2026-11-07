@@ -32,4 +32,30 @@ class ComposeTest < ActionDispatch::IntegrationTest
       post drafts_path, params: { draft: { body: "x", inspiration_url: "javascript:alert(1)" } }
     end
   end
+
+  test "the composer saves thread posts, versions can be added, used, and deleted, and history restores" do
+    post drafts_path, params: { draft: { parts: [ "First idea", "" ] } }
+    draft = Draft.last
+    assert_equal "First idea", draft.body
+    get drafts_path
+    assert_select "#draft_#{draft.id}", text: /First idea/
+    patch draft_path(draft), params: { draft: { parts: [ "Hook", "  ", "Payoff" ] } }
+    assert_equal [ "Hook", "Payoff" ], draft.reload.parts
+
+    post draft_alternatives_path(draft), params: { alternative: { body: "A punchier hook" } }
+    alternative = draft.alternatives.last
+    get edit_draft_path(draft)
+    assert_select "#alternatives", text: /A punchier hook/
+    post draft_alternative_promotion_path(draft, alternative)
+    assert_equal "A punchier hook", draft.reload.body
+    assert_equal [ "Hook\n\n---\n\nPayoff" ], draft.alternatives.map(&:body)
+
+    travel 11.minutes do
+      revision = draft.revisions.find_by(body: "Hook\n\n---\n\nPayoff")
+      post draft_revision_restoration_path(draft, revision)
+      assert draft.reload.thread?
+    end
+    delete draft_alternative_path(draft, draft.alternatives.first)
+    assert_empty draft.alternatives.reload
+  end
 end

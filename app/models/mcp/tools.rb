@@ -1,5 +1,5 @@
 # Tools that Grok Bot (or any MCP client) can call. Reads are bounded and scoped by the owner's sharing choices;
-# writes only stage research through Grok::Intake. No tool posts, follows, messages, or runs paid X reads.
+# writes stage research through Grok::Intake or save post drafts. No tool posts, follows, messages, or runs paid X reads.
 class Mcp::Tools
   class Invalid < StandardError; end
 
@@ -20,6 +20,8 @@ class Mcp::Tools
       match_reason: { type: "string", description: "One concrete reason the owner could add a useful reply." }
     }
   }.freeze
+
+  MAX_VARIATIONS = 10
 
   DEFINITIONS = [
     { name: "get_owner_profile", title: "Owner interests and rules",
@@ -72,7 +74,30 @@ class Mcp::Tools
         assignments: { type: "array", maxItems: 50, items: { type: "object", required: %w[tags], properties: PERSON_REF.merge(
           tags: { type: "array", maxItems: 8, items: { type: "string", maxLength: 40 } },
           reason: { type: "string", description: "Short public evidence for the tags, such as the bio or recent posts." }) } } } },
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } }
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } },
+    { name: "list_post_drafts", title: "List post drafts",
+      description: "The owner's saved ideas and drafts for his own posts, newest first, with their alternative versions. Use draft IDs with add_post_variations.",
+      inputSchema: { type: "object", properties: {
+        stage: { type: "string", enum: Draft::STATUSES.keys, description: "Defaults to every stage except posted." },
+        limit: { type: "integer", minimum: 1, maximum: 25 } } },
+      annotations: { readOnlyHint: true } },
+    { name: "save_post_idea", title: "Save a post idea",
+      description: "Save an idea for one of the owner's own posts in Compose, optionally with variations. The first text becomes the main draft and the rest are kept as alternatives. Separate posts in a thread with a line containing only ---. Saving never posts anything.",
+      inputSchema: { type: "object", required: %w[texts], properties: {
+        texts: { type: "array", minItems: 1, maxItems: MAX_VARIATIONS, items: { type: "string", maxLength: 5000 } },
+        topic: { type: "string", maxLength: 120 },
+        notes: { type: "string", maxLength: 2000, description: "Angle, sources, or why it could work. Never posted." },
+        variation_note: { type: "string", maxLength: 200, description: "What the variations try, such as different hooks." },
+        inspiration_url: { type: "string", description: "An x.com post that inspired the idea." },
+        stage: { type: "string", enum: %w[idea drafting], description: "Defaults to idea." } } },
+      annotations: { readOnlyHint: false, destructiveHint: false } },
+    { name: "add_post_variations", title: "Add post variations",
+      description: "Add alternative versions to an existing draft from list_post_drafts or save_post_idea. The main text is left unchanged; the owner chooses which version to use.",
+      inputSchema: { type: "object", required: %w[draft_id texts], properties: {
+        draft_id: { type: "integer" },
+        texts: { type: "array", minItems: 1, maxItems: MAX_VARIATIONS, items: { type: "string", maxLength: 5000 } },
+        note: { type: "string", maxLength: 200, description: "What these variations try." } } },
+      annotations: { readOnlyHint: false, destructiveHint: false } }
   ].freeze
 
   def self.definitions = DEFINITIONS
@@ -210,7 +235,46 @@ class Mcp::Tools
     intake(args).call("tags" => assignments).slice(:run_id, :tags)
   end
 
+  def list_post_drafts(args)
+    stage = args["stage"]
+    raise Invalid, "stage must be one of #{Draft::STATUSES.keys.join(", ")}." if stage && !Draft::STATUSES.key?(stage)
+    drafts = (stage ? Draft.in_status(stage) : Draft.where.not(status: "posted")).recent.includes(:alternatives).limit(bounded(args["limit"], 10, 25))
+    { drafts: drafts.map { |draft| draft_summary(draft) } }
+  end
+
+  def save_post_idea(args)
+    texts = variation_texts(args["texts"])
+    stage = args["stage"].presence || "idea"
+    raise Invalid, "stage must be idea or drafting." unless %w[idea drafting].include?(stage)
+    draft = Draft.capture!(texts: texts, editor: "grok", note: args["variation_note"].to_s.first(200).presence, status: stage,
+      topic: args["topic"].to_s.first(120).presence, notes: args["notes"].to_s.first(2000).presence, inspiration_url: args["inspiration_url"].presence)
+    { saved: true, draft: draft_summary(draft) }
+  rescue ActiveRecord::RecordInvalid => error
+    raise Invalid, error.record.errors.full_messages.to_sentence
+  end
+
+  def add_post_variations(args)
+    draft = Draft.find_by(id: args["draft_id"]) or raise Invalid, "Draft not found. Use an id from list_post_drafts."
+    draft.add_alternatives!(variation_texts(args["texts"]), source: "grok", note: args["note"].to_s.first(200).presence)
+    { saved: true, draft: draft_summary(draft.reload) }
+  rescue ActiveRecord::RecordInvalid => error
+    raise Invalid, error.record.errors.full_messages.to_sentence
+  end
+
   private
+
+  def variation_texts(texts)
+    texts = Array(texts).map { |text| text.to_s.strip.first(5000) }.reject(&:blank?) if texts.is_a?(Array)
+    raise Invalid, "texts must be an array of 1 to #{MAX_VARIATIONS} non-empty strings." unless texts.is_a?(Array) && texts.size.between?(1, MAX_VARIATIONS)
+    texts
+  end
+
+  def draft_summary(draft)
+    { id: draft.id, stage: draft.status, written_by: draft.source == "grok" ? "grok" : "david", topic: draft.topic, notes: draft.notes,
+      text: draft.body, posts: draft.parts.size, weighted_lengths: draft.part_lengths, over_limit: draft.over_limit?,
+      alternatives: draft.alternatives.map { |alternative| { text: alternative.body, written_by: alternative.source == "grok" ? "grok" : "david", note: alternative.note } },
+      updated_at: draft.updated_at.iso8601 }
+  end
 
   def intake(args)
     Grok::Intake.new(via: "mcp", run_id: args["run_id"])

@@ -134,4 +134,22 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_empty Tag.where(name: "designer")
     assert tool("propose_tags", { "assignments" => [] })["isError"]
   end
+
+  test "Grok saves post ideas with variations and adds more without posting anything" do
+    result = tool("save_post_idea", { "texts" => [ "SQLite is enough for most side projects.", "Your side project doesn't need Postgres." ], "topic" => "Rails", "variation_note" => "contrarian hook" })
+    saved = result.fetch("structuredContent").fetch("draft")
+    draft = Draft.find(saved["id"])
+    assert_equal [ "grok", "idea", "SQLite is enough for most side projects." ], [ draft.source, draft.status, draft.body ]
+    assert_equal [ "contrarian hook" ], draft.alternatives.map(&:note)
+
+    tool("add_post_variations", { "draft_id" => draft.id, "texts" => [ "Hot take: SQLite.", "Thread version\n---\nPart two" ] })
+    assert_equal 3, draft.alternatives.count
+    listed = tool("list_post_drafts").fetch("structuredContent").fetch("drafts")
+    assert_equal 3, listed.find { |item| item["id"] == draft.id }["alternatives"].size
+
+    assert tool("save_post_idea", { "texts" => [] })["isError"]
+    assert tool("add_post_variations", { "draft_id" => 0, "texts" => [ "x" ] })["isError"]
+    assert tool("save_post_idea", { "texts" => [ "x" ], "inspiration_url" => "javascript:alert(1)" })["isError"]
+    assert_equal 0, X::Read.count
+  end
 end

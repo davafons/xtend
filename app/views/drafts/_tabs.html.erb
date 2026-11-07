@@ -1,6 +1,5 @@
 <nav class="flex items-center gap-1" aria-label="Compose">
-  <% [["Board", drafts_path], ["Ideas", ideas_drafts_path]].each do |label, path| %>
+  <% [["Drafts", drafts_path], ["Ideas", ideas_drafts_path]].each do |label, path| %>
     <%= lc_button_link_to label, path, variant: current_page?(path) ? :secondary : :ghost, size: :sm, aria: { current: ("page" if current_page?(path)) } %>
   <% end %>
-  <%= lc_button_link_to "New draft", new_draft_path, size: :sm, icon: "plus", class: "ms-2" %>
 </nav>

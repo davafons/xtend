@@ -4,8 +4,10 @@ class Mcp::Server
   PROTOCOL_VERSIONS = %w[2025-06-18 2025-03-26 2024-11-05].freeze
   INSTRUCTIONS = <<~TEXT.squish
     Relationship context from the owner's local X CRM. Read tools return collected evidence with coverage limits:
-    missing history is not proof that nothing happened. Write tools only stage research for the owner to review;
-    they never post, reply, follow, unfollow, or message anyone, and they cannot mark replies as sent.
+    missing history is not proof that nothing happened. Write tools only stage research for the owner to review
+    or save drafts of his own posts in Compose; they never post, reply, follow, unfollow, or message anyone,
+    and they cannot mark replies as sent. When the owner shares a post idea, save it with save_post_idea,
+    adding variations if he asks for them.
     Use public X search for discovery, then call propose_candidate_posts with real source URLs and observed facts.
     Omit facts you did not observe instead of guessing.
   TEXT

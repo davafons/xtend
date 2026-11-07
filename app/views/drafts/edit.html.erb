@@ -1,13 +1,76 @@
 <% content_for :title, @draft.title.to_s.truncate(40).presence || "Draft" %>
-<div class="flex items-end justify-between gap-8 pb-6 pt-8">
-  <div class="flex flex-col gap-2">
-    <%= lc_button_link_to "Board", drafts_path, variant: :ghost, size: :sm, icon: "arrow-left", class: "self-start" %>
-    <%= lc_heading "Draft", level: 1, size: :title %>
-    <p class="text-sm text-muted-foreground"><%= Draft::STATUSES.fetch(@draft.status) %> · edited <%= time_ago_in_words(@draft.updated_at) %> ago</p>
-  </div>
+<div class="flex items-center justify-between gap-8 pb-6 pt-6">
+  <%= lc_button_link_to "Drafts", drafts_path, variant: :ghost, size: :sm, icon: "arrow-left" %>
   <div class="flex items-center gap-2">
-    <%= render "tabs" %>
-    <%= lc_button_to "Delete", draft_path(@draft), method: :delete, variant: :ghost, size: :sm, icon: "trash", data: { turbo_confirm: "Delete this draft?" } %>
+    <% if @draft.source == "grok" %><%= grok_badge "Written by Grok" %><% end %>
+    <span class="text-sm text-muted-foreground">Edited <%= time_ago_in_words(@draft.updated_at) %> ago</span>
+    <%= lc_button_to "Delete", draft_path(@draft), method: :delete, variant: :ghost, size: :sm, icon: "trash", data: { turbo_confirm: "Delete this draft, its alternatives, and its history?" } %>
   </div>
 </div>
-<%= render "form", draft: @draft %>
+
+<div class="grid grid-cols-[minmax(0,40rem)_20rem] items-start justify-between gap-8">
+  <div class="flex flex-col gap-8">
+    <div class="flex flex-col gap-4"><%= render "form", draft: @draft %></div>
+
+    <section class="flex flex-col gap-3" id="alternatives" aria-labelledby="alternatives-heading">
+      <div>
+        <%= lc_heading "Other versions", level: 2, size: :heading, id: "alternatives-heading" %>
+        <%= lc_text "Different takes on the same idea. Using one makes it the main version and keeps the current text here.", size: :small, tone: :muted %>
+      </div>
+      <% if @draft.alternatives.any? %>
+        <%= lc_card padding: :none do %>
+          <ol class="flex flex-col divide-y divide-border">
+            <% @draft.alternatives.each do |alternative| %>
+              <li class="flex flex-col gap-3 px-5 py-4">
+                <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                  <% if alternative.source == "grok" %><%= grok_badge %><% else %><span>You</span><% end %>
+                  <% if alternative.note.present? %><span class="truncate"><%= alternative.note %></span><% end %>
+                  <span class="ms-auto tabular-nums <%= "text-destructive" if alternative.over_limit? %>"><%= alternative.thread? ? "Thread of #{alternative.parts.size}" : "#{alternative.part_lengths.first}/#{Draft::LIMIT}" %></span>
+                </div>
+                <p class="whitespace-pre-line break-words"><%= alternative.parts.join("\n\n") %></p>
+                <div class="flex items-center gap-1">
+                  <%= lc_button_to "Use this version", draft_alternative_promotion_path(@draft, alternative), variant: :secondary, size: :sm, icon: "arrow-up" %>
+                  <%= lc_button_to draft_alternative_path(@draft, alternative), method: :delete, variant: :ghost, size: :sm, aria: { label: "Delete this version" }, title: "Delete this version" do %><%= lc_icon "trash", options: { class: "size-4" } %><% end %>
+                </div>
+              </li>
+            <% end %>
+          </ol>
+        <% end %>
+      <% end %>
+      <%= lc_card do %>
+        <%= form_with url: draft_alternatives_path(@draft), class: "flex flex-col gap-3" do %>
+          <%= lc_textarea "", name: "alternative[body]", rows: 3, placeholder: "Write another version. Separate thread posts with a --- line.", aria: { label: "Another version" }, required: true %>
+          <%= lc_button "Add version", type: :submit, variant: :secondary, size: :sm, icon: "plus", class: "self-start" %>
+        <% end %>
+      <% end %>
+    </section>
+  </div>
+
+  <aside class="sticky top-6 flex flex-col gap-4">
+    <%= render "details", draft: @draft %>
+    <% revisions = @draft.revisions.newest_first.limit(20).to_a %>
+    <% if revisions.size > 1 %>
+      <%= lc_card do %>
+        <div class="flex flex-col gap-3">
+          <%= lc_heading "History", level: 2, size: :subheading %>
+          <ol class="flex flex-col divide-y divide-border">
+            <% revisions.each_with_index do |revision, index| %>
+              <li class="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
+                <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                  <time datetime="<%= revision.updated_at.iso8601 %>" title="<%= revision.updated_at.strftime("%-d %b %Y, %H:%M") %>"><%= time_ago_in_words(revision.updated_at) %> ago</time>
+                  <span><%= revision.source == "grok" ? "Grok" : "You" %></span>
+                  <% if index.zero? %>
+                    <span class="ms-auto">Current</span>
+                  <% else %>
+                    <%= lc_button_to "Restore", draft_revision_restoration_path(@draft, revision), variant: :ghost, size: :sm, form: { class: "ms-auto" } %>
+                  <% end %>
+                </div>
+                <p class="line-clamp-3 whitespace-pre-line text-sm <%= "text-muted-foreground" unless index.zero? %>"><%= revision.body %></p>
+              </li>
+            <% end %>
+          </ol>
+        </div>
+      <% end %>
+    <% end %>
+  </aside>
+</div>

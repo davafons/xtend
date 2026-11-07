@@ -2,60 +2,80 @@
 <div class="flex items-end justify-between gap-8 pb-6 pt-8">
   <div class="flex flex-col gap-3">
     <%= lc_heading "Compose", level: 1, size: :title %>
-    <%= lc_text "Capture ideas, shape them into posts, and post them yourself on X.", tone: :muted %>
+    <%= lc_text "Ideas and drafts for your own posts. You post them yourself on X.", tone: :muted %>
   </div>
   <%= render "tabs" %>
 </div>
 
-<%= lc_card class: "mb-6" do %>
-  <%= form_with model: @draft, class: "flex items-start gap-3" do |form| %>
-    <%= lc_textarea "", name: "draft[body]", rows: 2, placeholder: "Capture an idea, an observation, a half-formed take…", aria: { label: "New idea" }, class: "min-h-0 grow" %>
-    <%= lc_input name: "draft[topic]", placeholder: "Topic (optional)", aria: { label: "Topic" }, list: "draft-topics", class: "w-56" %>
-    <datalist id="draft-topics"><% Current.workspace.interests.each do |interest| %><option value="<%= interest %>"></option><% end %></datalist>
-    <%= lc_button "Save idea", type: :submit, variant: :secondary, icon: "plus" %>
-  <% end %>
-<% end %>
+<div class="grid grid-cols-[minmax(0,40rem)_20rem] items-start justify-between gap-8">
+  <div class="flex flex-col gap-6">
+    <%= lc_card do %>
+      <%= form_with model: @draft do %>
+        <%= render "drafts/composer", parts: [], submit: "Save idea" %>
+      <% end %>
+    <% end %>
 
-<div class="grid grid-cols-4 items-start gap-4">
-  <% Draft::STATUSES.each do |status, label| %>
-    <% drafts = @drafts.fetch(status, []) %>
-    <% drafts = drafts.first(12) if status == "posted" %>
-    <section class="flex min-w-0 flex-col gap-3" aria-labelledby="column-<%= status %>">
-      <div class="flex items-baseline justify-between px-1">
-        <h2 id="column-<%= status %>" class="text-sm font-semibold"><%= label %></h2>
-        <span class="text-xs tabular-nums text-muted-foreground"><%= @drafts.fetch(status, []).size %></span>
+    <nav class="flex flex-wrap items-center gap-1" aria-label="Stage">
+      <%= lc_button_link_to "Open · #{@counts.except("posted").values.sum}", drafts_path, variant: @status ? :ghost : :secondary, size: :sm, aria: { current: ("page" unless @status) } %>
+      <% Draft::STATUSES.each do |status, label| %>
+        <%= lc_button_link_to "#{label} · #{@counts.fetch(status, 0)}", drafts_path(status: status), variant: @status == status ? :secondary : :ghost, size: :sm, aria: { current: ("page" if @status == status) } %>
+      <% end %>
+    </nav>
+
+    <% if @drafts.empty? %>
+      <%= lc_card class: "py-10" do %>
+        <div class="flex flex-col items-center gap-2 text-center">
+          <%= lc_heading(@status ? "Nothing in #{Draft::STATUSES[@status]}." : "No ideas yet.", level: 2, size: :subheading) %>
+          <%= lc_text "Write one above, or ask your Grok bot to save an idea and a few versions of it.", tone: :muted, size: :small %>
+        </div>
+      <% end %>
+    <% else %>
+      <%= lc_card padding: :none do %>
+        <ol class="flex flex-col divide-y divide-border">
+          <% @drafts.each do |draft| %>
+            <li class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 px-5 py-4" id="<%= dom_id(draft) %>">
+              <%= owner_avatar %>
+              <div class="flex min-w-0 flex-col gap-2">
+                <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span class="font-semibold text-foreground">@<%= X::Connection.current&.username || "you" %></span>
+                  <span><%= draft.posted_at ? draft.posted_at.strftime("%-d %b") : "#{time_ago_in_words(draft.updated_at)} ago" %></span>
+                  <% if draft.source == "grok" %><%= grok_badge %><% end %>
+                  <%= lc_badge Draft::STATUSES.fetch(draft.status), class: "ms-auto" %>
+                </div>
+                <%= link_to edit_draft_path(draft), class: "flex flex-col gap-1 hover:opacity-80" do %>
+                  <% if draft.parts.any? %>
+                    <span class="line-clamp-6 whitespace-pre-line break-words"><%= draft.parts.first %></span>
+                  <% else %>
+                    <span class="text-muted-foreground"><%= draft.topic.presence || draft.notes.to_s.truncate(200) %></span>
+                  <% end %>
+                <% end %>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <% if draft.thread? %><span class="inline-flex items-center gap-1"><%= lc_icon "queue-list", options: { class: "size-4", "aria-hidden": true } %>Thread of <%= draft.parts.size %></span><% end %>
+                  <% if draft.alternatives.any? %><span class="inline-flex items-center gap-1"><%= lc_icon "square-2-stack", options: { class: "size-4", "aria-hidden": true } %><%= pluralize(draft.alternatives.size, "alternative") %></span><% end %>
+                  <% if draft.over_limit? %><span class="text-destructive">Too long</span><% end %>
+                  <% if draft.topic.present? && draft.parts.any? %><span class="truncate"><%= draft.topic %></span><% end %>
+                  <% if draft.posted_url && !demo? %>
+                    <%= link_to "View on X", draft.posted_url, target: "_blank", rel: "noopener noreferrer", class: "ms-auto text-you hover:underline" %>
+                  <% elsif (following = draft.next_status) %>
+                    <%= lc_button_to draft_path(draft), method: :patch, params: { draft: { status: following }, return_to: "board" }, variant: :ghost, size: :sm, form: { class: "ms-auto" } do %><%= following == "posted" ? "I posted it" : "Move to #{Draft::STATUSES[following]}" %><% end %>
+                  <% end %>
+                </div>
+              </div>
+            </li>
+          <% end %>
+        </ol>
+      <% end %>
+    <% end %>
+  </div>
+
+  <aside class="sticky top-6 flex flex-col gap-4">
+    <%= lc_card do %>
+      <div class="flex flex-col gap-3">
+        <%= lc_heading "Save ideas from Grok", level: 2, size: :subheading %>
+        <%= lc_text "Your Grok bot can save ideas here through the connector. Try:", size: :small, tone: :muted %>
+        <p class="rounded-xl bg-tile p-3 text-sm">“Save this as a tweet idea: … and add three variations with different hooks.”</p>
+        <%= lc_text "Grok's versions show its badge, and every draft keeps the alternatives and the history of its text.", size: :small, tone: :muted %>
       </div>
-      <% if drafts.empty? %>
-        <p class="rounded-2xl bg-muted p-4 text-xs text-muted-foreground">
-          <%= { "idea" => "Quick thoughts land here.", "drafting" => "Open an idea to start writing.", "ready" => "Drafts you're happy with.", "posted" => "Posted drafts link to the tweet after Check sent replies." }.fetch(status) %>
-        </p>
-      <% end %>
-      <% drafts.each do |draft| %>
-        <%= lc_card padding: :sm, id: dom_id(draft) do %>
-          <div class="flex flex-col gap-2">
-            <%= link_to edit_draft_path(draft), class: "flex flex-col gap-1 hover:text-primary" do %>
-              <span class="line-clamp-4 whitespace-pre-line text-sm"><%= draft.parts.first.presence || draft.topic.presence || draft.notes.to_s.truncate(140) %></span>
-            <% end %>
-            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              <% if draft.topic.present? && draft.parts.any? %><span class="truncate"><%= draft.topic %></span><% end %>
-              <% if draft.parts.any? %>
-                <span class="tabular-nums <%= 'font-semibold text-destructive' if draft.over_limit? %>"><%= draft.thread? ? "Thread of #{draft.parts.size}" : "#{draft.part_lengths.first}/#{Draft::LIMIT}" %></span>
-              <% end %>
-              <span class="ms-auto"><%= draft.posted_at ? draft.posted_at.strftime("%-d %b") : "#{time_ago_in_words(draft.updated_at)} ago" %></span>
-            </div>
-            <div class="flex items-center gap-1">
-              <% if (previous = draft.previous_status) && status != "posted" %>
-                <%= lc_button_to draft_path(draft), method: :patch, params: { draft: { status: previous }, return_to: "board" }, variant: :ghost, size: :sm, title: "Move to #{Draft::STATUSES[previous]}", aria: { label: "Move to #{Draft::STATUSES[previous]}" } do %><%= lc_icon "arrow-left", options: { class: "size-4" } %><% end %>
-              <% end %>
-              <% if status == "posted" %>
-                <% if draft.posted_url && !demo? %><%= link_to "View on X", draft.posted_url, target: "_blank", rel: "noopener noreferrer", class: "text-xs font-medium text-primary hover:underline" %><% else %><span class="text-xs text-muted-foreground">Not matched to a tweet yet</span><% end %>
-              <% elsif (following = draft.next_status) %>
-                <%= lc_button_to draft_path(draft), method: :patch, params: { draft: { status: following }, return_to: "board" }, variant: :ghost, size: :sm, form: { class: "ms-auto" }, title: "Move to #{Draft::STATUSES[following]}" do %><%= following == "posted" ? "I posted it" : Draft::STATUSES[following] %><%= lc_icon "arrow-right", options: { class: "size-4" } %><% end %>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-      <% end %>
-    </section>
-  <% end %>
+    <% end %>
+  </aside>
 </div>

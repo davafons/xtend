@@ -10,6 +10,14 @@ Rails.application.routes.draw do
   end
   resources :drafts, except: :show do
     get :ideas, on: :collection
+    scope module: :drafts do
+      resources :alternatives, only: %i[ create destroy ] do
+        resource :promotion, only: :create
+      end
+      resources :revisions, only: [] do
+        resource :restoration, only: :create
+      end
+    end
   end
   resource :settings, only: [ :show, :update ]
   resource :context_export, only: :show

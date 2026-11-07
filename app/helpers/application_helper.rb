@@ -93,6 +93,10 @@ module ApplicationHelper
     end
   end
 
+  def grok_badge(label = "Grok")
+    lc_badge(class: "bg-grok/15 text-grok") { safe_join([ lc_icon("sparkles", options: { class: "size-3.5", "aria-hidden": true }), label ]) }
+  end
+
   def relationship_badge(state)
     meaning_badge(state_meaning(state)) do
       safe_join([lc_icon(relationship_icon(state), options: { class: "size-3.5", "aria-hidden": true }), tag.span(state)])

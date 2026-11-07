@@ -1,0 +1,27 @@
+<%# An X-style composer. Each post in a thread is its own field; the form stores them as one body. %>
+<%# locals: (parts:, placeholder: "What's happening?", submit: "Save", form: nil, intent: false) %>
+<div class="flex flex-col" data-controller="composer">
+  <ol class="flex flex-col" data-composer-target="list">
+    <% (parts.presence || [ "" ]).each do |text| %>
+      <%= render "drafts/composer_part", text: text, placeholder: placeholder, form: form %>
+    <% end %>
+  </ol>
+  <template data-composer-target="template"><%= render "drafts/composer_part", text: "", placeholder: "Add another post", form: form %></template>
+  <div class="ms-13 flex items-center gap-3 border-t border-border pt-3">
+    <%= lc_button "Add post", type: :button, variant: :ghost, size: :sm, icon: "plus", class: "text-you", data: { action: "composer#add" } %>
+    <span class="text-sm text-muted-foreground" data-composer-target="summary"></span>
+    <div class="ms-auto flex items-center gap-3">
+      <span class="flex items-center gap-2 text-sm tabular-nums text-you data-[state=near]:text-warning data-[state=over]:text-destructive" data-composer-target="ring" role="img" hidden>
+        <span data-composer-target="remaining"></span>
+        <svg viewBox="0 0 20 20" class="size-6 -rotate-90" aria-hidden="true">
+          <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2" class="opacity-20" />
+          <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" data-composer-target="ringValue" />
+        </svg>
+      </span>
+      <% if intent %>
+        <%= lc_button_link_to "Open in X", "https://x.com/intent/post", target: "_blank", rel: "noopener noreferrer", variant: :secondary, size: :sm, icon: "arrow-up-right", data: { composer_target: "intent" } %>
+      <% end %>
+      <%= lc_button submit, type: :submit, size: :sm, form: form %>
+    </div>
+  </div>
+</div>

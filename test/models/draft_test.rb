@@ -36,4 +36,43 @@ class DraftTest < ActiveSupport::TestCase
     assert_equal "ready", copy.reload.status
     assert_equal "idea", idea.reload.status
   end
+
+  test "an idea keeps its variations as alternatives and records who wrote the main text" do
+    draft = Draft.capture!(texts: [ "Main take", " ", "Shorter take", "Question hook?" ], editor: "grok", note: "different hooks")
+    assert_equal "grok", draft.source
+    assert_equal [ "Shorter take", "Question hook?" ], draft.alternatives.map(&:body)
+    assert draft.alternatives.all? { |alternative| alternative.source == "grok" && alternative.note == "different hooks" }
+    assert_equal [ [ "Main take", "grok" ] ], draft.revisions.map { |revision| [ revision.body, revision.source ] }
+  end
+
+  test "quick saves by one author share a revision, and a new author or a later save starts another" do
+    draft = Draft.capture!(texts: [ "From Grok" ], editor: "grok")
+    draft.update!(body: "Edited once")
+    draft.update!(body: "Edited twice")
+    assert_equal [ "Edited twice", "From Grok" ], draft.revisions.newest_first.map(&:body)
+    assert_equal "owner", draft.reload.source
+    travel 11.minutes do
+      draft.update!(body: "Edited later")
+      assert_equal 3, draft.revisions.count
+    end
+  end
+
+  test "using an alternative swaps it with the main text, and restoring adds a step instead of rewriting history" do
+    draft = Draft.capture!(texts: [ "Original", "Alternative from Grok" ], editor: "grok")
+    draft.update!(body: "Original, edited by me")
+    draft.use_alternative!(draft.alternatives.first)
+    assert_equal "Alternative from Grok", draft.body
+    assert_equal "grok", draft.source
+    assert_equal [ [ "Original, edited by me", "owner", "Previous main version" ] ], draft.alternatives.reload.map { |a| [ a.body, a.source, a.note ] }
+    assert_equal [ "Alternative from Grok", "Original, edited by me", "Original" ], draft.revisions.newest_first.map(&:body)
+    draft.restore!(draft.revisions.find_by(body: "Original, edited by me"))
+    assert_equal "Original, edited by me", draft.body
+    assert_equal 4, draft.revisions.count
+  end
+
+  test "a draft keeps a bounded number of alternatives" do
+    draft = Draft.capture!(texts: [ "Main" ])
+    draft.add_alternatives!(Array.new(Draft::MAX_ALTERNATIVES) { |index| "Version #{index}" })
+    assert_raises(ActiveRecord::RecordInvalid) { draft.add_alternatives!([ "One more" ]) }
+  end
 end

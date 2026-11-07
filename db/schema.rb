@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_180000) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -63,6 +63,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
     t.index ["workspace_id"], name: "index_discovery_suggestions_on_workspace_id"
   end
 
+  create_table "draft_alternatives", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "draft_id", null: false
+    t.text "body", null: false
+    t.string "source", default: "owner", null: false
+    t.string "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["draft_id"], name: "index_draft_alternatives_on_draft_id"
+    t.index ["workspace_id"], name: "index_draft_alternatives_on_workspace_id"
+  end
+
+  create_table "draft_revisions", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "draft_id", null: false
+    t.text "body", null: false
+    t.string "source", default: "owner", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["draft_id"], name: "index_draft_revisions_on_draft_id"
+    t.index ["workspace_id"], name: "index_draft_revisions_on_workspace_id"
+  end
+
   create_table "drafts", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.string "status", default: "idea", null: false
@@ -74,6 +97,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
+    t.string "source", default: "owner", null: false
     t.index ["status"], name: "index_drafts_on_status"
     t.index ["workspace_id", "posted_x_id"], name: "index_drafts_on_workspace_id_and_posted_x_id", unique: true
     t.index ["workspace_id"], name: "index_drafts_on_workspace_id"
@@ -448,6 +472,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
   add_foreign_key "direct_messages", "workspaces"
   add_foreign_key "direct_messages", "x_sync_runs"
   add_foreign_key "discovery_suggestions", "workspaces"
+  add_foreign_key "draft_alternatives", "drafts"
+  add_foreign_key "draft_alternatives", "workspaces"
+  add_foreign_key "draft_revisions", "drafts"
+  add_foreign_key "draft_revisions", "workspaces"
   add_foreign_key "drafts", "workspaces"
   add_foreign_key "engagements", "workspaces"
   add_foreign_key "engagements", "x_sync_runs"

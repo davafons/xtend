@@ -1,9 +1,10 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Live X-style weighted character count and thread preview for the composer.
+// An X-style composer: one growing textarea per post, a thread line between them, and X's
+// weighted character count shown as a ring for the post being edited.
 const LIMIT = 280
+const WARN_AT = 20
 const URL = /https?:\/\/\S+/g
-const SEPARATOR = /^\s*---\s*$/m
 
 function weight(char) {
   const code = char.codePointAt(0)
@@ -17,50 +18,75 @@ export function weightedLength(text) {
 }
 
 export default class extends Controller {
-  static targets = ["input", "preview", "summary", "intent"]
-  static values = { handle: String }
+  static targets = ["list", "part", "input", "template", "ring", "ringValue", "remaining", "summary", "intent"]
 
   connect() {
+    this.active = this.inputTargets[0]
+    this.inputTargets.forEach((input) => this.grow(input))
     this.render()
+  }
+
+  edit(event) {
+    this.active = event.target
+    this.grow(event.target)
+    this.render()
+  }
+
+  focus(event) {
+    this.active = event.target
+    this.render()
+  }
+
+  add() {
+    const fragment = this.templateTarget.content.cloneNode(true)
+    this.listTarget.append(fragment)
+    const input = this.inputTargets.at(-1)
+    input.focus()
+    this.active = input
+    this.render()
+  }
+
+  remove(event) {
+    const part = event.target.closest("[data-composer-target='part']")
+    if (this.partTargets.length <= 1) return
+    part.remove()
+    this.active = this.inputTargets.at(-1)
+    this.active.focus()
+    this.render()
+  }
+
+  grow(input) {
+    input.style.height = "auto"
+    input.style.height = `${input.scrollHeight}px`
   }
 
   render() {
-    const parts = this.inputTarget.value.split(SEPARATOR).map((part) => part.trim()).filter(Boolean)
-    this.previewTarget.replaceChildren(...parts.map((part, index) => this.card(part, index, parts.length)))
-    const over = parts.filter((part) => weightedLength(part) > LIMIT).length
-    this.summaryTarget.textContent = parts.length === 0 ? "Empty draft"
-      : `${parts.length === 1 ? "Single post" : `Thread of ${parts.length}`}${over ? ` · ${over} over ${LIMIT}` : ""}`
-    this.summaryTarget.classList.toggle("text-destructive", over > 0)
+    const texts = this.inputTargets.map((input) => input.value.trim())
+    this.inputTargets.forEach((input, index) => {
+      input.setAttribute("aria-label", this.inputTargets.length > 1 ? `Post ${index + 1} of ${this.inputTargets.length}` : "Post")
+      input.closest("[data-composer-target='part']").querySelector("[data-remove]")?.toggleAttribute("hidden", this.inputTargets.length <= 1)
+    })
+    this.renderRing(weightedLength(this.active?.value || ""))
+    if (this.hasSummaryTarget) {
+      const filled = texts.filter(Boolean)
+      const over = filled.filter((text) => weightedLength(text) > LIMIT).length
+      this.summaryTarget.textContent = filled.length > 1 ? `Thread of ${filled.length}${over ? `, ${over} too long` : ""}` : ""
+    }
     if (this.hasIntentTarget) {
-      this.intentTarget.href = `https://x.com/intent/post?text=${encodeURIComponent(parts[0] || "")}`
+      this.intentTarget.href = `https://x.com/intent/post?text=${encodeURIComponent(texts.find(Boolean) || "")}`
     }
   }
 
-  insertBreak() {
-    const input = this.inputTarget
-    const position = input.selectionEnd
-    input.setRangeText("\n\n---\n\n", position, position, "end")
-    input.focus()
-    this.render()
-  }
-
-  card(text, index, total) {
-    const length = weightedLength(text)
-    const card = document.createElement("div")
-    card.className = "crm-post-preview flex flex-col gap-2 rounded-2xl border border-border p-4"
-    const body = document.createElement("p")
-    body.className = "whitespace-pre-wrap break-words text-sm"
-    body.textContent = text
-    const meta = document.createElement("div")
-    meta.className = "flex items-center justify-between text-xs tabular-nums text-muted-foreground"
-    const position = document.createElement("span")
-    position.textContent = total > 1 ? `${index + 1}/${total}` : ""
-    const count = document.createElement("span")
-    count.textContent = `${length}/${LIMIT}`
-    if (length > LIMIT) count.className = "font-semibold text-destructive"
-    else if (length > LIMIT - 20) count.className = "font-semibold text-warning"
-    meta.append(position, count)
-    card.append(body, meta)
-    return card
+  // The ring fills toward the limit, turns amber in the last 20 characters and red past the limit,
+  // and shows the characters left once you are close, like X.
+  renderRing(length) {
+    if (!this.hasRingTarget) return
+    const left = LIMIT - length
+    const circumference = 2 * Math.PI * 9
+    this.ringValueTarget.style.strokeDasharray = `${Math.min(length / LIMIT, 1) * circumference} ${circumference}`
+    this.ringTarget.dataset.state = left < 0 ? "over" : left <= WARN_AT ? "near" : "ok"
+    this.ringTarget.toggleAttribute("hidden", length === 0)
+    this.remainingTarget.textContent = left <= WARN_AT ? left : ""
+    this.ringTarget.setAttribute("aria-label", `${length} of ${LIMIT} characters`)
   }
 }
