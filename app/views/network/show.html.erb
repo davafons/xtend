@@ -2,20 +2,22 @@
 <% kind_labels = { "reply" => "Replies", "quote" => "Quotes", "repost" => "Reposts", "mention" => "Mentions", "like" => "Likes", "follow" => "Follows" } %>
 <h1 class="sr-only">Network</h1>
 
-<%= form_with url: network_path, method: :get, class: "flex flex-wrap items-center gap-x-content gap-y-heading", data: { controller: "auto-submit", turbo_action: "replace" } do %>
+<%= form_with url: network_path, method: :get, class: "flex flex-wrap items-center gap-related", data: { controller: "auto-submit", turbo_action: "replace" } do %>
   <%= lc_select Network::Graph::PERIODS.keys.map { |key| [ { "30d" => "Last 30 days", "90d" => "Last 90 days", "1y" => "Last year", "all" => "All time" }.fetch(key), key ] }, name: "period", selected: @graph.period, size: :sm, aria: { label: "Period" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <%= lc_select Network::Graph::SCOPES.map { |key, label| [ label, key ] }, name: "scope", selected: @graph.scope, size: :sm, aria: { label: "Who" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% if @tags.any? %>
     <%= lc_select [ [ "Any tag", "" ], *@tags.map { |tag| [ "##{tag.name}", tag.name ] } ], name: "tag", selected: @graph.tag, size: :sm, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% end %>
-  <fieldset class="flex flex-wrap items-center gap-x-content gap-y-related">
+  <fieldset class="flex flex-wrap items-center gap-tight">
     <legend class="sr-only">Interactions to show</legend>
     <% Network::Graph::KINDS.each do |kind| %>
-      <%= lc_checkbox kind_labels.fetch(kind), name: "kinds[]", value: kind, checked: @graph.kinds.include?(kind), unchecked_value: nil, data: { action: "auto-submit#submit" } %>
+      <%= lc_toggle kind_labels.fetch(kind), name: "kinds[]", value: kind, active: @graph.kinds.include?(kind), size: :sm, input: { type: "checkbox", data: { action: "auto-submit#submit" } } %>
     <% end %>
   </fieldset>
-  <%= lc_switch "Include you", name: "me", checked: @graph.include_owner, data: { action: "auto-submit#submit" } %>
-  <%= lc_switch "Outside accounts", name: "outside", checked: @graph.outside, hint: nil, title: "Accounts not in your CRM that at least two of your people interact with", data: { action: "auto-submit#submit" } %>
+  <div class="flex items-center gap-tight">
+    <%= hidden_field_tag "me", "0", id: nil %><%= lc_toggle "You", name: "me", value: "1", active: @graph.include_owner, size: :sm, title: "Include your own interactions", input: { type: "checkbox", data: { action: "auto-submit#submit" } } %>
+    <%= hidden_field_tag "outside", "0", id: nil %><%= lc_toggle "Outside your CRM", name: "outside", value: "1", active: @graph.outside, size: :sm, title: "Accounts not in your CRM that at least two of your people interact with", input: { type: "checkbox", data: { action: "auto-submit#submit" } } %>
+  </div>
 <% end %>
 
 <% if @coverage.empty? %>
