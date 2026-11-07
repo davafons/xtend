@@ -1,11 +1,6 @@
 <% content_for :title, "Follow review" %>
-<div class="flex items-end justify-between gap-8 pb-6 pt-8">
-  <div class="flex flex-col gap-3">
-    <div class="flex items-center gap-4">
-      <%= lc_heading "Follow review", level: 1, size: :title %>
-    </div>
-    <%= lc_text "Accounts you follow that don't follow back and have no observed reply, mention, DM, like, or bookmark in the chosen period. Open X to unfollow; the app never does.", tone: :muted %>
-  </div>
+<h1 class="sr-only">Follow review</h1>
+<div class="flex items-center justify-end gap-8 pb-6">
   <dl class="flex shrink-0 gap-6 text-end">
     <% [["Reviewed today", @reviews.size], ["Kept", @tally.fetch("keep", 0)], ["Deferred", @tally.fetch("defer", 0)], ["Unfollow reported", @tally.fetch("reported_unfollow", 0)]].each do |label, value| %>
       <div><dd class="text-2xl font-semibold tabular-nums"><%= value %></dd><dt class="text-xs text-muted-foreground"><%= label %></dt></div>

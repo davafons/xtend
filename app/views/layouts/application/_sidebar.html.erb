@@ -1,25 +1,34 @@
-<aside class="sticky top-0 flex h-screen w-60 shrink-0 flex-col gap-6 overflow-y-auto bg-background px-4 py-6">
-  <%= link_to "Twitter CRM", root_path, class: "crm-signature-text w-fit px-3 font-bold text-lg tracking-tight" %>
+<%# Collapses to icons; the choice is kept in a cookie so the server renders it the same way on every page. %>
+<% collapsed = cookies[:sidebar] == "collapsed" %>
+<% label_class = "group-data-[collapsed]/sidebar:sr-only" %>
+<% link_class = "w-full justify-start group-data-[collapsed]/sidebar:justify-center group-data-[collapsed]/sidebar:px-0" %>
+<aside class="group/sidebar sticky top-0 flex h-screen w-60 shrink-0 flex-col gap-6 overflow-y-auto bg-background px-4 py-6 data-[collapsed]:w-16 data-[collapsed]:px-2" data-controller="sidebar" <%= "data-collapsed" if collapsed %>>
+  <div class="flex items-center justify-between gap-2 group-data-[collapsed]/sidebar:flex-col">
+    <%= link_to root_path, class: "crm-signature-text w-fit px-3 text-lg font-bold tracking-tight group-data-[collapsed]/sidebar:px-0", aria: { label: "Twitter CRM" } do %><span class="<%= label_class %>">Twitter CRM</span><span class="hidden group-data-[collapsed]/sidebar:inline" aria-hidden="true">TC</span><% end %>
+    <button type="button" class="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground hover:bg-tile hover:text-foreground" data-action="sidebar#toggle" aria-label="<%= collapsed ? "Expand sidebar" : "Collapse sidebar" %>" aria-expanded="<%= !collapsed %>" title="<%= collapsed ? "Expand sidebar" : "Collapse sidebar" %>" data-sidebar-target="toggle">
+      <%= lc_icon "chevron-double-left", options: { class: "size-4 group-data-[collapsed]/sidebar:rotate-180", "aria-hidden": true } %>
+    </button>
+  </div>
   <nav class="flex flex-1 flex-col gap-6" aria-label="Main navigation">
     <% navigation_sections.each do |heading, items| %>
       <div class="flex flex-col gap-1">
-        <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><%= heading %></p>
+        <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground <%= label_class %>"><%= heading %></p>
         <% items.each do |label, path, icon| %>
           <% active = navigation_active?(path) %>
-          <%= lc_button_link_to label, path, variant: (active ? :secondary : :ghost), size: :sm, icon: icon, class: "w-full justify-start#{" crm-signature-mark" if active}", aria: { current: ("page" if active) } %>
+          <%= lc_button_link_to tag.span(label, class: label_class), path, variant: (active ? :secondary : :ghost), size: :sm, icon: icon, title: label, class: "#{link_class}#{" crm-signature-mark" if active}", aria: { current: ("page" if active) } %>
         <% end %>
       </div>
     <% end %>
   </nav>
   <div class="flex flex-col gap-2">
-    <%= lc_button_link_to "Settings", settings_path, variant: (navigation_active?(settings_path) ? :secondary : :ghost), size: :sm, icon: "cog-6-tooth", class: "w-full justify-start#{" crm-signature-mark" if navigation_active?(settings_path)}", aria: { current: ("page" if navigation_active?(settings_path)) } %>
+    <% settings_active = navigation_active?(settings_path) %>
+    <%= lc_button_link_to tag.span("Settings", class: label_class), settings_path, variant: (settings_active ? :secondary : :ghost), size: :sm, icon: "cog-6-tooth", title: "Settings", class: "#{link_class}#{" crm-signature-mark" if settings_active}", aria: { current: ("page" if settings_active) } %>
     <% connection = X::Connection.current unless demo? %>
     <% if connection %>
-      <p class="flex items-center gap-2 px-3 text-xs text-muted-foreground"><%= owner_avatar(size: :sm) %><span class="min-w-0"><span class="block truncate font-semibold text-foreground">@<%= connection.username %></span>X connected</span></p>
+      <p class="flex items-center gap-2 px-3 text-xs text-muted-foreground group-data-[collapsed]/sidebar:justify-center group-data-[collapsed]/sidebar:px-0" title="@<%= connection.username %> · X connected"><%= owner_avatar(size: :sm) %><span class="min-w-0 <%= label_class %>"><span class="block truncate font-semibold text-foreground">@<%= connection.username %></span>X connected</span></p>
     <% else %>
-      <p class="flex items-center gap-2 px-3 text-xs text-muted-foreground"><%= lc_icon "signal-slash", options: { class: "size-4" } %><%= demo? ? "Demo data" : "X not connected" %></p>
+      <p class="flex items-center gap-2 px-3 text-xs text-muted-foreground group-data-[collapsed]/sidebar:justify-center group-data-[collapsed]/sidebar:px-0"><%= lc_icon "signal-slash", options: { class: "size-4" } %><span class="<%= label_class %>"><%= demo? ? "Demo data" : "X not connected" %></span></p>
     <% end %>
-    <p class="truncate px-3 text-xs text-muted-foreground" title="@<%= Current.user&.x_handle %>">@<%= Current.user&.x_handle %></p>
-    <%= lc_button_to "Sign out", session_path, method: :delete, variant: :ghost, size: :sm, icon: "arrow-right-start-on-rectangle", class: "w-full justify-start" %>
+    <%= lc_button_to tag.span("Sign out", class: label_class), session_path, method: :delete, variant: :ghost, size: :sm, icon: "arrow-right-start-on-rectangle", title: "Sign out", class: link_class %>
   </div>
 </aside>

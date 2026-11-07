@@ -1,9 +1,6 @@
 <% content_for :title, "Compose" %>
-<div class="flex items-end justify-between gap-8 pb-6 pt-8">
-  <div class="flex flex-col gap-3">
-    <%= lc_heading "Compose", level: 1, size: :title %>
-    <%= lc_text "Ideas and drafts for your own posts. You post them yourself on X.", tone: :muted %>
-  </div>
+<h1 class="sr-only">Compose</h1>
+<div class="flex items-center justify-end gap-8 pb-6">
   <%= render "tabs" %>
 </div>
 

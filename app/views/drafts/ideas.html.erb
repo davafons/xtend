@@ -1,9 +1,6 @@
 <% content_for :title, "Ideas" %>
-<div class="flex items-end justify-between gap-8 pb-6 pt-8">
-  <div class="flex flex-col gap-3">
-    <%= lc_heading "What to post about", level: 1, size: :title %>
-    <%= lc_text "Starting points from your interests and real conversations. Built from saved data; opening this page makes no X reads.", tone: :muted %>
-  </div>
+<h1 class="sr-only">What to post about</h1>
+<div class="flex items-center justify-end gap-8 pb-6">
   <%= render "tabs" %>
 </div>
 

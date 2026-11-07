@@ -18,8 +18,8 @@
           <% if Current.workspace && X::SyncRun.active.exists? %>
             <div data-controller="refresh" data-refresh-at-value="<%= Time.current.to_f %>" role="status" class="mt-4"><%= lc_alert "Reading from X in the background. This page updates when it finishes.", tone: :neutral %></div>
           <% end %>
-          <main class="pb-16">
-            <% flash.each do |kind, message| %><div class="mb-6 mt-6"><%= lc_alert message, tone: (kind == "alert" ? :destructive : :success) %></div><% end %>
+          <main class="pb-16 pt-6">
+            <% flash.each do |kind, message| %><div class="mb-6"><%= lc_alert message, tone: (kind == "alert" ? :destructive : :success) %></div><% end %>
             <%= yield %>
           </main>
           <footer class="flex items-center justify-between gap-4 py-6 text-xs text-muted-foreground"><span>Twitter CRM</span><span>English discovery · You write every reply</span></footer>

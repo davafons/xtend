@@ -1,5 +1,5 @@
 <% content_for :title, @draft.title.to_s.truncate(40).presence || "Draft" %>
-<div class="flex items-center justify-between gap-8 pb-6 pt-6">
+<div class="flex items-center justify-between gap-8 pb-6">
   <%= lc_button_link_to "Drafts", drafts_path, variant: :ghost, size: :sm, icon: "arrow-left" %>
   <div class="flex items-center gap-2">
     <% if @draft.source == "grok" %><%= grok_badge "Written by Grok" %><% end %>

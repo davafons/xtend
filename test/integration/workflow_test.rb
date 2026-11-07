@@ -65,4 +65,14 @@ class WorkflowTest < ActionDispatch::IntegrationTest
     Rails.configuration.x.demo = original
   end
 
+
+  test "the sidebar remembers being collapsed and keeps labels for screen readers" do
+    get people_path
+    assert_select "aside[data-controller=sidebar]:not([data-collapsed])"
+    cookies[:sidebar] = "collapsed"
+    get people_path
+    assert_select "aside[data-collapsed] button[aria-label='Expand sidebar']"
+    assert_select "aside[data-collapsed] a[title=People] span", text: "People"
+    assert_select "h1", text: "People"
+  end
 end

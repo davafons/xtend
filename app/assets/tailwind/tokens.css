@@ -39,3 +39,7 @@
   border-radius: 9999px;
   background: linear-gradient(180deg, var(--crm-you), var(--crm-grok), var(--crm-like));
 }
+
+[data-collapsed] .crm-signature-mark::before {
+  inset-inline-start: -0.5rem;
+}

@@ -1,9 +1,6 @@
 <% content_for :title, "Timeline" %>
 <% filters = request.query_parameters.except("page") %>
-<div class="flex flex-col gap-3 pb-6 pt-8">
-  <%= lc_heading(@timeline.person ? "#{@timeline.person.name}'s posts" : "Timeline", level: 1, size: :title) %>
-  <%= lc_text "Your own copy of what your network posted, from posts you collected or scrolled past on x.com. Counts are the latest the capture saw, not live numbers.", tone: :muted, class: "max-w-3xl" %>
-</div>
+<h1 class="sr-only"><%= @timeline.person ? "#{@timeline.person.name}'s posts" : "Timeline" %></h1>
 
 <%= form_with url: timeline_path, method: :get, class: "mb-6 flex flex-wrap items-center gap-2", data: { controller: "auto-submit", turbo_action: "replace" } do %>
   <% if @timeline.person %>

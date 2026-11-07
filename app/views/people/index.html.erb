@@ -1,13 +1,5 @@
 <% content_for :title, "People" %>
-<div class="flex items-end justify-between gap-8 pb-6 pt-8">
-  <div class="flex flex-col gap-3">
-    <div class="flex items-center gap-4">
-      <%= lc_heading "People", level: 1, size: :title %>
-    </div>
-    <%= lc_text "Everyone you have followed, been followed by, or talked with. Open a person for the full timeline.", tone: :muted %>
-  </div>
-  <%= lc_button_link_to "Add a person", new_person_path, icon: "plus" %>
-</div>
+<h1 class="sr-only">People</h1>
 
 <%= form_with url: people_path, method: :get, class: "mb-4 flex flex-wrap items-center gap-2", data: { controller: "auto-submit", turbo_action: "replace" } do %>
   <% if params[:sort].present? %><%= hidden_field_tag :sort, params[:sort] %><% end %>
@@ -21,6 +13,7 @@
   <%= lc_button "Search", type: :submit, variant: :secondary, class: "sr-only" %>
   <% if people_filter_params.except(:sort).any? %><%= lc_button_link_to "Clear", people_path(people_filter_params.slice(:sort)), variant: :ghost, size: :sm, icon: "x-mark" %><% end %>
   <span class="ms-auto text-sm tabular-nums text-muted-foreground"><%= pluralize(@count, "person", plural: "people") %></span>
+  <%= lc_button_link_to "Add a person", new_person_path, icon: "plus", size: :sm %>
 <% end %>
 <% if @recent.present? %>
   <section class="mb-8 flex flex-col gap-3" aria-labelledby="recent-people">
