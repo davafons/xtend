@@ -77,7 +77,7 @@
                     <%= render "people/identity", person: person, ring: person.follow_state(@graph) %>
                     <% summary = person.notes.presence || person.description.presence %>
                     <% if person.tags.any? || summary %>
-                      <div class="<%= lc_stack_class(gap: :tight) %> max-w-sm ps-11">
+                      <div class="<%= lc_stack_class(gap: :tight) %> max-w-64 ps-11">
                         <% if person.tags.any? %><span class="flex flex-wrap gap-tight"><% person.tags.each do |tag| %><%= tag_chip tag.name %><% end %></span><% end %>
                         <% if summary %><span class="line-clamp-1 text-small <%= "text-muted-foreground" unless person.notes.present? %>" title="<%= summary %>"><%= summary %></span><% end %>
                       </div>
