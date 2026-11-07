@@ -2,26 +2,41 @@
 <h1 class="sr-only">Follow review</h1>
 <%= stat_cards [ [ "Reviewed today", @reviews.size ], [ "Kept", @tally.fetch("keep", 0) ], [ "Deferred", @tally.fetch("defer", 0) ], [ "Unfollow reported", @tally.fetch("reported_unfollow", 0) ] ] %>
 
-<div class="flex flex-wrap items-center justify-between gap-heading text-small text-muted-foreground">
-  <p>
-    Followers checked <%= @followers&.observed_at&.strftime("%-d %b, %H:%M") || "never" %> · following checked <%= @following&.observed_at&.strftime("%-d %b, %H:%M") || "never" %>
-    <% if @followers&.fresh? && @following %> · <span class="tabular-nums"><%= pluralize(@remaining, "account") %></span> eligible<% end %>
-  </p>
-  <%= form_with url: follow_reviews_path, method: :get, class: "flex items-center gap-related", data: { controller: "auto-submit", turbo_action: "replace" } do %>
-    <%= lc_select Follow::ReviewsController::QUIET_PERIODS.map { |days| ["Quiet #{days}+ days", days] }, name: "quiet", selected: @quiet, size: :sm, aria: { label: "Quiet period" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
-    <%= lc_select Follow::ReviewsController::SORTS.map { |key, (label, _)| [label, key] }, name: "sort", selected: @sort, size: :sm, aria: { label: "Order candidates by" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
-    <%= lc_select Follow::ReviewsController::BATCH_SIZES.map { |size| ["#{size} at a time", size] }, name: "batch", selected: @batch, size: :sm, aria: { label: "Batch size" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
-    <%= lc_button "Apply", type: :submit, variant: :secondary, size: :sm, class: "sr-only" %>
+<% cleanup = @cleanup %>
+<% reason_hints = { "inactive" => "No post in #{cleanup.inactive_days} days", "strangers" => "No like, reply, repost, quote, mention, or DM in your data", "quiet" => "No interaction in #{cleanup.quiet_days} days" } %>
+<div class="flex flex-wrap items-center gap-related">
+  <%= view_tabs "Why to review", Follow::Cleanup::REASONS.map { |key, label| [ (@counts.key?(key) ? "#{label} · #{@counts[key]}" : label), follow_reviews_path(review_filters.merge("reason" => key)), cleanup.reason == key ] } %>
+  <%= form_with url: follow_reviews_path, method: :get, class: "ms-auto flex flex-wrap items-center gap-related", data: { controller: "auto-submit", turbo_action: "replace" } do %>
+    <%= hidden_field_tag :reason, cleanup.reason, id: nil %>
+    <% if cleanup.reason == "inactive" %>
+      <%= lc_select Follow::Cleanup::INACTIVE_PERIODS.map { |days| [ "No post in #{days == 365 ? "a year" : "#{days} days"}", days ] }, name: "inactive", selected: cleanup.inactive_days, size: :sm, aria: { label: "Inactive for" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+    <% elsif cleanup.reason == "quiet" %>
+      <%= lc_select Follow::Cleanup::QUIET_PERIODS.map { |days| [ "Quiet #{days}+ days", days ] }, name: "quiet", selected: cleanup.quiet_days, size: :sm, aria: { label: "Quiet period" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+    <% end %>
+    <%= lc_select Follow::Cleanup::SORTS.map { |key, label| [ label, key ] }, name: "sort", selected: cleanup.sort, size: :sm, aria: { label: "Sort" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+    <%= lc_select Follow::ReviewsController::BATCH_SIZES.map { |size| [ "#{size} at a time", size ] }, name: "batch", selected: @batch, size: :sm, aria: { label: "Batch size" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+    <%= hidden_field_tag "mutuals", "0", id: nil %><%= lc_toggle "Include mutuals", name: "mutuals", value: "1", active: cleanup.mutuals?, size: :sm, input: { type: "checkbox", data: { action: "auto-submit#submit" } } %>
   <% end %>
 </div>
 
-<% if !@followers&.fresh? || !@following %>
-  <%= empty_state "Fresh follow data comes first.", "Suggestions need a complete follower list from the last 24 hours. Missing data should never put a mutual in your cleanup queue.", icon: "shield-check" do %>
-    <%= lc_button_link_to "Review data sources", x_sources_path, variant: :secondary %>
+<% refresh_following = capture do %>
+  <%= lc_button_to "Refresh following", x_sync_runs_path, params: { dataset: "following", mode: "refresh", request_key: SecureRandom.uuid, return_to: "follow_reviews" }, variant: :secondary, size: :sm, icon: "arrow-path", disabled: demo? || !X::Connection.current %>
+<% end %>
+<% if !cleanup.following %>
+  <%= empty_state "Your following list comes first.", "Read the accounts you follow once; suggestions only come from a complete list.", icon: "user-plus" do %><%= refresh_following %><% end %>
+<% elsif !cleanup.ready? %>
+  <%= empty_state "Leaving mutuals out needs a fresh follower list.", "Your follower list is older than 24 hours, so it can't show who still follows you. Include mutuals, or refresh followers on X data.", icon: "shield-check" do %>
+    <%= lc_button_link_to "Include mutuals", follow_reviews_path(review_filters.merge("mutuals" => "1")), variant: :secondary %>
   <% end %>
-<% elsif @candidates.empty? %>
-  <%= empty_state "You're done for now.", "No more eligible accounts. There is no need to unfollow someone just to reach a number.", icon: "check" %>
 <% else %>
+  <% unknown = cleanup.unknown_activity_count %>
+  <% if cleanup.reason == "inactive" && unknown.positive? %>
+    <%= lc_alert "X hasn't reported when #{pluralize(unknown, "account")} you follow last posted, so #{unknown == 1 ? "it" : "they"} can't show up here yet. One following refresh reads that for everyone.", tone: :warning do %><%= refresh_following %><% end %>
+  <% end %>
+<% end %>
+<% if cleanup.ready? && @candidates.empty? %>
+  <%= empty_state "Nothing left here.", "#{reason_hints.fetch(cleanup.reason)}: nobody else matches. There's no need to unfollow someone just to reach a number.", icon: "check" %>
+<% elsif cleanup.ready? %>
   <%= lc_card padding: :none, class: "overflow-hidden" do %>
     <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Accounts to review">
       <%= lc_table do %>
@@ -30,6 +45,7 @@
           <tr>
             <th scope="col">Account</th>
             <th scope="col" class="text-end">Followers</th>
+            <th scope="col">Last post</th>
             <th scope="col">Last interaction</th>
             <th scope="col">Bio</th>
             <th scope="col" class="text-end">Decision</th>
@@ -45,8 +61,7 @@
                     <span class="flex items-center gap-1.5 font-semibold"><span class="truncate"><%= person.name %></span><% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 text-primary", "aria-label": "Pinned" } %><% end %></span>
                     <span class="block text-caption text-muted-foreground">@<%= person.handle %></span>
                     <span class="mt-tight block text-caption text-muted-foreground"><%= safe_join([("Joined #{person.joined_x_at.strftime('%b %Y')}" if person.joined_x_at), (person.location.truncate(24) if person.location.present?)].compact, " · ") %></span>
-                    <% if (posted = @latest_posts[person.x_id]) %><span class="block text-caption text-muted-foreground">Last collected post <%= relative_day posted %></span><% end %>
-
+                    <% if cleanup.mutual?(person) %><%= relationship_badge "Mutual" %><% end %>
                   </span>
                 <% end %>
               </th>
@@ -55,7 +70,16 @@
                 <% if person.following_count %><span class="block text-caption text-muted-foreground">follows <%= compact_count person.following_count %></span><% end %>
                 <% if person.posts_count %><span class="block text-caption text-muted-foreground"><%= compact_count person.posts_count %> posts</span><% end %>
               </td>
-              <% interactions = @interactions.fetch(person.id) %>
+              <% posted = cleanup.last_active[person.id] %>
+              <td class="whitespace-nowrap align-top text-small">
+                <% if posted %>
+                  <span class="block font-medium"><%= relative_day posted %></span>
+                  <span class="block text-caption text-muted-foreground"><%= posted.strftime("%-d %b %Y") %></span>
+                <% else %>
+                  <span class="block text-muted-foreground">Unknown</span>
+                <% end %>
+              </td>
+              <% interactions = cleanup.interactions.fetch(person.id) %>
               <td class="min-w-48 align-top text-small">
                 <% if (latest = interactions.latest) %>
                   <span class="block font-medium">Quiet for <%= "up to " if latest.approximate? %><%= pluralize((Date.current - latest.at.to_date).to_i, "day") %></span>
@@ -66,13 +90,13 @@
                 <% end %>
                 <% if interactions.awaiting_dm_reply? %><%= lc_badge "They sent the last DM", tone: :warning, class: "mt-tight" %><% end %>
               </td>
-              <td class="max-w-sm align-top text-small"><span class="line-clamp-3 <%= 'text-muted-foreground' if person.description.blank? %>"><%= person.description.presence || "No bio collected." %></span><% if person.notes.present? %><span class="mt-tight block line-clamp-2 text-caption"><strong>Your note:</strong> <%= person.notes %></span><% end %></td>
+              <td class="max-w-xs align-top text-small"><span class="line-clamp-3 <%= 'text-muted-foreground' if person.description.blank? %>"><%= person.description.presence || "No bio collected." %></span><% if person.notes.present? %><span class="mt-tight block line-clamp-2 text-caption"><strong>Your note:</strong> <%= person.notes %></span><% end %></td>
               <td class="align-top">
                 <div class="flex items-center justify-end gap-tight">
-                  <%= source_link "Open X", person.profile_url, variant: :ghost, size: :sm %>
-                  <%= lc_button_to "Keep", follow_reviews_path(person_id: person.id, decision: "keep", batch: params[:batch], sort: params[:sort], quiet: params[:quiet]), variant: :secondary, size: :sm, icon: "shield-check" %>
-                  <%= lc_button_to "Defer", follow_reviews_path(person_id: person.id, decision: "defer", batch: params[:batch], sort: params[:sort], quiet: params[:quiet]), variant: :ghost, size: :sm, icon: "clock" %>
-                  <%= lc_button_to "I unfollowed", follow_reviews_path(person_id: person.id, decision: "reported_unfollow", batch: params[:batch], sort: params[:sort], quiet: params[:quiet]), variant: :ghost, size: :sm, icon: "user-minus" %>
+                  <% unless demo? %><%= lc_icon_button_link_to "Open @#{person.handle} on X", person.profile_url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open on X" %><% end %>
+                  <%= lc_button_to "Keep", follow_reviews_path(review_filters.merge(person_id: person.id, decision: "keep")), variant: :secondary, size: :sm, icon: "shield-check" %>
+                  <%= lc_icon_button_to "Defer until tomorrow", follow_reviews_path(review_filters.merge(person_id: person.id, decision: "defer")), icon: "clock", size: :sm, title: "Defer until tomorrow" %>
+                  <%= lc_button_to "I unfollowed", follow_reviews_path(review_filters.merge(person_id: person.id, decision: "reported_unfollow")), variant: :secondary, size: :sm, icon: "user-minus", class: "whitespace-nowrap" %>
                 </div>
               </td>
             </tr>
@@ -81,11 +105,11 @@
       <% end %>
     </div>
   <% end %>
-  <p class="mt-heading text-caption text-muted-foreground">Mutuals, kept accounts, and anyone with an observed interaction in the last <%= @quiet %> days are excluded. Coverage: <%= safe_join(@coverage.map { |label, value| "#{label} #{value}" }, " · ") %>. X doesn't report when you liked or bookmarked a post, so those use the post date or the previous check as a lower bound. Open the person to check their timeline.</p>
+  <%= lc_text "#{reason_hints.fetch(cleanup.reason)}. #{pluralize(@counts.fetch(cleanup.reason), "account")} match. Kept accounts#{" and mutuals" unless cleanup.mutuals?} are left out#{"; mutuals are marked" if cleanup.mutuals?}#{" (follower list from #{cleanup.followers.observed_at.strftime("%-d %b")})" if cleanup.mutuals? && cleanup.followers}. Interaction coverage: #{@coverage.map { |label, value| "#{label} #{value}" }.join(" · ")}. Likes and reposts have no time of their own, so they use the post date or when the capture saw them.", size: :caption, tone: :muted %>
 <% end %>
 
 <% if @reviews.any? %>
-  <div class="mt-section flex flex-col gap-content">
+  <div class="flex flex-col gap-content">
     <%= lc_heading "Decided today", level: 2, size: :heading %>
     <%= lc_card padding: :none, class: "overflow-hidden" do %>
       <%= lc_table do %>

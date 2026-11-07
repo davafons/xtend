@@ -36,13 +36,14 @@ class Person < ApplicationRecord
     end
   end
 
-  PROFILE_DETAILS = %i[avatar_url banner_url location website_url followers_count following_count posts_count joined_x_at].freeze
+  PROFILE_DETAILS = %i[avatar_url banner_url location website_url followers_count following_count posts_count joined_x_at last_posted_at].freeze
 
   def self.profile_from_x(row)
     { x_id: row.fetch("id"), handle: row.fetch("username"), name: row.fetch("name"), description: row["description"],
       avatar_url: row["profile_image_url"], banner_url: row["profile_banner_url"], location: row["location"].presence,
       website_url: row["website_url"], followers_count: row["followers_count"], following_count: row["following_count"],
-      posts_count: row["posts_count"], joined_x_at: row["created_at"] && Time.iso8601(row["created_at"]) }
+      posts_count: row["posts_count"], joined_x_at: row["created_at"] && Time.iso8601(row["created_at"]),
+      last_posted_at: row["last_posted_at"] && Time.iso8601(row["last_posted_at"]) }
   end
 
   def self.resolve_profile!(profile)
@@ -52,6 +53,8 @@ class Person < ApplicationRecord
     person = find_by(x_id: x_id) || find_by(handle: handle, x_id: nil) || new
     person.assign_attributes(profile.slice(:name, :description).merge(handle: handle, x_id: x_id))
     details = profile.slice(*PROFILE_DETAILS).compact
+    # A source that saw an older post (or none) never moves the latest post back.
+    details[:last_posted_at] = [ person.last_posted_at, details[:last_posted_at] ].compact.max if details[:last_posted_at]
     person.assign_attributes(details.merge(profile_observed_at: Time.current)) if details.any?
     person.save!
     person
@@ -136,17 +139,24 @@ class Person < ApplicationRecord
 
   CLEANUP_QUIET_PERIOD = 60.days
 
-  # Non-mutual, unprotected accounts with no observed interaction of any kind within the quiet period.
-  # Someone with an older interaction is "quiet", never "no interaction".
-  def self.cleanup_candidates(quiet_for: CLEANUP_QUIET_PERIOD)
+  # Accounts you follow that cleanup may suggest: never someone you chose to keep, or decided on today.
+  # Mutuals are left out unless asked for, and leaving them out needs a fresh follower list, because a
+  # stale one can't show that someone stopped following you.
+  def self.cleanup_pool(mutuals: false)
     following = Follow::Snapshot.latest_complete("following")
     followers = Follow::Snapshot.latest("followers")
-    return none unless following && followers&.fresh?
+    return none unless following && (mutuals || followers&.fresh?)
 
-    eligible = where(id: following.person_ids)
-      .where.not(id: followers.person_ids)
+    pool = where(id: following.person_ids)
       .where.not(id: Follow::Protection.select(:person_id))
       .where.not(id: Follow::Review.where(reviewed_on: Date.current).select(:person_id))
+    mutuals ? pool : pool.where.not(id: followers.person_ids)
+  end
+
+  # Non-mutual, unprotected accounts with no observed interaction of any kind within the quiet period.
+  # Someone with an older interaction is "quiet", never "no interaction".
+  def self.cleanup_candidates(quiet_for: CLEANUP_QUIET_PERIOD, mutuals: false)
+    eligible = cleanup_pool(mutuals: mutuals)
     since = quiet_for.ago
     active = Interactions.index(eligible).reject { |_, interactions| interactions.quiet_since?(since) }.keys
     eligible.where.not(id: active).alphabetical

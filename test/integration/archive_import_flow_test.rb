@@ -15,10 +15,10 @@ class ArchiveImportFlowTest < ActionDispatch::IntegrationTest
     old = ingest(occurred_at: 100.days.ago).person
     snapshot("following", [old])
     snapshot("followers", [])
-    get follow_reviews_path
+    get follow_reviews_path(reason: "quiet")
     assert_includes response.body, "Quiet for 100 days"
     assert_includes response.body, "You replied ·"
-    get follow_reviews_path(quiet: 180)
-    assert_includes response.body, "done for now"
+    get follow_reviews_path(reason: "quiet", quiet: 180)
+    assert_includes response.body, "Nothing left here"
   end
 end

@@ -4,7 +4,7 @@
 class Person::Interactions
   Signal = Data.define(:channel, :at, :direction) do
     def approximate?
-      %w[like bookmark].include?(channel)
+      %w[like bookmark repost].include?(channel)
     end
   end
 
@@ -29,11 +29,31 @@ class Person::Interactions
     end
     Engagement.where(author_x_id: x_ids).group(:author_x_id, :kind)
       .maximum(Arel.sql("MAX(post_published_at, COALESCE(observed_after, post_published_at))")).each do |(x_id, kind), at|
-      signals[person_by_x_id.fetch(x_id)] << Signal.new(kind, at.is_a?(String) ? Time.zone.parse("#{at} UTC") : at, "outgoing")
+      signals[person_by_x_id.fetch(x_id)] << Signal.new(kind, parse_time(at), "outgoing")
+    end
+
+    # Captured from the browser: your reposts, quotes, likes, replies and mentions of them, and theirs of you.
+    # Likes and reposts carry no time of their own, so the capture time stands in as an upper bound.
+    if (owner = Current.workspace.owner_x_id.to_s).present?
+      at = Arel.sql("COALESCE(occurred_at, observed_at)")
+      # Your likes saved as engagements are already counted above, with their better time bounds.
+      outgoing = X::Interaction.where(source_x_id: owner, target_x_id: x_ids)
+        .where.not(kind: "like", post_x_id: Engagement.where(kind: "like").select(:post_x_id))
+      outgoing.group(:target_x_id, :kind).maximum(at).each do |(x_id, kind), time|
+        signals[person_by_x_id.fetch(x_id)] << Signal.new(kind, parse_time(time), "outgoing")
+      end
+      X::Interaction.where(source_x_id: x_ids, target_x_id: owner).group(:source_x_id, :kind).maximum(at).each do |(x_id, kind), time|
+        signals[person_by_x_id.fetch(x_id)] << Signal.new(kind, parse_time(time), "incoming")
+      end
     end
 
     ids.index_with { |id| new(signals[id]) }
   end
+
+  def self.parse_time(value)
+    value.is_a?(String) ? Time.zone.parse("#{value} UTC") : value
+  end
+  private_class_method :parse_time
 
   def self.for(person)
     index([person]).fetch(person.id)

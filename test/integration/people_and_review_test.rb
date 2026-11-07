@@ -35,20 +35,37 @@ class PeopleAndReviewTest < ActionDispatch::IntegrationTest
     people = 7.times.map { |index| Person.resolve_profile!(profile(x_id: (100 + index).to_s, handle: "candidate#{index}", name: "Candidate #{index}")) }
     snapshot("following", people)
     snapshot("followers", [])
-    get follow_reviews_path
+    get follow_reviews_path(reason: "quiet", mutuals: "0")
     assert_select "tbody tr", 5
-    get follow_reviews_path(batch: 10)
+    get follow_reviews_path(reason: "quiet", mutuals: "0", batch: 10)
     assert_select "tbody tr", 7
-    post follow_reviews_path(person_id: people.first.id, decision: "defer", batch: 10)
-    assert_redirected_to follow_reviews_path(batch: 10)
+    post follow_reviews_path(person_id: people.first.id, decision: "defer", reason: "quiet", mutuals: "0", batch: 10)
+    assert_redirected_to follow_reviews_path(reason: "quiet", mutuals: "0", batch: 10)
     follow_redirect!
     assert_select "tr[id^=review_person]", 6
     assert_includes response.body, "Deferred"
     assert_equal 6, Person.cleanup_candidates.count
     people.last.update!(followers_count: 50_000)
-    get follow_reviews_path(sort: "largest")
+    get follow_reviews_path(reason: "quiet", sort: "largest")
     assert_select "tr[id^=review_person]:first-child", text: /Candidate 6/
-    get follow_reviews_path(sort: "name")
+    get follow_reviews_path(reason: "quiet", sort: "name")
     assert_select "tr[id^=review_person]:first-child", text: /Candidate 1/
+  end
+
+  test "follow review starts with inactive accounts, mutuals marked, and asks for activity it doesn't have" do
+    gone = Person.resolve_profile!(profile(x_id: "401", handle: "gone", name: "Gone Quiet"))
+    gone.update!(last_posted_at: 300.days.ago)
+    unknown = Person.resolve_profile!(profile(x_id: "402", handle: "unknown", name: "Not Read"))
+    snapshot("following", [ gone, unknown ])
+    snapshot("followers", [ gone ], observed_at: 3.days.ago)
+    get follow_reviews_path
+    assert_select "tr[id^=review_person]", 1
+    assert_select "tr[id^=review_person]", text: /Gone Quiet.*Mutual/m
+    assert_includes response.body, "1 account you follow last posted"
+    assert_select "form[action='#{x_sync_runs_path}'] input[name=return_to][value=follow_reviews]"
+    get follow_reviews_path(reason: "strangers")
+    assert_select "tr[id^=review_person]", 2
+    get follow_reviews_path(mutuals: "0")
+    assert_includes response.body, "Leaving mutuals out needs a fresh follower list"
   end
 end

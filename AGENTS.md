@@ -9,7 +9,7 @@
 - Replying and unfollowing happen manually on X. Grok Bot is the only AI integration.
 - Confirmed replies create or update person records automatically. Preserve manual pins, keep-following choices, tags, and notes during sync. Grok only proposes tags; they apply when the owner accepts.
 - Follow status, observed reply state, history coverage, and user preferences are separate facts. Use all available reply history.
-- Protect mutuals and explicit keeps during cleanup. Partial or stale follower data cannot establish a current non-mutual. Missing interaction history is not proof of never interacting.
+- Cleanup never suggests explicit keeps. Mutuals are included by default, as the owner asked, and always marked; leaving them out needs fresh follower data, because partial or stale follower data cannot establish a current non-mutual. Missing interaction history is not proof of never interacting, and an unknown last post is never "inactive".
 - Read-only X OAuth, bounded manual graph/history collection, and the spend ledger are implemented. Archive import covers one-to-one DM metadata only (sender and time, never text). The MCP connector (`/mcp`, see `docs/grok-mcp-plan.md`) works locally; Grok Bot reaches it only once the app is deployed (`docs/deploy.md`), so until then Grok results arrive by pasted JSON. Default real mode must show honest coverage and empty/setup states. Opt-in demo data must be labeled and isolated from real data.
 
 ## Rails and UI

@@ -46,7 +46,18 @@ class X::Payload
       "location" => (row["location"] if row["location"].is_a?(String) && row["location"].bytesize <= 300),
       "website_url" => (website if website.is_a?(String) && website.bytesize <= 500 && website.match?(%r{\Ahttps?://[^\s<>"]+\z})),
       "followers_count" => count(metrics["followers_count"]), "following_count" => count(metrics["following_count"]),
-      "posts_count" => count(metrics["tweet_count"]), "created_at" => created}.compact
+      "posts_count" => count(metrics["tweet_count"]), "created_at" => created,
+      "last_posted_at" => snowflake_time(row["most_recent_tweet_id"])&.iso8601}.compact
+  end
+
+  # Post IDs carry their creation time in the top bits, so the latest post's ID dates it without another read.
+  TWITTER_EPOCH_MS = 1_288_834_974_657
+
+  def self.snowflake_time(id)
+    return unless id.is_a?(String) && id.match?(/\A\d{15,20}\z/)
+
+    time = Time.at(((id.to_i >> 22) + TWITTER_EPOCH_MS) / 1000r).utc
+    time if time.between?(Time.utc(2010, 11, 4), 1.day.from_now)
   end
 
   def self.image_url(value)

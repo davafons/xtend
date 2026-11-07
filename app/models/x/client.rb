@@ -9,7 +9,7 @@ class X::Client
     end
   end
   API = "https://api.x.com"
-  USER_FIELDS = "description,profile_image_url,profile_banner_url,location,url,entities,public_metrics,created_at"
+  USER_FIELDS = "description,profile_image_url,profile_banner_url,location,url,entities,public_metrics,created_at,most_recent_tweet_id"
 
   def authorization_url(state:, verifier:)
     query = URI.encode_www_form(response_type: "code", client_id: X::Config.client_id,

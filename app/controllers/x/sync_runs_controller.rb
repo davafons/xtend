@@ -40,7 +40,7 @@ class X::SyncRunsController < ApplicationController
   private
 
   def return_path
-    x_sources_path(anchor: "collection")
+    params[:return_to] == "follow_reviews" ? follow_reviews_path : x_sources_path(anchor: "collection")
   end
 
   def result_message(run)

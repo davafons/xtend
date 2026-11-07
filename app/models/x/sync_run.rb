@@ -26,6 +26,7 @@ class X::SyncRun < ApplicationRecord
     raise ArgumentError, "Invalid collection request." unless request_key.is_a?(String) && request_key.match?(/\A[\w-]{16,100}\z/) && %w[backfill refresh discovery].include?(mode)
     limit = %w[followers following].include?(dataset) ? 100 : 10
     limit = 200 if dataset == "followers" && mode == "refresh"
+    limit = following_refresh_limit if dataset == "following" && mode == "refresh"
     limit = { "liked_posts" => 100, "bookmarks" => 100, "dm_events" => 20 }.fetch(dataset, limit)
     if page_size
       maximum = MAX_PAGE_SIZES[dataset] || raise(ArgumentError, "Page size applies only to graph and timeline reads.")
@@ -68,6 +69,13 @@ class X::SyncRun < ApplicationRecord
     end
   rescue ActiveRecord::RecordNotUnique
     find_by!(request_key: request_key)
+  end
+
+  # A following refresh reads the whole list in one page when it fits, reserving only a little more than the
+  # last complete list, so it costs what the list costs rather than the 1,000-account page maximum.
+  def self.following_refresh_limit
+    known = Follow::Snapshot.latest_complete("following")&.person_ids&.size || 0
+    (known * 1.1 + 50).ceil.clamp(100, MAX_PAGE_SIZES.fetch("following"))
   end
 
   ACTIVE_STATUSES = %w[queued fetching].freeze

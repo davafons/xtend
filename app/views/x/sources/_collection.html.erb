@@ -20,6 +20,8 @@
 
   <%= lc_list_section "Refresh", footnote: "Replies update only once their author and parent can be resolved. Old history enriches people without adding to today's outreach. Collection ends 15 seconds before each check, so a reply you just sent may need a later refresh." do %>
     <%= lc_list_group do %>
+      <% following_limit = X::SyncRun.following_refresh_limit %>
+      <%= lc_list_row "Following list", icon: "user-plus", subtitle: "Everyone you follow, with when each last posted · up to #{following_limit} in one page · $#{'%.2f' % (following_limit / 1000.0)} owned, $#{'%.2f' % (following_limit / 100.0)} standard" do %><%= read.("Refresh", "following", mode: "refresh", aria: { label: "Refresh following list" }) %><% end %>
       <%= lc_list_row "Follower baseline", icon: "arrow-path", subtitle: "Up to 200 per page · $0.20 owned, $2.00 standard · a completed refresh also finds losses" do %><%= read.("Refresh", "followers", mode: "refresh", aria: { label: "Refresh follower baseline" }) %><% end %>
       <%= lc_list_row "Sent replies", icon: "arrow-up-right", subtitle: "Your newest posts and replies" do %><%= read.("Refresh", "own_posts", mode: "refresh", aria: { label: "Refresh sent replies" }) %><% end %>
       <%= lc_list_row "Incoming activity", icon: "arrow-down-left", subtitle: "Your newest mentions" do %><%= read.("Refresh", "mentions", mode: "refresh", aria: { label: "Refresh incoming activity" }) %><% end %>

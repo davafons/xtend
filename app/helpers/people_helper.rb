@@ -31,7 +31,12 @@ module PeopleHelper
     in ["mention", _] then "They mentioned you · #{day}"
     in ["dm", "outgoing"] then "You messaged them · #{day}"
     in ["dm", "incoming"] then "They messaged you · #{day}"
+    in ["like", "incoming"] then "They liked your post · seen #{day}"
     in ["like", _] then "You liked their post · on or after #{day}"
+    in ["repost", "outgoing"] then "You reposted them · seen #{day}"
+    in ["repost", "incoming"] then "They reposted you · seen #{day}"
+    in ["quote", "outgoing"] then "You quoted them · #{day}"
+    in ["quote", "incoming"] then "They quoted you · #{day}"
     in ["bookmark", _] then "You bookmarked their post · on or after #{day}"
     end
   end
