@@ -25,6 +25,16 @@ class X::Read < ApplicationRecord
     end
   end
 
+  # Records the sign-in identity read after the fact, at the standard user-read rate. Without a
+  # billing cycle there is no ledger to attach it to, and sign-in still proceeds.
+  def self.record_sign_in!(payload)
+    cycle = X::BillingCycle.current or return
+    now = Time.current
+    create!(x_billing_cycle: cycle, dataset: "identity", status: "committed", pricing_basis: "standard", trial: false,
+      resource_limit: 1, resource_count: 1, reserved_micros: 10_000, estimated_micros: 10_000, payload: payload,
+      dispatched_at: now, received_at: now, committed_at: now, message: "Sign-in identity check")
+  end
+
   def mark_applied!
     update!(status: "committed", committed_at: Time.current)
   end

@@ -15,10 +15,10 @@ class X::Config
     values[:redirect_uri]
   end
 
+  # One app-wide X app, because sign-in reads it before any workspace is known.
   def self.source
     return :environment if ENV["X_CLIENT_ID"].present?
-    return :credentials if Rails.application.credentials.dig(:x, :client_id).present?
-    X::ClientConfiguration.current ? :local : :none
+    Rails.application.credentials.dig(:x, :client_id).present? ? :credentials : :none
   end
 
   def self.values
@@ -28,8 +28,6 @@ class X::Config
     when :credentials
       config = Rails.application.credentials.fetch(:x)
       {client_id: config[:client_id], client_secret: config[:client_secret], redirect_uri: config[:redirect_uri]}
-    when :local
-      X::ClientConfiguration.current.values
     else
       {}
     end

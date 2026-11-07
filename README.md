@@ -14,13 +14,13 @@ parcela url web
 
 The review URL is `https://twitter-crm.localhost`. `parcela status` shows Rails and the CSS watcher. `parcela logs web` shows application logs. `parcela down` stops this environment.
 
-Every page requires sign-in. Create your account once per database, typing the password when asked:
+Every page requires signing in with X. The X app comes from `X_CLIENT_ID`, `X_CLIENT_SECRET`, and `X_REDIRECT_URI`, or from `x.client_id`, `x.client_secret`, and `x.redirect_uri` in Rails credentials. Locally that's `config/credentials/development.yml.enc`, and its key is gitignored. Allow your X account once per database:
 
 ```bash
-PARCELA_DATA_DIR=~/.local/state/parcela/environments/<id>/data bin/rails users:create EMAIL=you@example.com
+PARCELA_DATA_DIR=~/.local/state/parcela/environments/<id>/data bin/rails users:allow HANDLE=yourhandle
 ```
 
-`parcela ls` shows the environment ID. `parcela run` can't be used while the environment is up, because it holds the environment lock. The first user joins the existing workspace and its data.
+`parcela ls` shows the environment ID. `parcela run` can't be used while the environment is up, because it holds the environment lock. The first allowed user joins the existing workspace and its data. `users:list` shows allowed accounts, and `users:revoke HANDLE=...` removes one.
 
 Parcela runs database preparation and the Tailwind build before startup. SQLite lives in `PARCELA_DATA_DIR` when provided, otherwise `storage/`. Real mode starts empty and makes no X requests.
 
@@ -55,7 +55,7 @@ The demo is opt-in and uses a different SQLite file. It contains fictional peopl
 CRM_DEMO=1 bin/rails db:prepare demo:seed
 ```
 
-With a Parcela data directory, pass the same `PARCELA_DATA_DIR` to that command. Serving the demo requires starting the web process with `CRM_DEMO=1`; the running real workspace does not change. `demo:seed` refuses to run in real mode. It does not overwrite an existing demo or contact X. Create a user in the demo database too (`CRM_DEMO=1 bin/rails users:create EMAIL=...`).
+With a Parcela data directory, pass the same `PARCELA_DATA_DIR` to that command. Serving the demo requires starting the web process with `CRM_DEMO=1`; the running real workspace does not change. `demo:seed` refuses to run in real mode. It does not overwrite an existing demo or contact X. The demo sign-in page opens the demo workspace directly, without X.
 
 ## Verify
 

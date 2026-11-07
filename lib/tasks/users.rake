@@ -1,40 +1,32 @@
-require "io/console"
-
-# There is no signup page. Accounts are created on the server, and the password is read without echo.
+# There is no signup. The owner allows X accounts here, and they sign in with X.
 namespace :users do
-  def read_password
-    return ENV.fetch("PASSWORD") if ENV["PASSWORD"].present?
-    abort "Set PASSWORD or run this task in an interactive terminal." unless $stdin.tty?
-    print "Password (12 to 72 characters): "
-    password = $stdin.noecho(&:gets).to_s.chomp
-    print "\nRepeat password: "
-    abort "\nThe passwords don't match." unless $stdin.noecho(&:gets).to_s.chomp == password
-    puts
-    password
-  end
-
-  desc "Create a user. EMAIL=... [WORKSPACE_ID=...] [PASSWORD=...]. Without WORKSPACE_ID, the first user joins the existing workspace and later users get their own."
-  task create: :environment do
-    email = ENV["EMAIL"].presence || abort("Set EMAIL.")
-    password = read_password
+  desc "Allow an X account to sign in. HANDLE=... [WORKSPACE_ID=...]. Without WORKSPACE_ID, the first user joins the existing workspace and later users get their own."
+  task allow: :environment do
+    handle = ENV["HANDLE"].presence || abort("Set HANDLE to an X handle, such as HANDLE=yourhandle.")
     user = User.transaction do
       workspace = if ENV["WORKSPACE_ID"].present?
         Workspace.find(ENV["WORKSPACE_ID"])
       elsif User.none? && Workspace.count == 1
         Workspace.first
       else
-        Workspace.create!(name: "#{email.split("@").first}'s workspace")
+        Workspace.create!(name: "@#{handle.delete_prefix("@")}'s workspace")
       end
-      workspace.users.create!(email_address: email, password: password)
+      workspace.users.create!(x_handle: handle)
     end
-    puts "Created #{user.email_address} in workspace #{user.workspace.id} (#{user.workspace.name})."
+    puts "Allowed @#{user.x_handle} in workspace #{user.workspace.id} (#{user.workspace.name}). Their first X sign-in pins the account."
   end
 
-  desc "Change a user's password and sign out their other sessions. EMAIL=... [PASSWORD=...]"
-  task password: :environment do
-    user = User.find_by!(email_address: ENV["EMAIL"].to_s.strip.downcase)
-    user.update!(password: read_password)
-    user.sessions.destroy_all
-    puts "Password changed for #{user.email_address}. Existing sessions were signed out."
+  desc "Remove an X account's access and sign out its sessions. Workspace data stays. HANDLE=..."
+  task revoke: :environment do
+    user = User.find_by!(x_handle: ENV["HANDLE"].to_s)
+    user.destroy!
+    puts "Revoked @#{user.x_handle}. Workspace #{user.workspace_id} and its data were kept."
+  end
+
+  desc "List the X accounts allowed to sign in"
+  task list: :environment do
+    User.includes(:workspace).order(:x_handle).each do |user|
+      puts "@#{user.x_handle}  #{user.x_user_id ? "pinned to X ID #{user.x_user_id}" : "not signed in yet"}  workspace #{user.workspace_id} (#{user.workspace.name})"
+    end
   end
 end

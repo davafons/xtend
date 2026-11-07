@@ -27,11 +27,15 @@ class X::Client
   end
 
   def identity(access_token)
-    read = X::Read.fetch!(dataset: "identity", limit: 1) do
-      X::Payload.identity(get("/2/users/me", access_token, "user.fields" => "profile_image_url"))
-    end
+    read = X::Read.fetch!(dataset: "identity", limit: 1) { identity_payload(access_token) }
     read.mark_applied!
     read.payload.fetch("data")
+  end
+
+  # Sign-in reads the identity before it knows the workspace, so it can't reserve the read first.
+  # The caller records it with X::Read.record_sign_in! once the workspace is known.
+  def identity_payload(access_token)
+    X::Payload.identity(get("/2/users/me", access_token, "user.fields" => "profile_image_url"))
   end
 
   def page(access_token, owner_id:, dataset:, limit:, cursor: nil, since_id: nil, upper_bound: nil, parameters: {})

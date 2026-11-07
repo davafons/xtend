@@ -43,7 +43,6 @@ Rails.application.routes.draw do
     resource :connection, only: [ :create, :update, :destroy ] do
       get :callback
     end
-    resource :client_configuration, only: :update
   end
 
   # Grok Bot

@@ -19,7 +19,7 @@
     <% else %>
       <p class="flex items-center gap-2 px-3 text-xs text-muted-foreground"><%= lc_icon "signal-slash", options: { class: "size-4" } %><%= demo? ? "Demo data" : "X not connected" %></p>
     <% end %>
-    <p class="truncate px-3 text-xs text-muted-foreground" title="<%= Current.user&.email_address %>"><%= Current.user&.email_address %></p>
+    <p class="truncate px-3 text-xs text-muted-foreground" title="@<%= Current.user&.x_handle %>">@<%= Current.user&.x_handle %></p>
     <%= lc_button_to "Sign out", session_path, method: :delete, variant: :ghost, size: :sm, icon: "arrow-right-start-on-rectangle", class: "w-full justify-start" %>
   </div>
 </aside>

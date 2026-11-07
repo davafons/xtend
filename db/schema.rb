@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_06_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_090000) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -314,12 +314,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_100000) do
 
   create_table "users", force: :cascade do |t|
     t.integer "workspace_id", null: false
-    t.string "email_address", null: false
-    t.string "password_digest", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["email_address"], name: "index_users_on_email_address", unique: true
+    t.string "x_handle", null: false
+    t.string "x_user_id"
     t.index ["workspace_id"], name: "index_users_on_workspace_id"
+    t.index ["x_handle"], name: "index_users_on_x_handle", unique: true
+    t.index ["x_user_id"], name: "index_users_on_x_user_id", unique: true
   end
 
   create_table "workspaces", force: :cascade do |t|
@@ -338,17 +339,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_100000) do
     t.index ["mcp_token_digest"], name: "index_workspaces_on_mcp_token_digest", unique: true
   end
 
-  create_table "x_authorizations", force: :cascade do |t|
-    t.string "state_digest", null: false
-    t.datetime "expires_at", null: false
-    t.datetime "consumed_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "workspace_id", null: false
-    t.index ["state_digest"], name: "index_x_authorizations_on_state_digest", unique: true
-    t.index ["workspace_id"], name: "index_x_authorizations_on_workspace_id"
-  end
-
   create_table "x_billing_cycles", force: :cascade do |t|
     t.date "starts_on", null: false
     t.date "ends_on", null: false
@@ -362,15 +352,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_100000) do
     t.integer "workspace_id", null: false
     t.index ["workspace_id", "starts_on"], name: "index_x_billing_cycles_on_workspace_id_and_starts_on", unique: true
     t.index ["workspace_id"], name: "index_x_billing_cycles_on_workspace_id"
-  end
-
-  create_table "x_client_configurations", force: :cascade do |t|
-    t.text "settings_ciphertext", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "workspace_id", null: false
-    t.index ["workspace_id"], name: "index_single_x_client_configuration", unique: true
-    t.index ["workspace_id"], name: "index_x_client_configurations_on_workspace_id"
   end
 
   create_table "x_connections", force: :cascade do |t|
@@ -501,9 +482,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_100000) do
   add_foreign_key "sessions", "users"
   add_foreign_key "tags", "workspaces"
   add_foreign_key "users", "workspaces"
-  add_foreign_key "x_authorizations", "workspaces"
   add_foreign_key "x_billing_cycles", "workspaces"
-  add_foreign_key "x_client_configurations", "workspaces"
   add_foreign_key "x_connections", "workspaces"
   add_foreign_key "x_reads", "workspaces"
   add_foreign_key "x_reads", "x_billing_cycles"

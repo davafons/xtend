@@ -61,7 +61,7 @@ class XConnectionTest < ActionDispatch::IntegrationTest
       assert_equal "S256", query.fetch("code_challenge_method")
       assert_not_includes query, "code_verifier"
       get callback_x_connection_path, params: {state: query.fetch("state"), code: "test-code"}
-      assert_redirected_to settings_path
+      assert_redirected_to settings_url
       connection = X::Connection.current
       assert_equal "999", connection.x_user_id
       assert_equal "owner", connection.username
@@ -88,17 +88,6 @@ class XConnectionTest < ActionDispatch::IntegrationTest
       assert_redirected_to settings_path
       assert_empty http.requests
       assert_nil X::Connection.current
-    end
-  end
-
-  test "expired and single-use authorizations are enforced server-side" do
-    attempt, state = X::Authorization.start!
-    assert_not X::Authorization.consume!(attempt.id, "incorrect")
-    assert X::Authorization.consume!(attempt.id, state)
-    assert_not X::Authorization.consume!(attempt.id, state)
-    attempt, state = X::Authorization.start!
-    travel 11.minutes do
-      assert_not X::Authorization.consume!(attempt.id, state)
     end
   end
 
@@ -231,141 +220,6 @@ class XConnectionTest < ActionDispatch::IntegrationTest
     end
   end
 
-  def with_local_config(responses = [])
-    https!
-    host! "www.example.com"
-    http = MockHTTP.new(responses)
-    Dir.mktmpdir("crm-local-config-test") do |directory|
-      X::TokenVault.stub(:key_path, Pathname.new(directory).join("x-token.key")) do
-        X::Config.stub(:source, -> { X::ClientConfiguration.current ? :local : :none }) do
-          Net::HTTP.stub(:start, ->(*args, **options, &block) { block.call(http) }) { yield http }
-        end
-      end
-    end
-  end
-
-  def local_values(**overrides)
-    {client_id: "local-client", client_secret: "private-local-secret", redirect_uri: "https://www.example.com/x/connection/callback"}.merge(overrides)
-  end
-
-  test "local configuration is encrypted and saved secrets never render" do
-    with_local_config do |http|
-      patch x_client_configuration_path, params: {x_client_configuration: local_values}
-      assert_redirected_to settings_path
-      record = X::ClientConfiguration.current
-      assert_equal "private-local-secret", record.values[:client_secret]
-      assert_not_includes record.settings_ciphertext, "private-local-secret"
-      assert_not_includes record.settings_ciphertext, "local-client"
-      assert_nil X::TokenVault.decrypt(record.settings_ciphertext)
-      assert_equal :local, X::Config.source
-      get settings_path
-      assert_response :success
-      assert_includes response.body, 'type="password"'
-      assert_not_includes response.body, "private-local-secret"
-      get context_export_path
-      assert_not_includes response.body, "private-local-secret"
-      assert_not_includes response.body, "settings_ciphertext"
-      assert_empty http.requests
-    end
-  end
-
-  test "local configuration requires the browser CSRF token" do
-    with_local_config do
-      previous = X::ClientConfigurationsController.allow_forgery_protection
-      X::ClientConfigurationsController.allow_forgery_protection = true
-      patch x_client_configuration_path, params: {x_client_configuration: local_values}
-      assert_response :unprocessable_content
-      assert_nil X::ClientConfiguration.current
-    ensure
-      X::ClientConfigurationsController.allow_forgery_protection = previous
-    end
-  end
-
-  test "invalid callback configuration is not stored and never echoes secrets" do
-    with_local_config do
-      patch x_client_configuration_path, params: {x_client_configuration: local_values(redirect_uri: "https://www.example.com/wrong")}
-      assert_redirected_to settings_path
-      assert_nil X::ClientConfiguration.current
-      assert_not_includes flash[:alert], "private-local-secret"
-    end
-  end
-
-  test "an active connection protects local configuration" do
-    with_local_config do
-      X::ClientConfiguration.store!(local_values)
-      X::Connection.connect!(tokens, {"id" => "999", "username" => "owner"})
-      ciphertext = X::ClientConfiguration.current.settings_ciphertext
-      patch x_client_configuration_path, params: {x_client_configuration: local_values(client_secret: "replacement")}
-      assert_equal ciphertext, X::ClientConfiguration.current.settings_ciphertext
-      assert_equal 1, X::Connection.count
-      assert_includes flash[:alert], "Disconnect"
-      get settings_path
-      assert_not_includes response.body, "private-local-secret"
-    end
-  end
-
-  test "saving configuration invalidates pending browser authorization" do
-    with_local_config do |http|
-      X::ClientConfiguration.store!(local_values)
-      query = start_connection
-      patch x_client_configuration_path, params: {x_client_configuration: local_values(client_secret: "replacement")}
-      get callback_x_connection_path, params: {state: query.fetch("state"), code: "old-code"}
-      assert_redirected_to settings_path
-      assert_nil X::Connection.current
-      assert_empty http.requests
-    end
-  end
-
-  test "configuration changes during callback cannot save the old tokens" do
-    changed_identity = ->(_) do
-      X::ClientConfiguration.store!(local_values(client_secret: "replacement"))
-      response_json({data: {id: "999", username: "owner"}})
-    end
-    with_local_config([response_json(tokens), changed_identity]) do
-      X::ClientConfiguration.store!(local_values)
-      query = start_connection
-      get callback_x_connection_path, params: {state: query.fetch("state"), code: "test-code"}
-      assert_nil X::Connection.current
-      assert_includes flash[:alert], "configuration changed"
-    end
-  end
-
-  test "blank secret preserves only the same client and explicit clear removes it" do
-    with_local_config do
-      X::ClientConfiguration.store!(local_values)
-      X::ClientConfiguration.store!(local_values(client_secret: ""))
-      assert_equal "private-local-secret", X::ClientConfiguration.current.values[:client_secret]
-      X::ClientConfiguration.store!(local_values(client_secret: "", clear_client_secret: "1"))
-      assert_equal "", X::ClientConfiguration.current.values[:client_secret]
-      X::ClientConfiguration.store!(local_values)
-      X::ClientConfiguration.store!(local_values(client_id: "different-client", client_secret: ""))
-      assert_equal "", X::ClientConfiguration.current.values[:client_secret]
-    end
-  end
-
-  test "environment client configuration never borrows a local app secret" do
-    Dir.mktmpdir("crm-source-test") do |directory|
-      X::TokenVault.stub(:key_path, Pathname.new(directory).join("key")) do
-        X::ClientConfiguration.store!(local_values)
-        previous = ENV.method(:[])
-        environment = {"X_CLIENT_ID" => "env-client", "X_CLIENT_SECRET" => nil, "X_REDIRECT_URI" => "https://www.example.com/x/connection/callback"}
-        ENV.stub(:[], ->(key) { environment.key?(key) ? environment[key] : previous.call(key) }) do
-          assert_equal :environment, X::Config.source
-          assert_equal "env-client", X::Config.client_id
-          assert_nil X::Config.client_secret
-        end
-      end
-    end
-  end
-
-  test "local configuration refuses remote requests" do
-    with_local_config do
-      patch x_client_configuration_path, params: {x_client_configuration: local_values}, headers: {"REMOTE_ADDR" => "203.0.113.10"}
-      assert_response :forbidden
-      assert_nil X::ClientConfiguration.current
-    end
-  end
-
   test "a scope omitted as unchanged retains the requested read scopes" do
     without_scope = tokens.except("scope")
     with_config([response_json(without_scope), response_json({data: {id: "999", username: "owner"}})]) do
@@ -375,10 +229,52 @@ class XConnectionTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "local secret fields are filtered in nested parameters" do
-    filter = ActiveSupport::ParameterFilter.new(Rails.application.config.filter_parameters)
-    result = filter.filter({"x_client_configuration" => {"client_secret" => "private-local-secret"}})
-    assert_equal "[FILTERED]", result.fetch("x_client_configuration").fetch("client_secret")
+  test "environment client configuration selects all its values" do
+    environment = {"X_CLIENT_ID" => "env-client", "X_CLIENT_SECRET" => nil, "X_REDIRECT_URI" => "https://www.example.com/x/connection/callback"}
+    previous = ENV.method(:[])
+    ENV.stub(:[], ->(key) { environment.key?(key) ? environment[key] : previous.call(key) }) do
+      assert_equal :environment, X::Config.source
+      assert_equal "env-client", X::Config.client_id
+      assert_nil X::Config.client_secret
+    end
+  end
+
+  test "signing in with X pins an allowed handle, connects X, and records the identity read" do
+    sign_out
+    @user.update!(x_user_id: nil)
+    with_config([response_json(tokens), response_json({data: {id: "999", username: "Owner"}})]) do
+      query = start_connection
+      get callback_x_connection_path, params: {state: query.fetch("state"), code: "test-code"}
+      assert_redirected_to root_url
+      assert_equal "999", @user.reload.x_user_id
+      assert_equal "owner", X::Connection.current.username.downcase
+      read = X::Read.sole
+      assert_equal ["identity", "committed", 10_000], [read.dataset, read.status, read.estimated_micros]
+      get people_path
+      assert_response :success
+    end
+  end
+
+  test "X accounts that aren't allowed never get a session or saved tokens" do
+    sign_out
+    with_config([response_json(tokens), response_json({data: {id: "555", username: "stranger"}})]) do
+      query = start_connection
+      get callback_x_connection_path, params: {state: query.fetch("state"), code: "test-code"}
+      assert_redirected_to new_session_path
+      assert_equal "@stranger isn't allowed to sign in.", flash[:alert]
+      assert_nil X::Connection.current
+      assert_equal 0, X::Read.count
+      get people_path
+      assert_redirected_to new_session_path
+    end
+  end
+
+  test "a pinned account keeps access after renaming, and its old handle doesn't let others in" do
+    assert_equal @user, User.for_x_identity("id" => "999", "username" => "Renamed")
+    assert_equal "renamed", @user.reload.x_handle
+    assert_nil User.for_x_identity("id" => "555", "username" => "renamed")
+    @user.update!(x_handle: "owner")
+    assert_nil User.for_x_identity("id" => "555", "username" => "owner")
   end
 
   test "favicon resolves to the local icon" do

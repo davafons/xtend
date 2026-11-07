@@ -27,7 +27,7 @@ end
 
 class ActionDispatch::IntegrationTest
   setup do
-    @user = Current.workspace.users.create!(email_address: "owner@example.com", password: "correct horse battery")
+    @user = Current.workspace.users.create!(x_handle: "owner", x_user_id: "999")
     sign_in_as(@user)
   end
 

@@ -17,3 +17,5 @@
 /.playwright-cli/
 /Dockerfile
 /.dockerignore
+/.kamal/
+/compose.override.yaml

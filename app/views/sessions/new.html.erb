@@ -2,15 +2,15 @@
 <div class="mx-auto flex max-w-md flex-col gap-6 pt-16">
   <%= lc_heading "Sign in", level: 1, size: :title %>
   <%= lc_card do %>
-    <%= form_with url: session_path, class: "flex flex-col gap-5" do %>
-      <%= lc_field label: "Email address", id: "session-email" do |field| %>
-        <%= lc_input name: "email_address", type: :email, value: params[:email_address], required: true, autofocus: true, autocomplete: "username", **field %>
+    <div class="flex flex-col gap-4">
+      <% if demo? %>
+        <p class="text-sm text-muted-foreground">This is the fictional demo workspace. It never calls X.</p>
+        <div><%= lc_button_to "Open the demo workspace", session_path %></div>
+      <% else %>
+        <p class="text-sm text-muted-foreground">Sign in with your X account. Signing in also connects read-only access to your X data. You can't post, follow, like, or send DMs from here.</p>
+        <div><%= lc_button_to "Sign in with X", x_connection_path, icon: "arrow-right-end-on-rectangle", data: { turbo: false } %></div>
       <% end %>
-      <%= lc_field label: "Password", id: "session-password" do |field| %>
-        <%= lc_input name: "password", type: :password, required: true, autocomplete: "current-password", maxlength: 72, **field %>
-      <% end %>
-      <div><%= lc_button "Sign in", type: :submit %></div>
-    <% end %>
+    </div>
   <% end %>
-  <p class="text-sm text-muted-foreground">There is no signup. The owner creates accounts with <code>bin/rails users:create</code>.</p>
+  <p class="text-sm text-muted-foreground">There's no signup. Only X accounts the owner allows with <code>bin/rails users:allow</code> can sign in.</p>
 </div>

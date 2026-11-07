@@ -3,7 +3,7 @@
 ## Product and scope
 
 - Build the Rails POC defined in `docs/poc-spec.md`. `PRD.md` defines detailed metric meanings; other feature documents include later options.
-- The app is moving from a local POC to a deployable app (see `docs/architecture-plan.md`). Every page requires sign-in except `/session/new` and `/up`; `/mcp` uses its workspace's connector token. There is no public signup: `bin/rails users:create` and `users:password` manage accounts. X OAuth authorizes access to a workspace's X data; it is not app authentication.
+- The app is moving from a local POC to a deployable app (see `docs/architecture-plan.md`). Every page requires sign-in except `/session/new` and `/up`; `/mcp` uses its workspace's connector token. Signing in with X is the only way in, and it also connects that workspace's read-only X data. There is no signup: `bin/rails users:allow HANDLE=...` adds an allowed X account, which is pinned to its X user ID on first sign-in, and `users:revoke` removes it. The X app is app-wide, from the environment or Rails credentials. In production, Cloudflare Access sits in front of everything except `/mcp`.
 - All owner data is scoped to a workspace. Include `WorkspaceScoped` in every new owner-data model; its default scope raises without `Current.workspace`, so tasks, scripts, and tests must set one. Uniqueness on X IDs and handles is per workspace. Today there is one owner per workspace.
 - Target a computer browser, English discovery, and replies on 20 distinct new target tweets per session. Follow-up messages cannot inflate progress.
 - Replying and unfollowing happen manually on X. Grok Bot is the only AI integration.

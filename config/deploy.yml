@@ -1,0 +1,53 @@
+# Deploy to the server with `bin/kamal deploy`. See docs/deploy.md.
+service: twitter-crm
+image: twitter-crm
+
+servers:
+  web:
+    - the server
+
+ssh:
+  user: root
+
+# Kamal runs a registry on this Mac and the server pulls through the SSH tunnel.
+registry:
+  server: localhost:5555
+
+builder:
+  arch: amd64
+  # Build the working copy, not a clean clone of git HEAD (which is jj's @-).
+  context: .
+
+# Cloudflare Tunnel terminates TLS and forwards xtend.example.com to 127.0.0.1:23010.
+# Caddy owns the server's 80/443, so kamal-proxy listens only on loopback.
+proxy:
+  ssl: false
+  host: xtend.example.com
+  app_port: 3000
+  forward_headers: true
+  healthcheck:
+    path: /up
+  run:
+    http_port: 23010
+    https_port: 23011
+    bind_ips:
+      - 127.0.0.1
+
+env:
+  secret:
+    - SECRET_KEY_BASE
+    - X_CLIENT_ID
+    - X_CLIENT_SECRET
+  clear:
+    APP_HOSTS: xtend.example.com
+    X_REDIRECT_URI: https://xtend.example.com/x/connection/callback
+
+# Inside the server's backup scope. Holds both SQLite databases and x-token.key.
+volumes:
+  - xtend_data:/data
+
+aliases:
+  console: app exec --interactive --reuse "bin/rails console"
+  shell: app exec --interactive --reuse "bash"
+  logs: app logs -f
+  dbc: app exec --interactive --reuse "bin/rails dbconsole"
