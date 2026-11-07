@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Twitter CRM Capture",
+  "version": "0.1.0",
+  "description": "Forwards what x.com already loaded while you browse to your Twitter CRM. Sends no requests to X.",
+  "permissions": ["storage", "unlimitedStorage", "alarms", "cookies"],
+  "host_permissions": ["https://x.com/*", "https://twitter-crm.localhost/*"],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "content_scripts": [
+    { "matches": ["https://x.com/*"], "js": ["page.js"], "world": "MAIN", "run_at": "document_start" },
+    { "matches": ["https://x.com/*"], "js": ["bridge.js"], "run_at": "document_start" }
+  ],
+  "action": { "default_popup": "popup.html", "default_title": "Twitter CRM" },
+  "options_ui": { "page": "options.html", "open_in_tab": true }
+}

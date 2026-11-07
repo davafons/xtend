@@ -2,6 +2,7 @@ class X::SourcePost < ApplicationRecord
   include WorkspaceScoped
   belongs_to :x_sync_run, class_name: "X::SyncRun"
   validates :x_id, uniqueness: { scope: :workspace_id }
+  scope :collected, -> { joins(:x_sync_run).where.not(x_sync_runs: { mode: "capture" }) }
 
   def self.capture!(row, run:)
     references = row.fetch("referenced_posts")
@@ -12,7 +13,7 @@ class X::SourcePost < ApplicationRecord
       body: row.fetch("text"), language: row["lang"], published_at: Time.iso8601(row.fetch("created_at")),
       repost: references.any? { |ref| ref.fetch("type") == "retweeted" })
     record.reply_count = row["reply_count"] if row.key?("reply_count")
-    record.x_sync_run ||= run
+    record.x_sync_run = run if record.x_sync_run.nil? || record.x_sync_run.outranked_by?(run)
     record.save!
   end
 
@@ -25,7 +26,7 @@ class X::SourcePost < ApplicationRecord
     return if repost || published_at > Time.current
     grok = Post.exists?(x_id: x_id, source: "grok")
     person = Person.find_by(x_id: author_x_id) || (Person.bind_grok_author!(post_x_id: x_id, author_x_id: author_x_id) if grok) unless author_x_id == owner
-    discovery = grok || x_sync_run.dataset == "search" || (x_sync_run.dataset == "posts" && x_sync_run.parameters["purpose"] == "discovery") || Discovery::Suggestion.exists?(post_x_id: x_id)
+    discovery = grok || x_sync_run.dataset == "search" || x_sync_run.discovery_posts? || Discovery::Suggestion.exists?(post_x_id: x_id)
     if person && discovery
       post = Post.find_or_initialize_by(x_id: x_id)
       assessment = Discovery::Assessment.call(body: body, description: person.description,
@@ -33,7 +34,7 @@ class X::SourcePost < ApplicationRecord
       keep_reason = grok && post.rank >= 0 && assessment[:rank] >= 0
       post.assign_attributes(person: person, body: body, language: language.presence || "und", published_at: published_at,
         topic: post.topic.presence || "Builder conversations", rank: assessment[:rank], reply_count: reply_count,
-        match_reason: keep_reason ? post.match_reason : assessment[:reason], source: "x_api")
+        match_reason: keep_reason ? post.match_reason : assessment[:reason], source: source)
       post.save!
     end
     return unless parent_x_id
@@ -50,8 +51,12 @@ class X::SourcePost < ApplicationRecord
     return unless person
     classification = direction == "outgoing" ? outreach_classification(owner) : "continuation"
     ReplyEvent.ingest_verified!(profile: { x_id: person.x_id, handle: person.handle, name: person.name },
-      x_id: x_id, target_x_id: parent_x_id, direction: direction, classification: classification, source: "x_api",
-      occurred_at: published_at, confirmed_at: Time.current, outreach_eligible: x_sync_run.mode == "refresh")
+      x_id: x_id, target_x_id: parent_x_id, direction: direction, classification: classification, source: source,
+      occurred_at: published_at, confirmed_at: Time.current, outreach_eligible: %w[refresh capture].include?(x_sync_run.mode))
+  end
+
+  def source
+    x_sync_run.mode == "capture" ? "x_capture" : "x_api"
   end
 
   def outreach_classification(owner)

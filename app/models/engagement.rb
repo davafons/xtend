@@ -20,7 +20,7 @@ class Engagement < ApplicationRecord
 
   def self.coverage(kind)
     dataset = KINDS.key(kind)
-    runs = X::SyncRun.where(dataset: dataset, status: "completed")
+    runs = X::SyncRun.where(dataset: dataset, status: "completed").where.not(mode: "capture")
     { complete: runs.where(mode: "backfill").exists?, checked_at: runs.maximum(:upper_bound), collected: where(kind: kind).exists? }
   end
 

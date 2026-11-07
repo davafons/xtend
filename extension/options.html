@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Twitter CRM Capture options</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="options">
+  <h1>Twitter CRM Capture</h1>
+  <p class="muted">Copies the responses x.com already loads for timelines, search, profiles, threads, likes, bookmarks, and follow lists, and sends them to your CRM. It never sends requests to X and never reads DMs.</p>
+  <label>CRM address <input id="crmUrl" type="url" placeholder="https://twitter-crm.localhost" required></label>
+  <label>Capture token <input id="token" type="password" placeholder="crm_capture_…" autocomplete="off"></label>
+  <p class="muted">Create the token in the CRM under X data → Browser capture.</p>
+  <div class="row">
+    <button id="save" class="primary">Save and test</button>
+  </div>
+  <p id="message"></p>
+  <script src="options.js" type="module"></script>
+</body>
+</html>

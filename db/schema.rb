@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_07_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_120000) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -336,6 +336,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_07_090000) do
     t.datetime "mcp_token_used_at"
     t.boolean "mcp_share_notes", default: false, null: false
     t.boolean "mcp_share_dms", default: false, null: false
+    t.string "capture_token_digest"
+    t.datetime "capture_token_created_at"
+    t.datetime "capture_token_used_at"
+    t.index ["capture_token_digest"], name: "index_workspaces_on_capture_token_digest", unique: true
     t.index ["mcp_token_digest"], name: "index_workspaces_on_mcp_token_digest", unique: true
   end
 

@@ -7,7 +7,7 @@ class ReplyEvent < ApplicationRecord
   validates :target_x_id, :occurred_at, :confirmed_at, presence: true
   validates :direction, inclusion: { in: %w[incoming outgoing] }
   validates :classification, inclusion: { in: %w[initial continuation unclassified] }
-  validates :source, inclusion: { in: %w[x_api archive demo] }
+  validates :source, inclusion: { in: %w[x_api x_capture archive demo] }
   validate :known_external_person
 
   def self.ingest_verified!(profile:, **attributes)

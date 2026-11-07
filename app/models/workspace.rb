@@ -3,30 +3,41 @@ class Workspace < ApplicationRecord
   validates :name, presence: true
   validates :monthly_budget_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100_000 }
 
-  # The connector token identifies its workspace. Only its digest is stored, and the lookup compares digests.
-  def self.find_by_mcp_token(token)
+  # Bearer tokens identify their workspace: :mcp for the Grok connector, :capture for the browser extension.
+  # Only a digest is stored, and the lookup compares digests.
+  def self.find_by_token(kind, token)
     return if token.blank?
-    digest = mcp_digest(token)
-    workspace = find_by(mcp_token_digest: digest)
-    workspace if workspace && ActiveSupport::SecurityUtils.secure_compare(workspace.mcp_token_digest, digest)
+    digest = token_digest(token)
+    workspace = find_by("#{kind}_token_digest": digest)
+    workspace if workspace && ActiveSupport::SecurityUtils.secure_compare(workspace["#{kind}_token_digest"], digest)
   end
+
+  def self.find_by_mcp_token(token) = find_by_token(:mcp, token)
 
   def interests
     builder_interests.lines.map(&:strip).reject(&:blank?)
   end
 
-  # The MCP connector token is shown once; only its digest is stored.
-  def issue_mcp_token!
-    token = "crm_#{SecureRandom.urlsafe_base64(32)}"
-    update!(mcp_token_digest: self.class.mcp_digest(token), mcp_token_created_at: Time.current, mcp_token_used_at: nil)
+  # A token is shown once; issuing another replaces it.
+  def issue_token!(kind)
+    token = "#{kind == :mcp ? "crm" : "crm_#{kind}"}_#{SecureRandom.urlsafe_base64(32)}"
+    update!("#{kind}_token_digest": self.class.token_digest(token), "#{kind}_token_created_at": Time.current, "#{kind}_token_used_at": nil)
     token
   end
 
-  def revoke_mcp_token!
-    update!(mcp_token_digest: nil, mcp_token_created_at: nil, mcp_token_used_at: nil)
+  def revoke_token!(kind)
+    update!("#{kind}_token_digest": nil, "#{kind}_token_created_at": nil, "#{kind}_token_used_at": nil)
   end
 
-  def self.mcp_digest(token)
+  def touch_token_use!(kind)
+    used_at = self["#{kind}_token_used_at"]
+    update_column("#{kind}_token_used_at", Time.current) if used_at.nil? || used_at < 1.minute.ago
+  end
+
+  def issue_mcp_token! = issue_token!(:mcp)
+  def revoke_mcp_token! = revoke_token!(:mcp)
+
+  def self.token_digest(token)
     OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, token.to_s)
   end
 

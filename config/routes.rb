@@ -40,6 +40,8 @@ Rails.application.routes.draw do
     resource :sources, only: :show
     resources :billing_cycles, only: [ :index, :create, :update ]
     resources :archive_imports, only: :create
+    resources :captures, only: :create
+    resource :capture_token, only: [ :create, :destroy ]
     resource :connection, only: [ :create, :update, :destroy ] do
       get :callback
     end

@@ -1,0 +1,35 @@
+:root {
+  color-scheme: dark;
+  --bg: #000;
+  --fg: #e7e9ea;
+  --muted: #71767b;
+  --tile: #16181c;
+  --you: #1d9bf0;
+  --warning: #f59e0b;
+  --success: #22c55e;
+  font: 14px/1.45 system-ui, -apple-system, sans-serif;
+}
+body { background: var(--bg); color: var(--fg); margin: 0; }
+body.popup { width: 300px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+body.options { max-width: 520px; margin: 40px auto; padding: 0 16px; display: flex; flex-direction: column; gap: 14px; }
+header { display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 20px; margin: 0; }
+p, ul { margin: 0; }
+ul { padding-left: 18px; }
+.big { font-size: 18px; font-weight: 600; }
+.muted { color: var(--muted); font-size: 13px; }
+.error { color: var(--warning); font-size: 13px; }
+.success { color: var(--success); font-size: 13px; }
+.pill { background: var(--tile); border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--muted); }
+.row { display: flex; gap: 8px; }
+.toggle { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+label:not(.toggle) { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+input[type="url"], input[type="password"] {
+  background: var(--tile); color: var(--fg); border: 0; border-radius: 8px; padding: 9px 10px; font: inherit;
+}
+button {
+  background: var(--tile); color: var(--fg); border: 0; border-radius: 999px; padding: 7px 14px; font: inherit; cursor: pointer;
+}
+button.primary { background: var(--you); color: #fff; font-weight: 600; }
+button:disabled { opacity: 0.5; cursor: default; }
+a { color: var(--you); font-size: 13px; }

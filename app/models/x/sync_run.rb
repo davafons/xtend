@@ -6,7 +6,7 @@ class X::SyncRun < ApplicationRecord
   has_many :x_reads, class_name: "X::Read", foreign_key: :x_sync_run_id
   has_many :x_source_posts, class_name: "X::SourcePost", foreign_key: :x_sync_run_id
   validates :dataset, inclusion: { in: DATASETS }
-  validates :mode, inclusion: { in: %w[backfill refresh discovery] }
+  validates :mode, inclusion: { in: %w[backfill refresh discovery capture] }
   validates :request_key, presence: true, uniqueness: true
   validates :page_limit, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 1000 }
 
@@ -46,7 +46,7 @@ class X::SyncRun < ApplicationRecord
     end
     transaction do
       if INTERACTION_DATASETS.include?(dataset)
-        previous = where(dataset: dataset, status: "completed").order(upper_bound: :desc).first
+        previous = where(dataset: dataset, status: "completed").where.not(mode: "capture").order(upper_bound: :desc).first
         mode = previous ? "refresh" : "backfill"
         parameters["observed_after"] = previous.upper_bound.utc.iso8601 if previous && dataset != "dm_events"
       end
@@ -171,13 +171,24 @@ class X::SyncRun < ApplicationRecord
     end
   end
 
+  # Captured posts are excluded: browsing must never queue paid lookups.
   def self.unresolved_user_ids
-    ids = X::SourcePost.pluck(:author_x_id, :reply_to_x_id).flatten.compact.uniq
+    ids = X::SourcePost.collected.pluck(:author_x_id, :reply_to_x_id).flatten.compact.uniq
     ids += DirectMessage.distinct.pluck(:partner_x_id)
     ids.uniq - Person.where.not(x_id: nil).pluck(:x_id) - [Current.workspace.owner_x_id]
   end
 
+  def discovery_posts?
+    dataset == "posts" && parameters["purpose"] == "discovery"
+  end
+
+  # A post keeps the run that best describes it: an API read beats a browser capture,
+  # and a capture that listed the post in a timeline beats one that only saw it as context.
+  def outranked_by?(other)
+    mode == "capture" && (other.mode != "capture" || (other.discovery_posts? && !discovery_posts?))
+  end
+
   def self.unresolved_parent_ids
-    X::SourcePost.where.not(parent_x_id: nil).pluck(:parent_x_id).uniq - X::SourcePost.pluck(:x_id)
+    X::SourcePost.collected.where.not(parent_x_id: nil).pluck(:parent_x_id).uniq - X::SourcePost.pluck(:x_id)
   end
 end
