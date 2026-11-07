@@ -181,4 +181,82 @@ class XCaptureTest < ActiveSupport::TestCase
     assert_equal 3, X::Account.where(x_id: %w[131 132 133]).count
     assert_not Person.exists?(x_id: "131")
   end
+
+  test "accounts x.com shows correct the follow snapshot person by person, and only newer sightings count" do
+    kept = Person.resolve_profile!(profile(x_id: "141", handle: "kept"))
+    gone = Person.resolve_profile!(profile(x_id: "142", handle: "gone"))
+    unseen = Person.resolve_profile!(profile(x_id: "143", handle: "unseen"))
+    snapshot("following", [ kept, gone, unseen ], observed_at: 2.days.ago)
+    snapshot("followers", [ kept ], observed_at: 2.days.ago)
+    now = (Time.current.to_f * 1000).to_i
+    still = web_user("141", "kept").merge("relationship_perspectives" => { "following" => true, "followed_by" => false })
+    dropped = web_user("142", "gone").merge("relationship_perspectives" => { "following" => false, "followed_by" => false })
+    new_follow = web_user("144", "fresh").merge("relationship_perspectives" => { "following" => true, "followed_by" => true })
+    stranger = web_user("145", "stranger").merge("relationship_perspectives" => { "following" => false, "followed_by" => false })
+    timeline = web_timeline(%w[141 142 144 145].zip([ still, dropped, new_follow, stranger ]).map { |id, user| web_tweet("1#{id}0", user) })
+
+    result = capture!(web_response("HomeTimeline", timeline).merge("at" => now))
+    stale = web_user("142", "gone").merge("relationship_perspectives" => { "following" => true })
+    capture!(web_response("UserByScreenName", { "data" => { "user" => { "result" => stale } } }).merge("at" => now - 60_000))
+
+    graph = Follow::Graph.latest
+    fresh = Person.find_by!(x_id: "144")
+    assert_equal 3, result[:relationships], "strangers you neither follow nor are followed by aren't tracked"
+    assert graph.following?(kept)
+    assert_not graph.following?(gone), "a newer sighting overrides the snapshot, and an older one can't undo it"
+    assert graph.following?(unseen), "people the capture didn't see keep the snapshot's answer"
+    assert graph.following?(fresh), "someone you follow becomes a person"
+    assert graph.follower?(fresh)
+    assert_not graph.follower?(kept), "an unfollow back shows up too"
+    assert_not Person.exists?(x_id: "145"), "a stranger you don't follow stays out of People"
+  end
+
+  test "an unfollow click on x.com records the review, and a follow click adds the person" do
+    target = Person.resolve_profile!(profile(x_id: "151", handle: "target"))
+    snapshot("following", [ target ], observed_at: 1.day.ago)
+    user = web_user("152", "newbie", layout: :legacy)["legacy"].merge("id_str" => "152", "following" => false)
+
+    result = capture!(
+      web_response("FollowDestroy", web_user("151", "target", layout: :legacy)["legacy"].merge("id_str" => "151", "following" => true), variables: { "user_id" => "151" }),
+      web_response("FollowCreate", user, variables: { "user_id" => "152" }))
+
+    graph = Follow::Graph.latest
+    assert_equal 1, result[:unfollows]
+    assert_not graph.following?(target), "the answer's stale following field doesn't count"
+    assert_equal "unfollowed", Follow::Review.find_by!(person: target).decision
+    assert_not_includes Person.cleanup_pool(mutuals: true), target
+    newbie = Person.find_by!(x_id: "152")
+    assert graph.following?(newbie)
+    assert X::FollowEdge.exists?(follower_x_id: Current.workspace.owner_x_id, followed_x_id: "152")
+  end
+
+  test "posts x.com marks as liked, reposted, or bookmarked by you count as your actions" do
+    liked = web_tweet("1601", web_user("161", "liked"))
+    liked["legacy"].merge!("favorited" => true, "bookmarked" => true)
+    reposted = web_tweet("1602", web_user("162", "reposted"))
+    reposted["legacy"]["retweeted"] = true
+    plain = web_tweet("1603", web_user("163", "plain"))
+    plain["legacy"].merge!("favorited" => false, "retweeted" => false)
+    capture!(web_response("HomeTimeline", web_timeline([ liked, reposted, plain ])))
+    later = web_tweet("1604", web_user("164", "later"))
+    capture!(web_response("HomeTimeline", web_timeline([ later ])))
+    capture!(web_response("FavoriteTweet", { "data" => { "favorite_tweet" => "Done" } }, variables: { "tweet_id" => "1604" }))
+
+    owner = Current.workspace.owner_x_id
+    assert_equal %w[1601 1604], Engagement.where(kind: "like").order(:post_x_id).pluck(:post_x_id)
+    assert_equal %w[1601], Engagement.where(kind: "bookmark").pluck(:post_x_id)
+    assert X::Interaction.exists?(kind: "repost", source_x_id: owner, target_x_id: "162")
+    assert_not X::Interaction.exists?(source_x_id: owner, target_x_id: "163")
+  end
+
+  test "a reply you post is recorded as soon as x.com confirms it" do
+    author = web_user("171", "author")
+    capture!(web_response("TweetDetail", web_timeline([ web_tweet("1700", author) ])))
+    reply = web_tweet("1701", owner_user, text: "Nice one", reply_to: { post: "1700", user: "171" })
+
+    capture!(web_response("CreateTweet", { "data" => { "create_tweet" => { "tweet_results" => { "result" => reply } } } }))
+
+    event = ReplyEvent.find_by!(x_id: "1701")
+    assert_equal [ "outgoing", "author" ], [ event.direction, event.person.handle ]
+  end
 end

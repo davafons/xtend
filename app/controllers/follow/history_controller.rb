@@ -6,7 +6,7 @@ class Follow::HistoryController < ApplicationController
     @snapshot = @graph.followers
     @checks = Follow::Snapshot.where(direction: "followers").where.not(completed_at: nil).order(observed_at: :desc).limit(2).to_a
     @view = VIEWS.key?(params[:view]) ? params[:view] : "current"
-    following = @graph.following ? @graph.following.follow_memberships.select(:person_id) : Follow::Membership.none.select(:person_id)
+    following = @graph.following_ids_query
     ongoing = Follow::FollowerPeriod.ongoing
     @counts = {
       "current" => ongoing.count,

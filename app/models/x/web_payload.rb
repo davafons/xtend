@@ -10,8 +10,14 @@ class X::WebPayload
     "UserByScreenName" => :profile, "UserByRestId" => :profile,
     "Followers" => :people, "Following" => :people, "BlueVerifiedFollowers" => :people, "FollowersYouKnow" => :people,
     "ListLatestTweetsTimeline" => :discovery, "UserMedia" => :discovery,
-    "Favoriters" => :likers, "Retweeters" => :reposters
+    "Favoriters" => :likers, "Retweeters" => :reposters,
+    # Your own actions. A new post or reply comes back in full; a like, repost, or bookmark only names the post.
+    "CreateTweet" => :context, "CreateNoteTweet" => :context,
+    "FavoriteTweet" => :liked, "CreateRetweet" => :reposted, "CreateBookmark" => :bookmarked,
+    # Following and unfollowing are REST calls, not GraphQL; the extension names them.
+    "FollowCreate" => :follow, "FollowDestroy" => :unfollow
   }.freeze
+  FOLLOW_ACTIONS = %i[follow unfollow].freeze
   # Where a post was seen, for X::PostObservation.
   SURFACES = {
     "HomeTimeline" => "home", "HomeLatestTimeline" => "home", "SearchTimeline" => "search",
@@ -22,7 +28,8 @@ class X::WebPayload
   COUNT_LIMIT = 0..2_000_000_000
   TIME_FORMAT = "%a %b %d %H:%M:%S %z %Y".freeze
 
-  attr_reader :operation, :purpose, :posts, :profiles, :entry_post_ids, :entry_user_ids, :skipped, :details, :verified_ids
+  attr_reader :operation, :purpose, :posts, :profiles, :entry_post_ids, :entry_user_ids, :skipped, :details, :verified_ids,
+    :relationships, :viewer_actions
 
   def initialize(operation, document)
     @operation = operation
@@ -33,8 +40,16 @@ class X::WebPayload
     @entry_user_ids = []
     @details = {}
     @verified_ids = Set.new
+    @relationships = {}
+    @viewer_actions = {}
     @skipped = 0
+    # A follow or unfollow answers with the account in the older flat layout, and its relationship fields
+    # still describe the moment before the change, so only the profile is kept.
+    if FOLLOW_ACTIONS.include?(@purpose)
+      document = document.is_a?(Hash) && document["id_str"].is_a?(String) ? { "__typename" => "User", "rest_id" => document["id_str"], "legacy" => document } : {}
+    end
     walk(document)
+    @relationships.clear if FOLLOW_ACTIONS.include?(@purpose)
   end
 
   def surface
@@ -97,6 +112,9 @@ class X::WebPayload
       "referenced_posts" => references }.compact
     @posts[row["id"]] = X::Payload.post(row)
     @details[row["id"]] = post_details(node, legacy, original)
+    # What the signed-in viewer did to this post, as x.com reports it with every post it shows.
+    actions = { like: legacy["favorited"], repost: legacy["retweeted"], bookmark: legacy["bookmarked"] }.select { |_, value| value == true }.keys
+    @viewer_actions[row["id"]] = actions if actions.any?
   rescue KeyError, ArgumentError, TypeError, NoMethodError
     @skipped += 1
   end
@@ -122,6 +140,10 @@ class X::WebPayload
       "created_at" => (web_time(core["created_at"] || legacy["created_at"]) rescue nil) }.compact
     @profiles[row["id"]] = X::Payload.profile(row)
     @verified_ids << row["id"] if node["is_blue_verified"] == true || legacy["verified"] == true
+    # The viewer's relationship to this account. Only explicit true or false counts; a missing field says nothing.
+    perspective = node["relationship_perspectives"].is_a?(Hash) ? node["relationship_perspectives"] : legacy
+    relationship = { you_follow: perspective["following"], follows_you: perspective["followed_by"] }.select { |_, value| value == true || value == false }
+    @relationships[row["id"]] = relationship if relationship.any?
   rescue KeyError, ArgumentError, TypeError, NoMethodError
     @skipped += 1
   end

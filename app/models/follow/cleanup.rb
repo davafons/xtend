@@ -54,7 +54,7 @@ class Follow::Cleanup
   end
 
   def mutual?(person)
-    (@mutual_ids ||= followers ? followers.person_ids.to_set : Set.new).include?(person.id)
+    (@graph ||= Follow::Graph.latest).follower?(person)
   end
 
   def matches(reason = self.reason)

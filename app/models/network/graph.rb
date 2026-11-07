@@ -70,8 +70,8 @@ class Network::Graph
     people = Person.where.not(x_id: nil).includes(:tags, :pin)
     people = people.tagged(tag) if tag
     graph = Follow::Graph.latest
-    following = graph.following ? graph.following.follow_memberships.select(:person_id) : Person.none.select(:id)
-    followers = graph.followers ? graph.followers.follow_memberships.select(:person_id) : Person.none.select(:id)
+    following = graph.following_ids_query
+    followers = graph.follower_ids_query
     case scope
     when "mutual" then people.where(id: following).where(id: followers)
     when "following" then people.where(id: following)

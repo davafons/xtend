@@ -5,9 +5,9 @@ class Grok::Classification
 
   # Untagged followers first, when a follower list exists, then everyone else who is untagged.
   def self.batch
-    followers = Follow::Snapshot.latest_complete("followers")&.follow_memberships&.select(:person_id)
+    followers = Follow::Graph.latest.follower_ids_query
     people = Person.untagged.where.not(x_id: nil)
-    ordered = followers ? people.where(id: followers).order(:name).limit(BATCH).to_a : []
+    ordered = people.where(id: followers).order(:name).limit(BATCH).to_a
     ordered + people.where.not(id: ordered.map(&:id)).order(:name).limit(BATCH - ordered.size).to_a
   end
 

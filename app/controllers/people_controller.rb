@@ -20,8 +20,8 @@ class PeopleController < ApplicationController
     @tags = Tag.by_use.to_a
     if params[:follow].present?
       if @graph.complete?
-        following = @graph.following.follow_memberships.select(:person_id)
-        followers = @graph.followers.follow_memberships.select(:person_id)
+        following = @graph.following_ids_query
+        followers = @graph.follower_ids_query
         @people = case params[:follow]
         when "mutual" then @people.where(id: following).where(id: followers)
         when "following_only" then @people.where(id: following).where.not(id: followers)

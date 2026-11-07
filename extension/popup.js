@@ -29,7 +29,7 @@ function render({ settings, state }) {
     : "Nothing sent yet.";
   const totals = state.totals;
   $("totals").textContent = totals.posts || totals.people_added
-    ? `Since install: ${totals.posts || 0} posts · ${totals.interactions || 0} interactions · ${totals.follows || 0} follow edges · ${totals.people_added || 0} new people`
+    ? `Since install: ${totals.posts || 0} posts · ${totals.interactions || 0} interactions · ${totals.relationships || 0} follow states · ${totals.unfollows || 0} unfollows · ${totals.people_added || 0} new people`
     : "";
   $("auto").checked = settings.auto;
   $("paused").checked = settings.paused;

@@ -2,8 +2,9 @@
 
 A Brave/Chrome extension that forwards what x.com already loaded while you browse to your Twitter CRM.
 
-- **No requests to X.** It copies GraphQL responses the web app received for timelines, lists, search, profiles, threads, likes, bookmarks, follow lists ("Followers", "Following", "Followers you know"), and "Liked by" / "Reposted by" lists. It never starts, changes, or repeats a request, and never reads DMs.
+- **No requests to X.** It copies responses the web app received for timelines, lists, search, profiles, threads, likes, bookmarks, follow lists ("Followers", "Following", "Followers you know"), and "Liked by" / "Reposted by" lists. It also copies the answers to your own actions: follow and unfollow clicks, likes, reposts, bookmarks, and new posts or replies. It never starts, changes, or repeats a request, and never reads DMs.
 - **What the CRM keeps.** Every account it sees goes in a directory; only people you showed interest in (visited profiles, likes, bookmarks, reply exchanges) become people. Posts you were shown and posts touching your people are saved with their counts at each sighting, and replies, quotes, reposts, mentions, likes, and follow edges feed the Network page.
+- **Your follow state, live.** Every account x.com shows says whether you follow it and whether it follows you. The newest sighting per person corrects the last follow check, and an unfollow you make on X is recorded in Follow review on its own. Every post says whether you liked, reposted, or bookmarked it, so those count as interactions without visiting your Likes page.
 - **Only what you saw.** Coverage is limited to what you scrolled past. The CRM never treats a capture as a complete follower list or like history.
 - **Only your account.** The CRM refuses batches when the browser is signed in to a different X account than the workspace.
 

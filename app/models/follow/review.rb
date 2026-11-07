@@ -1,7 +1,7 @@
 class Follow::Review < ApplicationRecord
   include WorkspaceScoped
   belongs_to :person
-  validates :decision, inclusion: { in: %w[keep defer reported_unfollow] }
+  validates :decision, inclusion: { in: %w[keep defer reported_unfollow unfollowed] }
   validates :reviewed_on, presence: true
   validates :person_id, uniqueness: { scope: :reviewed_on }
 

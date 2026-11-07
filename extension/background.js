@@ -36,7 +36,7 @@ function enqueue(message) {
   return serial(async () => {
     if ((await settings()).paused) return;
     const key = `${ITEM_PREFIX}${Date.now().toString().padStart(15, "0")}-${crypto.randomUUID()}`;
-    await chrome.storage.local.set({ [key]: { operation: message.operation, variables: message.variables || {}, body: message.body } });
+    await chrome.storage.local.set({ [key]: { operation: message.operation, variables: message.variables || {}, body: message.body, at: Number(message.at) || Date.now() } });
     const current = await state();
     const byOperation = { ...current.byOperation, [message.operation]: (current.byOperation[message.operation] || 0) + 1 };
     let pending = current.pending + 1;
@@ -112,7 +112,7 @@ function flush() {
       const byOperation = { ...current.byOperation };
       for (const item of responses) byOperation[item.operation] = Math.max((byOperation[item.operation] || 1) - 1, 0);
       const totals = { ...current.totals };
-      for (const field of ["posts", "people_added", "people_updated", "likes", "bookmarks", "accounts", "interactions", "follows", "observations"]) {
+      for (const field of ["posts", "people_added", "people_updated", "likes", "bookmarks", "accounts", "interactions", "follows", "observations", "relationships", "unfollows"]) {
         totals[field] = (totals[field] || 0) + (result.body[field] || 0);
       }
       await setState({ pending: Math.max(current.pending - batchKeys.length, 0), byOperation, totals,

@@ -10,15 +10,20 @@
 #   replying to, or quoting the owner's network (the owner and people in the CRM). Counts are saved per sighting.
 # - The graph: replies, quotes, reposts, and body mentions between accounts; likes and reposts from engagement
 #   lists; and follow edges from follow lists.
+# - Your relationships: every account x.com shows says whether you follow it and whether it follows you. The
+#   newest sighting per person corrects the latest follow snapshot for that person (see Follow::Graph), and your
+#   own follow and unfollow clicks count the moment they happen. An unfollow is recorded in Follow review.
+# - Your actions: likes, reposts, and bookmarks x.com marks on posts you were shown, and the ones you make.
 class X::Capture
   class Rejected < StandardError; end
   MAX_RESPONSES = 100
   MAX_RESPONSE_BYTES = 4.megabytes
   ENGAGEMENT_KINDS = { likes: "like", bookmarks: "bookmark" }.freeze
   LISTED_PURPOSES = %i[discovery context likes bookmarks].freeze
-  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows].freeze
+  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows relationships unfollows].freeze
+  CLOCK_SKEW = 5.minutes
 
-  Parsed = Struct.new(:payload, :purpose, :variables)
+  Parsed = Struct.new(:payload, :purpose, :variables, :at)
 
   def self.ingest!(...) = new(...).ingest!
 
@@ -31,11 +36,11 @@ class X::Capture
     # An empty batch is the extension's connection test: it checks the token and the signed-in X account.
     raise Rejected, "Send at most #{MAX_RESPONSES} responses per batch." unless responses.is_a?(Array) && responses.size <= MAX_RESPONSES
     @batch_key = batch_key
+    @now = Time.current
     @parsed = responses.filter_map { |response| parse(response) }
     @result = Hash.new(0).merge(responses: responses.size, ignored: responses.size - @parsed.size)
     @runs = {}
     @counts = Hash.new(0)
-    @now = Time.current
   end
 
   def ingest!
@@ -52,6 +57,8 @@ class X::Capture
       save_engagements(posts)
       save_engagement_lists(posts)
       save_follow_edges
+      save_relationships(profiles)
+      save_viewer_actions(posts)
       reconcile(saved)
       Draft.link_published! if posts.each_value.any? { |row| row["author_id"] == @owner }
       @runs.each { |key, run| run.update!(resource_count: @counts[key], page_limit: @counts[key].clamp(1, 1000)) }
@@ -70,9 +77,16 @@ class X::Capture
     purpose = payload.purpose
     # Only the owner's own Likes page is evidence of the owner's likes.
     purpose = :context if purpose == :likes && variables["userId"].to_s != @owner
-    Parsed.new(payload, purpose, variables)
+    Parsed.new(payload, purpose, variables, seen_at(response["at"]))
   rescue JSON::ParserError
     nil
+  end
+
+  # When the browser received the response, so a newer sighting always wins. Missing or implausible times
+  # count as now.
+  def seen_at(value)
+    time = Time.zone.at(value / 1000.0) if value.is_a?(Numeric)
+    time && time.between?(@now - 30.days, @now + CLOCK_SKEW) ? [ time, @now ].min : @now
   end
 
   def save_accounts(profiles)
@@ -104,6 +118,12 @@ class X::Capture
       next if row["id"] == @owner || !(known.include?(row["id"]) || addable.include?(row["id"]))
       Person.resolve_profile!(Person.profile_from_x(row))
       @result[known.include?(row["id"]) ? :people_updated : :people_added] += 1
+    end
+    # Someone you just replied to may only be in the directory, from an earlier batch.
+    X::Account.where(x_id: (addable - profiles.keys - known.to_a).to_a).find_each do |account|
+      next if Person.exists?(x_id: account.x_id)
+      Person.resolve_profile!(x_id: account.x_id, handle: account.handle, name: account.name, description: account.description)
+      @result[:people_added] += 1
     end
   end
 
@@ -201,6 +221,75 @@ class X::Capture
         X::FollowEdge.record!(follower: follower, followed: followed, seen_on: item.payload.operation, at: @now)
         @result[:follows] += 1
       end
+    end
+  end
+
+  # Applies relationship sightings and your follow clicks in the order the browser saw them. A sighting only
+  # replaces an older one, so a delayed batch never undoes a newer answer.
+  def save_relationships(profiles)
+    events = @parsed.flat_map do |item|
+      if X::WebPayload::FOLLOW_ACTIONS.include?(item.purpose)
+        target = item.variables["user_id"].to_s.presence || item.payload.profiles.keys.first
+        target.to_s.match?(/\A\d{1,30}\z/) ? [ [ item.at, target, { you_follow: item.purpose == :follow }, item.purpose ] ] : []
+      else
+        item.payload.relationships.map { |id, relationship| [ item.at, id, relationship, nil ] }
+      end
+    end
+    events.reject! { |_, id| id == @owner }
+    events.sort_by! { |at, *| at }
+    events.each do |at, id, relationship, action|
+      person = Person.find_by(x_id: id)
+      if !person && relationship.values.any? && (row = profiles[id] || @parsed.lazy.filter_map { |item| item.payload.profiles[id] }.first)
+        person = Person.resolve_profile!(Person.profile_from_x(row))
+        @result[:people_added] += 1
+      end
+      record_follow_action(id, action, person, at) if action
+      next unless person
+      changes = relationship.each_with_object({}) do |(flag, value), memo|
+        seen = person.public_send(:"#{flag}_seen_at")
+        memo.merge!(flag => value, :"#{flag}_seen_at" => at) if seen.nil? || seen < at
+      end
+      next if changes.empty?
+      person.update_columns(changes)
+      @result[:relationships] += 1
+    end
+  end
+
+  def record_follow_action(id, action, person, at)
+    if action == :follow
+      X::FollowEdge.record!(follower: @owner, followed: id, seen_on: "FollowCreate", at: at)
+    else
+      X::FollowEdge.where(follower_x_id: @owner, followed_x_id: id).delete_all
+      if person
+        Follow::Review.record!(person, "unfollowed")
+        @result[:unfollows] += 1
+      end
+    end
+  end
+
+  # Likes, reposts, and bookmarks: the ones x.com marks on posts you were shown, and the ones you just made,
+  # which only name the post.
+  def save_viewer_actions(posts)
+    @parsed.each do |item|
+      item.payload.viewer_actions.each do |id, actions|
+        next unless (row = posts[id])
+        actions.each { |action| viewer_action(action, row) }
+      end
+      next unless (action = { liked: :like, reposted: :repost, bookmarked: :bookmark }[item.purpose])
+      id = item.variables["tweet_id"].to_s
+      next unless id.match?(/\A\d{1,30}\z/)
+      row = posts[id] || X::SourcePost.find_by(x_id: id)&.then { |post| { "id" => post.x_id, "author_id" => post.author_x_id, "text" => post.body, "created_at" => post.published_at.iso8601 } }
+      viewer_action(action, row) if row
+    end
+  end
+
+  def viewer_action(action, row)
+    case action
+    when :like, :bookmark
+      kind = action.to_s
+      @result[kind.pluralize.to_sym] += 1 if Engagement.capture!(row, kind: kind, run: run(Engagement::KINDS.key(kind))) == :new
+    when :repost
+      interact("repost", @owner, row["author_id"], row["id"], row["id"], nil)
     end
   end
 

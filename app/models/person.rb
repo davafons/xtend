@@ -143,14 +143,13 @@ class Person < ApplicationRecord
   # Mutuals are left out unless asked for, and leaving them out needs a fresh follower list, because a
   # stale one can't show that someone stopped following you.
   def self.cleanup_pool(mutuals: false)
-    following = Follow::Snapshot.latest_complete("following")
-    followers = Follow::Snapshot.latest("followers")
-    return none unless following && (mutuals || followers&.fresh?)
+    graph = Follow::Graph.latest
+    return none unless Follow::Snapshot.latest_complete("following") && (mutuals || graph.followers&.fresh?)
 
-    pool = where(id: following.person_ids)
+    pool = where(id: graph.following_ids_query)
       .where.not(id: Follow::Protection.select(:person_id))
       .where.not(id: Follow::Review.where(reviewed_on: Date.current).select(:person_id))
-    mutuals ? pool : pool.where.not(id: followers.person_ids)
+    mutuals ? pool : pool.where.not(id: graph.follower_ids_query)
   end
 
   # Non-mutual, unprotected accounts with no observed interaction of any kind within the quiet period.

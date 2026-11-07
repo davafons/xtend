@@ -77,8 +77,8 @@ class Network::Timeline
     people = people.tagged(tag) if tag
     graph = follow_graph
     case who
-    when "following" then posts.where(author_x_id: people.where(id: graph.following ? graph.following.follow_memberships.select(:person_id) : Person.none.select(:id)).select(:x_id))
-    when "mutual" then posts.where(author_x_id: people.where(id: graph.following ? graph.following.follow_memberships.select(:person_id) : Person.none.select(:id)).where(id: graph.followers ? graph.followers.follow_memberships.select(:person_id) : Person.none.select(:id)).select(:x_id))
+    when "following" then posts.where(author_x_id: people.where(id: graph.following_ids_query).select(:x_id))
+    when "mutual" then posts.where(author_x_id: people.where(id: graph.following_ids_query).where(id: graph.follower_ids_query).select(:x_id))
     when "seen" then tag ? posts.where(author_x_id: people.select(:x_id)) : posts
     else tag ? posts.where(author_x_id: people.select(:x_id)) : posts.where(author_x_id: people.select(:x_id)).or(posts.where(author_x_id: @owner))
     end

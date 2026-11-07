@@ -1,6 +1,6 @@
 <% content_for :title, "Follow review" %>
 <h1 class="sr-only">Follow review</h1>
-<%= stat_cards [ [ "Reviewed today", @reviews.size ], [ "Kept", @tally.fetch("keep", 0) ], [ "Deferred", @tally.fetch("defer", 0) ], [ "Unfollow reported", @tally.fetch("reported_unfollow", 0) ] ] %>
+<%= stat_cards [ [ "Reviewed today", @reviews.size ], [ "Kept", @tally.fetch("keep", 0) ], [ "Deferred", @tally.fetch("defer", 0) ], [ "Unfollowed", @tally.fetch("unfollowed", 0) + @tally.fetch("reported_unfollow", 0) ] ] %>
 
 <% cleanup = @cleanup %>
 <% reason_hints = { "inactive" => "No post in #{cleanup.inactive_days} days", "strangers" => "No like, reply, repost, quote, mention, or DM in your data", "quiet" => "No interaction in #{cleanup.quiet_days} days" } %>
@@ -120,7 +120,7 @@
             <tr>
               <th scope="row" class="font-normal"><%= link_to review.person, class: "flex items-center gap-heading" do %><%= person_avatar review.person, size: :sm %><span class="font-semibold"><%= review.person.name %></span><span class="text-caption text-muted-foreground">@<%= review.person.handle %></span><% end %></th>
               <td>
-                <% label, icon, tone = { "keep" => ["Keep following", "shield-check", :success], "defer" => ["Deferred", "clock", :neutral], "reported_unfollow" => ["Unfollow reported · unverified", "user-minus", :warning] }.fetch(review.decision) %>
+                <% label, icon, tone = { "keep" => ["Keep following", "shield-check", :success], "defer" => ["Deferred", "clock", :neutral], "reported_unfollow" => ["Unfollow reported · unverified", "user-minus", :warning], "unfollowed" => ["Unfollowed on X", "user-minus", :neutral] }.fetch(review.decision) %>
                 <%= lc_badge(tone: tone) { safe_join([lc_icon(icon, options: { class: "size-3.5", "aria-hidden": true }), label]) } %>
               </td>
               <td class="text-end text-caption tabular-nums text-muted-foreground"><%= review.updated_at.strftime("%H:%M") %></td>

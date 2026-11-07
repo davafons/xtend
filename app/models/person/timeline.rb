@@ -192,11 +192,12 @@ class Person::Timeline
   end
 
   def decision_entries
-    labels = { "keep" => "You chose to keep following", "defer" => "You deferred the follow review", "reported_unfollow" => "You reported unfollowing on X" }
+    labels = { "keep" => "You chose to keep following", "defer" => "You deferred the follow review", "reported_unfollow" => "You reported unfollowing on X", "unfollowed" => "You unfollowed on X" }
     reviews = person.follow_reviews.map do |review|
-      Entry.new(at: review.updated_at, category: "decisions", icon: { "keep" => "shield-check", "defer" => "clock", "reported_unfollow" => "user-minus" }.fetch(review.decision),
+      Entry.new(at: review.updated_at, category: "decisions", icon: { "keep" => "shield-check", "defer" => "clock", "reported_unfollow" => "user-minus", "unfollowed" => "user-minus" }.fetch(review.decision),
         tone: review.decision == "keep" ? :both : :neutral, title: labels.fetch(review.decision),
-        detail: ("X status is unchanged until a later following check confirms it." if review.decision == "reported_unfollow"))
+        detail: { "reported_unfollow" => "X status is unchanged until the capture or a following check confirms it.",
+          "unfollowed" => "Seen by the browser capture." }[review.decision])
     end
     [
       Entry.new(at: person.created_at, category: "decisions", icon: "user", title: "Added to your CRM"),

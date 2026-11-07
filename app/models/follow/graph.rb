@@ -1,3 +1,6 @@
+# Who you follow and who follows you: the latest follow snapshot for each direction, corrected person by person
+# by any newer relationship x.com showed the browser capture (a profile, a list, or your own follow or unfollow).
+# A capture only corrects the people it saw; everyone else keeps the snapshot's answer.
 class Follow::Graph
   attr_reader :following, :followers
 
@@ -14,12 +17,24 @@ class Follow::Graph
     following&.completed_at.present? && followers&.completed_at.present?
   end
 
+  # Person ids as a subquery, for scopes: `Person.where(id: graph.following_ids_query)`.
+  def following_ids_query = current(following, :you_follow)
+  def follower_ids_query = current(followers, :follows_you)
+
   def following?(person)
     following_ids.include?(person.id)
   end
 
   def follower?(person)
     follower_ids.include?(person.id)
+  end
+
+  def following_ids
+    @following_ids ||= following_ids_query.pluck(:id).to_set
+  end
+
+  def follower_ids
+    @follower_ids ||= follower_ids_query.pluck(:id).to_set
   end
 
   def state_for(person)
@@ -38,11 +53,12 @@ class Follow::Graph
 
   private
 
-  def following_ids
-    @following_ids ||= following ? following.person_ids.to_set : Set.new
-  end
-
-  def follower_ids
-    @follower_ids ||= followers ? followers.person_ids.to_set : Set.new
+  def current(snapshot, flag)
+    seen = "people.#{flag}_seen_at"
+    observed = Person.where(flag => true)
+    return observed.select(:id) unless snapshot
+    listed = Person.where(id: snapshot.follow_memberships.select(:person_id))
+      .where("NOT IFNULL(people.#{flag} = 0 AND #{seen} > ?, 0)", snapshot.observed_at)
+    listed.or(observed.where("#{seen} > ?", snapshot.observed_at)).select(:id)
   end
 end

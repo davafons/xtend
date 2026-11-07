@@ -155,8 +155,8 @@ class Mcp::Tools
       people = people.where("name LIKE ? OR handle LIKE ? OR description LIKE ?", term, term, term)
     end
     filter = args["filter"].presence || "all"
-    following = graph.following&.follow_memberships&.select(:person_id)
-    followers = graph.followers&.follow_memberships&.select(:person_id)
+    following = graph.following_ids_query
+    followers = graph.follower_ids_query
     # Follow filters need complete checks of both lists, as on the People page.
     people = people.none if %w[mutual you_follow follows_you].include?(filter) && !graph.complete?
     people = case filter

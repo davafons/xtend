@@ -26,7 +26,7 @@ class Follow::ReviewsController < ApplicationController
     end
     Follow::Review.record!(person, decision)
     notice = { "keep" => "Keeping #{person.name}.", "defer" => "Deferred #{person.name} until tomorrow.",
-      "reported_unfollow" => "Unfollow of #{person.name} reported. X status is unchanged until a later following check verifies it." }.fetch(decision)
+      "reported_unfollow" => "Unfollow of #{person.name} reported. With the browser capture on, unfollowing on X records itself." }.fetch(decision)
     redirect_to follow_reviews_path(review_filters), notice: notice
   end
 
