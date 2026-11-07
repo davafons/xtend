@@ -7,11 +7,11 @@
     <% end %>
   </ol>
   <template data-composer-target="template"><%= render "drafts/composer_part", text: "", placeholder: "Add another post", form: form %></template>
-  <div class="ms-13 flex items-center gap-3 border-t border-border pt-3">
+  <div class="ms-13 flex items-center gap-heading border-t border-border pt-heading">
     <%= lc_button "Add post", type: :button, variant: :ghost, size: :sm, icon: "plus", class: "text-you", data: { action: "composer#add" } %>
-    <span class="text-sm text-muted-foreground" data-composer-target="summary"></span>
-    <div class="ms-auto flex items-center gap-3">
-      <span class="flex items-center gap-2 text-sm tabular-nums text-you data-[state=near]:text-warning data-[state=over]:text-destructive" data-composer-target="ring" role="img" hidden>
+    <span class="text-small text-muted-foreground" data-composer-target="summary"></span>
+    <div class="ms-auto flex items-center gap-heading">
+      <span class="flex items-center gap-related text-small tabular-nums text-you data-[state=near]:text-warning data-[state=over]:text-destructive" data-composer-target="ring" role="img" hidden>
         <span data-composer-target="remaining"></span>
         <svg viewBox="0 0 20 20" class="size-6 -rotate-90" aria-hidden="true">
           <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2" class="opacity-20" />

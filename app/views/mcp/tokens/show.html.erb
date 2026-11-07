@@ -1,9 +1,9 @@
 <% content_for :title, "Connector token" %>
-<div class="mx-auto flex max-w-2xl flex-col gap-6 py-10">
+<div class="mx-auto flex max-w-2xl flex-col gap-inset py-section">
   <%= lc_heading "Your connector token", level: 1, size: :title %>
   <%= lc_alert "Copy it now. It is shown only once; the app keeps only a fingerprint. Creating another token revokes this one.", tone: :warning %>
   <%= lc_card do %>
-    <div class="flex flex-col gap-5">
+    <div class="flex flex-col gap-inset">
       <%= lc_code_block @token, id: "mcp-token" %>
       <%= lc_text "Test with a local MCP client, for example Claude Code:", size: :small, tone: :muted %>
       <%= lc_code_block "claude mcp add --transport http twitter-crm #{mcp_url} --header \"Authorization: Bearer #{@token}\"", id: "mcp-command", language: :bash %>

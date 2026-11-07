@@ -19,27 +19,38 @@
 }
 
 /* The signature: the three meaning colors you (blue), grok (teal), and like (pink) in one gradient.
-   It marks the app itself, so it appears only on the wordmark and the active navigation item. */
+   It marks the app itself, so it appears only on the wordmark and the sidebar's current link. */
 .crm-signature-text {
   background: linear-gradient(90deg, var(--crm-you), var(--crm-grok) 55%, var(--crm-like));
   background-clip: text;
   color: transparent;
 }
 
-.crm-signature-mark {
+.crm-sidebar [data-slot="nav-link"] {
   position: relative;
 }
 
-.crm-signature-mark::before {
+.crm-sidebar [data-slot="nav-link"][aria-current="page"]::before {
   content: "";
   position: absolute;
-  inset-block: 0.375rem;
-  inset-inline-start: -1rem;
+  inset-block: 0.5rem;
+  inset-inline-start: -0.5rem;
   width: 3px;
   border-radius: 9999px;
   background: linear-gradient(180deg, var(--crm-you), var(--crm-grok), var(--crm-like));
 }
 
-[data-collapsed] .crm-signature-mark::before {
-  inset-inline-start: -0.5rem;
+/* Collapsed, the sidebar keeps icons; labels stay for screen readers and in each link's title. */
+.crm-sidebar[data-collapsed] [data-slot="nav-group-title"],
+.crm-sidebar[data-collapsed] [data-slot="nav-link"] > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.crm-sidebar[data-collapsed] [data-slot="nav-link"] {
+  justify-content: center;
 }

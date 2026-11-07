@@ -1,6 +1,6 @@
 <%# Posts that reply to each other, oldest first, joined by the thread line. %>
 <% meaning = thread.authors.size > 1 ? :both : (thread.authors.first == :you ? :you : :them) %>
-<p class="mb-1 grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-3 text-caption font-semibold <%= ApplicationHelper::MEANING_TEXT.fetch(meaning) %>">
+<p class="mb-tight grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-heading text-caption font-semibold <%= ApplicationHelper::MEANING_TEXT.fetch(meaning) %>">
   <span class="flex justify-end"><%= lc_icon "chat-bubble-left-right", options: { class: "size-4", "aria-hidden": true } %></span>
   <span>Conversation · <%= pluralize(thread.posts.size, "reply", plural: "replies") %></span>
 </p>

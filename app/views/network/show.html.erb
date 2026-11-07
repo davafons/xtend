@@ -2,13 +2,13 @@
 <% kind_labels = { "reply" => "Replies", "quote" => "Quotes", "repost" => "Reposts", "mention" => "Mentions", "like" => "Likes", "follow" => "Follows" } %>
 <h1 class="sr-only">Network</h1>
 
-<%= form_with url: network_path, method: :get, class: "mb-4 flex flex-wrap items-center gap-x-4 gap-y-3", data: { controller: "auto-submit", turbo_action: "replace" } do %>
-  <%= lc_select Network::Graph::PERIODS.keys.map { |key| [ { "30d" => "Last 30 days", "90d" => "Last 90 days", "1y" => "Last year", "all" => "All time" }.fetch(key), key ] }, name: "period", selected: @graph.period, aria: { label: "Period" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
-  <%= lc_select Network::Graph::SCOPES.map { |key, label| [ label, key ] }, name: "scope", selected: @graph.scope, aria: { label: "Who" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
+<%= form_with url: network_path, method: :get, class: "flex flex-wrap items-center gap-x-content gap-y-heading", data: { controller: "auto-submit", turbo_action: "replace" } do %>
+  <%= lc_select Network::Graph::PERIODS.keys.map { |key| [ { "30d" => "Last 30 days", "90d" => "Last 90 days", "1y" => "Last year", "all" => "All time" }.fetch(key), key ] }, name: "period", selected: @graph.period, size: :sm, aria: { label: "Period" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+  <%= lc_select Network::Graph::SCOPES.map { |key, label| [ label, key ] }, name: "scope", selected: @graph.scope, size: :sm, aria: { label: "Who" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% if @tags.any? %>
-    <%= lc_select [ [ "Any tag", "" ], *@tags.map { |tag| [ "##{tag.name}", tag.name ] } ], name: "tag", selected: @graph.tag, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto" %>
+    <%= lc_select [ [ "Any tag", "" ], *@tags.map { |tag| [ "##{tag.name}", tag.name ] } ], name: "tag", selected: @graph.tag, size: :sm, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% end %>
-  <fieldset class="flex flex-wrap items-center gap-x-4 gap-y-2">
+  <fieldset class="flex flex-wrap items-center gap-x-content gap-y-related">
     <legend class="sr-only">Interactions to show</legend>
     <% Network::Graph::KINDS.each do |kind| %>
       <%= lc_checkbox kind_labels.fetch(kind), name: "kinds[]", value: kind, checked: @graph.kinds.include?(kind), unchecked_value: nil, data: { action: "auto-submit#submit" } %>
@@ -19,47 +19,43 @@
 <% end %>
 
 <% if @coverage.empty? %>
-  <%= lc_card class: "py-12" do %>
-    <div class="flex flex-col items-center gap-3 text-center">
-      <%= lc_heading "No interactions collected yet.", level: 2, size: :heading %>
-      <%= lc_text "Install the browser extension from X data and browse x.com as usual. Threads, timelines, follow lists, and \"Liked by\" lists you open fill this in, with no X API cost.", tone: :muted, class: "max-w-xl" %>
-      <%= lc_button_link_to "Set up browser capture", x_sources_path(anchor: "capture"), variant: :secondary %>
-    </div>
+  <%= empty_state "No interactions collected yet.", "Install the browser extension from X data and browse x.com as usual. Threads, timelines, follow lists, and \"Liked by\" lists you open fill this in, with no X API cost.", icon: "share" do %>
+    <%= lc_button_link_to "Set up browser capture", x_sources_path(anchor: "capture"), variant: :secondary %>
   <% end %>
 <% else %>
-  <div class="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-6" data-controller="network" data-network-url-value="<%= network_path(request.query_parameters.merge(format: :json)) %>">
+  <div class="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-inset" data-controller="network" data-network-url-value="<%= network_path(request.query_parameters.merge(format: :json)) %>">
     <%= lc_card padding: :none, class: "relative overflow-hidden" do %>
       <div class="relative h-[40rem]">
         <canvas class="absolute inset-0 size-full cursor-grab touch-none" data-network-target="canvas" role="img" aria-label="Network graph of <%= pluralize(@graph.nodes.size, "account") %> and <%= pluralize(@graph.links.size, "connection") %>"></canvas>
-        <div class="pointer-events-none absolute start-4 top-4 rounded-lg bg-tile px-2 py-1 text-sm font-medium" data-network-target="tooltip" hidden></div>
-        <p class="absolute bottom-3 start-4 text-xs text-muted-foreground">Scroll to zoom, drag to move. Select someone to see their connections.</p>
+        <div class="pointer-events-none absolute start-4 top-4 rounded-lg bg-tile px-related py-tight text-small font-medium" data-network-target="tooltip" hidden></div>
+        <p class="absolute bottom-3 start-4 text-caption text-muted-foreground">Scroll to zoom, drag to move. Select someone to see their connections.</p>
       </div>
     <% end %>
-    <aside class="flex flex-col gap-4">
+    <aside class="flex flex-col gap-content">
       <%= lc_card do %>
-        <div class="flex flex-col gap-3" data-network-target="panel">
+        <div class="flex flex-col gap-heading" data-network-target="panel">
           <%= lc_heading "Connections", level: 2, size: :subheading %>
           <%= lc_text "Select someone in the graph.", size: :small, tone: :muted %>
         </div>
       <% end %>
       <%= lc_card do %>
-        <div class="flex flex-col gap-3 text-sm">
+        <div class="flex flex-col gap-heading text-small">
           <%= lc_heading "Key", level: 2, size: :subheading %>
           <div class="flex flex-col gap-1.5">
-            <span class="flex items-center gap-2"><span class="size-3 rounded-full ring-2 ring-success"></span>Mutual</span>
-            <span class="flex items-center gap-2"><span class="size-3 rounded-full ring-2 ring-you"></span>You follow</span>
-            <span class="flex items-center gap-2"><span class="size-3 rounded-full ring-2 ring-warning"></span>Follows you</span>
-            <span class="flex items-center gap-2"><span class="size-3 rounded-full ring-2 ring-muted-foreground"></span>Outside your CRM</span>
-            <span class="flex items-center gap-2"><span class="h-0.5 w-4 bg-you"></span>Your interactions</span>
-            <span class="flex items-center gap-2"><span class="h-0.5 w-4 bg-like"></span>Likes</span>
-            <span class="flex items-center gap-2"><span class="h-0.5 w-4 bg-foreground/40"></span>Replies, quotes, reposts, mentions</span>
+            <span class="flex items-center gap-related"><span class="size-3 rounded-full ring-2 ring-success"></span>Mutual</span>
+            <span class="flex items-center gap-related"><span class="size-3 rounded-full ring-2 ring-you"></span>You follow</span>
+            <span class="flex items-center gap-related"><span class="size-3 rounded-full ring-2 ring-warning"></span>Follows you</span>
+            <span class="flex items-center gap-related"><span class="size-3 rounded-full ring-2 ring-muted-foreground"></span>Outside your CRM</span>
+            <span class="flex items-center gap-related"><span class="h-0.5 w-4 bg-you"></span>Your interactions</span>
+            <span class="flex items-center gap-related"><span class="h-0.5 w-4 bg-like"></span>Likes</span>
+            <span class="flex items-center gap-related"><span class="h-0.5 w-4 bg-foreground/40"></span>Replies, quotes, reposts, mentions</span>
           </div>
         </div>
       <% end %>
       <%= lc_card do %>
-        <div class="flex flex-col gap-2 text-sm">
+        <div class="flex flex-col gap-related text-small">
           <%= lc_heading "Collected so far", level: 2, size: :subheading %>
-          <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 tabular-nums">
+          <dl class="grid grid-cols-[1fr_auto] gap-x-content gap-y-tight tabular-nums">
             <% X::Interaction::KINDS.each do |kind| %>
               <dt class="text-muted-foreground"><%= kind_labels.fetch(kind) %></dt><dd class="text-end"><%= number_with_delimiter(@coverage.interactions_by_kind.fetch(kind, 0)) %></dd>
             <% end %>
@@ -67,7 +63,7 @@
             <dt class="text-muted-foreground">Accounts seen</dt><dd class="text-end"><%= number_with_delimiter(@coverage.accounts) %></dd>
             <dt class="text-muted-foreground">Posts saved</dt><dd class="text-end"><%= number_with_delimiter(@coverage.posts) %></dd>
           </dl>
-          <p class="text-xs text-muted-foreground">
+          <p class="text-caption text-muted-foreground">
             <%= @coverage.last_capture_at ? "Last browser capture #{time_ago_in_words(@coverage.last_capture_at)} ago." : "No browser capture yet." %>
             <% if @graph.isolated_count.positive? %><%= pluralize(@graph.isolated_count, "person") %> in this view <%= @graph.isolated_count == 1 ? "has" : "have" %> no connection yet.<% end %>
           </p>
@@ -78,18 +74,18 @@
 
   <% top = @graph.nodes.reject { |node| node[:owner] }.sort_by { |node| -node[:weight] }.first(12) %>
   <% if top.any? %>
-    <section class="mt-8 flex flex-col gap-3" aria-labelledby="most-connected">
+    <section class="mt-section flex flex-col gap-heading" aria-labelledby="most-connected">
       <%= lc_heading "Most connected in this view", level: 2, size: :heading, id: "most-connected" %>
       <%= lc_card padding: :none do %>
         <ol class="grid grid-cols-2 divide-y divide-border xl:grid-cols-3">
           <% top.each do |node| %>
-            <li class="flex items-center gap-3 px-5 py-3">
+            <li class="flex items-center gap-heading px-inset py-heading">
               <% if node[:avatar] && !demo? %><%= lc_avatar src: node[:avatar], alt: "", size: :md, referrerpolicy: "no-referrer", loading: "lazy" %><% else %><%= lc_avatar node[:name].to_s.first(2).upcase %><% end %>
               <span class="min-w-0 grow">
                 <% if node[:person_id] %><%= link_to node[:name], person_path(node[:person_id]), class: "block truncate font-semibold hover:underline" %><% else %><span class="block truncate font-semibold"><%= node[:name] %></span><% end %>
-                <span class="block truncate text-xs text-muted-foreground">@<%= node[:handle] %><%= " · outside your CRM" if node[:outside] %></span>
+                <span class="block truncate text-caption text-muted-foreground">@<%= node[:handle] %><%= " · outside your CRM" if node[:outside] %></span>
               </span>
-              <span class="text-sm tabular-nums text-muted-foreground" title="Interactions in this view"><%= node[:weight] %></span>
+              <span class="text-small tabular-nums text-muted-foreground" title="Interactions in this view"><%= node[:weight] %></span>
             </li>
           <% end %>
         </ol>

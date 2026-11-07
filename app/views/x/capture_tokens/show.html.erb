@@ -1,9 +1,9 @@
 <% content_for :title, "Capture token" %>
-<div class="mx-auto flex max-w-2xl flex-col gap-6 py-10">
+<div class="mx-auto flex max-w-2xl flex-col gap-inset py-section">
   <%= lc_heading "Your capture token", level: 1, size: :title %>
   <%= lc_alert "Copy it now. It is shown only once; the app keeps only a fingerprint. Creating another token revokes this one.", tone: :warning %>
   <%= lc_card do %>
-    <div class="flex flex-col gap-5">
+    <div class="flex flex-col gap-inset">
       <%= lc_code_block @token, id: "capture-token" %>
       <%= lc_text "Open the extension's options and paste this token, with this CRM address:", size: :small, tone: :muted %>
       <%= lc_code_block request.base_url, id: "capture-url" %>

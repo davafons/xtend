@@ -1,4 +1,4 @@
-// Import and register all your controllers from the importmap via controllers/**/*_controller
+// Controllers load the first time their data-controller appears, so a page downloads only what it uses.
 import { application } from "controllers/application"
-import { eagerLoadControllersFrom } from "@hotwired/stimulus-loading"
-eagerLoadControllersFrom("controllers", application)
+import { lazyLoadControllersFrom } from "@hotwired/stimulus-loading"
+lazyLoadControllersFrom("controllers", application)

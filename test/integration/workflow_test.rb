@@ -39,7 +39,7 @@ class WorkflowTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "$10.00"
     assert_includes response.body, "cannot verify or change your X billing cap"
     get x_sources_path
-    assert_includes response.body, "A continuation always needs another click"
+    assert_includes response.body, "a continuation always needs another click"
   end
 
   test "invalid allowance is rejected without overwriting the saved amount" do
@@ -68,11 +68,11 @@ class WorkflowTest < ActionDispatch::IntegrationTest
 
   test "the sidebar remembers being collapsed and keeps labels for screen readers" do
     get people_path
-    assert_select "aside[data-controller=sidebar]:not([data-collapsed])"
+    assert_select "aside.crm-sidebar:not([data-collapsed]) button[aria-label='Collapse sidebar']"
     cookies[:sidebar] = "collapsed"
     get people_path
-    assert_select "aside[data-collapsed] button[aria-label='Expand sidebar']"
-    assert_select "aside[data-collapsed] a[title=People] span", text: "People"
+    assert_select "aside.crm-sidebar[data-collapsed] button[aria-label='Expand sidebar']"
+    assert_select "aside[data-collapsed] a[title=People][aria-current=page] span", text: "People"
     assert_select "h1", text: "People"
   end
 end

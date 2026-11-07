@@ -1,33 +1,20 @@
 <% workspace = Current.workspace %>
-<%= lc_section title: "Browser capture", id: "capture", class: "scroll-mt-8" do %>
-  <%= lc_card do %>
-    <div class="flex flex-col gap-5">
-      <%= lc_text "The Twitter CRM extension forwards what x.com already loaded while you browse: timelines, lists, search, profiles, threads, your likes and bookmarks, follow lists, and \"Liked by\" and \"Reposted by\" lists. That fills the Timeline and Network pages. It sends no requests to X and costs nothing, but it only covers what you scrolled past, so it never completes a follower snapshot or a like history.", tone: :muted %>
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <p class="font-semibold">Extension token</p>
-          <p class="mt-2 text-sm text-muted-foreground">
-            <% if workspace.capture_token_digest %>
-              Created <%= relative_day workspace.capture_token_created_at %> · <%= workspace.capture_token_used_at ? "last batch #{time_ago_in_words(workspace.capture_token_used_at)} ago" : "no batch received yet" %>
-            <% else %>
-              No token. The extension can't send anything until you create one.
-            <% end %>
-          </p>
-        </div>
-        <%= lc_badge workspace.capture_token_digest ? "Token active" : "No token", tone: workspace.capture_token_digest ? :success : :neutral %>
-      </div>
+<%= lc_list_section "Browser capture", id: "capture", class: "scroll-mt-section", footnote: "Install: load the extension folder in this repository unpacked from brave://extensions with Developer mode on, then enter #{request.base_url} and the token in its options. Batches from a different X account are refused." do %>
+  <%= lc_list_group do %>
+    <%= lc_list_row padded: true do %>
+      <%= lc_text "The Twitter CRM extension forwards what x.com already loaded while you browse: timelines, lists, search, profiles, threads, your likes and bookmarks, follow lists, and \"Liked by\" and \"Reposted by\" lists. That fills Timeline and Network. It sends no requests to X and costs nothing, but it only covers what you scrolled past, so it never completes a follower snapshot or a like history.", size: :small, tone: :muted %>
+    <% end %>
+    <%= lc_list_row "Extension token", icon: "key", subtitle: (workspace.capture_token_digest ? "Created #{relative_day workspace.capture_token_created_at} · #{workspace.capture_token_used_at ? "last batch #{time_ago_in_words(workspace.capture_token_used_at)} ago" : "no batch received yet"}" : "No token. The extension can't send anything until you create one.") do %>
       <% if workspace.capture_token_digest %>
-        <div class="flex flex-wrap gap-2">
-          <%= lc_button_to "Replace token", x_capture_token_path, variant: :secondary, size: :sm, icon: "arrow-path", data: { turbo: false } %>
-          <%= lc_button_to "Revoke token", x_capture_token_path, method: :delete, variant: :ghost, size: :sm, icon: "no-symbol" %>
-        </div>
+        <%= lc_button_to "Replace", x_capture_token_path, variant: :secondary, size: :sm, icon: "arrow-path", data: { turbo: false }, aria: { label: "Replace token" } %>
+        <%= lc_icon_button_to "Revoke token", x_capture_token_path, method: :delete, icon: "no-symbol", size: :sm, tone: :destructive %>
+        <%= lc_badge "Token active", tone: :success %>
       <% else %>
-        <div><%= lc_button_to "Create capture token", x_capture_token_path, variant: :secondary, size: :sm, icon: "key", data: { turbo: false } %></div>
+        <%= lc_button_to "Create capture token", x_capture_token_path, variant: :secondary, size: :sm, icon: "plus", data: { turbo: false } %>
       <% end %>
-      <% if @capture_totals.values.any?(&:positive?) %>
-        <p class="text-sm">Added from capture in the last 7 days: <%= pluralize(@capture_totals[:posts], "post") %> · <%= pluralize(@capture_totals[:likes], "like") %> · <%= pluralize(@capture_totals[:bookmarks], "bookmark") %></p>
-      <% end %>
-      <%= lc_text "Install: load the extension folder in this repository unpacked from brave://extensions with Developer mode on, then enter #{request.base_url} and the token in its options. Batches from a different X account are refused.", size: :small, tone: :muted %>
-    </div>
+    <% end %>
+    <% if @capture_totals.values.any?(&:positive?) %>
+      <%= lc_list_row "Last 7 days", icon: "arrow-down-tray", subtitle: "#{pluralize(@capture_totals[:posts], "post")} · #{pluralize(@capture_totals[:likes], "like")} · #{pluralize(@capture_totals[:bookmarks], "bookmark")}" %>
+    <% end %>
   <% end %>
 <% end %>

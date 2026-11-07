@@ -1,16 +1,16 @@
 <% content_for :title, "Sign in" %>
-<div class="mx-auto flex max-w-md flex-col gap-6 pt-16">
+<div class="mx-auto flex max-w-md flex-col gap-inset pt-16">
   <%= lc_heading "Sign in", level: 1, size: :title %>
   <%= lc_card do %>
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-content">
       <% if demo? %>
-        <p class="text-sm text-muted-foreground">This is the fictional demo workspace. It never calls X.</p>
+        <p class="text-small text-muted-foreground">This is the fictional demo workspace. It never calls X.</p>
         <div><%= lc_button_to "Open the demo workspace", session_path %></div>
       <% else %>
-        <p class="text-sm text-muted-foreground">Sign in with your X account. Signing in also connects read-only access to your X data. You can't post, follow, like, or send DMs from here.</p>
+        <p class="text-small text-muted-foreground">Sign in with your X account. Signing in also connects read-only access to your X data. You can't post, follow, like, or send DMs from here.</p>
         <div><%= lc_button_to "Sign in with X", x_connection_path, icon: "arrow-right-end-on-rectangle", data: { turbo: false } %></div>
       <% end %>
     </div>
   <% end %>
-  <p class="text-sm text-muted-foreground">There's no signup. Only X accounts the owner allows with <code>bin/rails users:allow</code> can sign in.</p>
+  <p class="text-small text-muted-foreground">There's no signup. Only X accounts the owner allows with <code>bin/rails users:allow</code> can sign in.</p>
 </div>

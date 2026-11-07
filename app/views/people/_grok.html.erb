@@ -2,35 +2,35 @@
 <% pending = person.grok_proposals.pending.order(:created_at) %>
 <% if recap || pending.any? %>
   <%= lc_card do %>
-    <div class="flex flex-col gap-4">
-      <h2 class="flex items-center gap-2 text-subheading text-grok"><%= lc_icon "sparkles", options: { class: "size-5", "aria-hidden": true } %>From Grok</h2>
+    <div class="flex flex-col gap-content">
+      <h2 class="flex items-center gap-related text-subheading text-grok"><%= lc_icon "sparkles", options: { class: "size-5", "aria-hidden": true } %>From Grok</h2>
       <% if recap %>
         <div>
-          <p class="whitespace-pre-line text-sm"><%= recap.payload["summary"] %></p>
-          <p class="mt-1 text-xs text-muted-foreground">Recap accepted <%= relative_day recap.reviewed_at %>. Grok research, not collected evidence.</p>
+          <p class="whitespace-pre-line text-small"><%= recap.payload["summary"] %></p>
+          <p class="mt-tight text-caption text-muted-foreground">Recap accepted <%= relative_day recap.reviewed_at %>. Grok research, not collected evidence.</p>
         </div>
       <% end %>
       <% pending.each do |proposal| %>
-        <div class="flex flex-col gap-2 rounded-2xl bg-tile p-4 text-sm">
+        <div class="flex flex-col gap-related rounded-2xl bg-tile p-content text-small">
           <p class="font-semibold"><%= { "recap" => "Proposed recap", "tags" => "Proposed tags", "profile" => "Proposed profile facts" }.fetch(proposal.kind) %></p>
           <% if proposal.kind == "tags" %>
             <div class="flex flex-wrap gap-1.5"><% proposal.payload["tags"].each do |name| %><%= tag_chip name %><% end %></div>
-            <% if proposal.payload["reason"] %><p class="text-xs text-muted-foreground"><%= proposal.payload["reason"] %></p><% end %>
+            <% if proposal.payload["reason"] %><p class="text-caption text-muted-foreground"><%= proposal.payload["reason"] %></p><% end %>
           <% elsif proposal.kind == "recap" %>
             <p class="whitespace-pre-line"><%= proposal.payload["summary"] %></p>
             <% Array(proposal.payload["evidence_urls"]).each do |url| %>
-              <% unless demo? %><%= link_to url.truncate(48), url, target: "_blank", rel: "noopener noreferrer", class: "text-xs text-primary hover:underline" %><% end %>
+              <% unless demo? %><%= link_to url.truncate(48), url, target: "_blank", rel: "noopener noreferrer", class: "text-caption text-primary hover:underline" %><% end %>
             <% end %>
           <% else %>
-            <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+            <dl class="grid grid-cols-[auto_1fr] gap-x-heading gap-y-tight">
               <% proposal.payload.except("observed_at").each do |key, value| %>
                 <dt class="text-muted-foreground"><%= key.humanize %></dt>
-                <dd><%= value %><% if person[key].present? %> <span class="text-xs text-muted-foreground">(you already have a value; it stays)</span><% end %></dd>
+                <dd><%= value %><% if person[key].present? %> <span class="text-caption text-muted-foreground">(you already have a value; it stays)</span><% end %></dd>
               <% end %>
             </dl>
-            <p class="text-xs text-muted-foreground">Accepting fills only empty fields. X-collected data and your edits always win.</p>
+            <p class="text-caption text-muted-foreground">Accepting fills only empty fields. X-collected data and your edits always win.</p>
           <% end %>
-          <div class="flex gap-2">
+          <div class="flex gap-related">
             <%= lc_button_to "Accept", grok_proposal_path(proposal), method: :patch, params: { decision: "accept" }, variant: :secondary, size: :sm, icon: "check" %>
             <%= lc_button_to "Dismiss", grok_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, variant: :ghost, size: :sm, icon: "x-mark" %>
           </div>

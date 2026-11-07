@@ -2,17 +2,17 @@
     marks (["like", "bookmark"]), detail, thread (draws the line down to the next post in the thread). %>
 <% thread = local_assigns.fetch(:thread, false) %>
 <% marks = local_assigns.fetch(:marks, nil) || [] %>
-<div class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3">
+<div class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-heading">
   <div class="flex flex-col items-center">
     <% if author == :you %>
       <%= owner_avatar %>
     <% else %>
       <%= link_to person_avatar(person, size: :md), person, tabindex: -1, aria: { hidden: true } %>
     <% end %>
-    <% if thread %><span class="mt-1 w-0.5 grow rounded-full bg-border" aria-hidden="true"></span><% end %>
+    <% if thread %><span class="mt-tight w-0.5 grow rounded-full bg-border" aria-hidden="true"></span><% end %>
   </div>
-  <div class="min-w-0 <%= 'pb-4' if thread %>">
-    <p class="flex min-w-0 items-baseline gap-1 text-small">
+  <div class="min-w-0 <%= 'pb-content' if thread %>">
+    <p class="flex min-w-0 items-baseline gap-tight text-small">
       <span class="truncate font-semibold text-foreground"><%= author == :you ? "You" : person.name %></span>
       <span class="truncate text-muted-foreground">@<%= author == :you ? (owner_handle || "you") : person.handle %></span>
       <% if at %><span class="shrink-0 text-muted-foreground">· <time datetime="<%= at.iso8601 %>" title="<%= at.strftime('%-d %B %Y, %H:%M') %>"><%= at.year == Date.current.year ? at.strftime("%-d %b, %H:%M") : at.strftime("%-d %b %Y") %></time></span><% end %>
@@ -23,9 +23,9 @@
       <p class="mt-0.5 text-small italic text-muted-foreground">Post text not collected.</p>
     <% end %>
     <% if marks.any? || local_assigns[:detail] || url %>
-      <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted-foreground">
-        <% if marks.include?("like") %><span class="inline-flex items-center gap-1 text-like"><%= lc_icon "heart", variant: :solid, options: { class: "size-4", "aria-hidden": true } %>You liked</span><% end %>
-        <% if marks.include?("bookmark") %><span class="inline-flex items-center gap-1 text-you"><%= lc_icon "bookmark", variant: :solid, options: { class: "size-4", "aria-hidden": true } %>Bookmarked</span><% end %>
+      <div class="mt-related flex flex-wrap items-center gap-x-content gap-y-tight text-caption text-muted-foreground">
+        <% if marks.include?("like") %><span class="inline-flex items-center gap-tight text-like"><%= lc_icon "heart", variant: :solid, options: { class: "size-4", "aria-hidden": true } %>You liked</span><% end %>
+        <% if marks.include?("bookmark") %><span class="inline-flex items-center gap-tight text-you"><%= lc_icon "bookmark", variant: :solid, options: { class: "size-4", "aria-hidden": true } %>Bookmarked</span><% end %>
         <% if local_assigns[:detail] %><span><%= detail %></span><% end %>
         <% if url && !demo? %><%= link_to url, target: "_blank", rel: "noopener noreferrer", class: "ms-auto inline-flex items-center gap-0.5 font-medium text-muted-foreground hover:text-you" do %>Open on X<%= lc_icon "arrow-up-right", options: { class: "size-3", "aria-hidden": true } %><% end %><% end %>
       </div>

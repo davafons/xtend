@@ -1,5 +1,5 @@
 <%= lc_card do %>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-content">
     <%= lc_field label: "Stage", id: "draft-status" do |field| %>
       <%= lc_select Draft::STATUSES.map { |key, label| [label, key] }, name: "draft[status]", selected: draft.status, form: "draft-form", **field %>
     <% end %>
@@ -11,10 +11,10 @@
       <%= lc_textarea draft.notes, name: "draft[notes]", rows: 4, form: "draft-form", **field %>
     <% end %>
     <% if draft.inspiration_url.present? %>
-      <p class="text-sm text-muted-foreground">Inspired by <%= link_to "this post", draft.inspiration_url, target: "_blank", rel: "noopener noreferrer", class: "text-you hover:underline" %>.</p>
+      <p class="text-small text-muted-foreground">Inspired by <%= link_to "this post", draft.inspiration_url, target: "_blank", rel: "noopener noreferrer", class: "text-you hover:underline" %>.</p>
     <% end %>
     <% if draft.posted_url && !demo? %>
-      <p class="text-sm text-muted-foreground">Posted <%= draft.posted_at&.strftime("%-d %b %Y, %H:%M") %>. <%= link_to "View on X", draft.posted_url, target: "_blank", rel: "noopener noreferrer", class: "text-you hover:underline" %></p>
+      <p class="text-small text-muted-foreground">Posted <%= draft.posted_at&.strftime("%-d %b %Y, %H:%M") %>. <%= link_to "View on X", draft.posted_url, target: "_blank", rel: "noopener noreferrer", class: "text-you hover:underline" %></p>
     <% elsif draft.persisted? %>
       <%= lc_text "Open in X fills in the first post; you post it there. Once you have, set the stage to Posted and the next refresh of your posts links the tweet.", size: :caption, tone: :muted %>
     <% end %>

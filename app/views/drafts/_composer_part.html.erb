@@ -1,14 +1,14 @@
 <%# locals: (text:, placeholder:, form: nil) %>
-<li class="group grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3" data-composer-target="part">
-  <div class="flex flex-col items-center gap-1">
+<li class="group grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-heading" data-composer-target="part">
+  <div class="flex flex-col items-center gap-tight">
     <%= owner_avatar size: :md %>
     <span class="w-0.5 grow rounded-full bg-border group-last:invisible" aria-hidden="true"></span>
   </div>
-  <div class="flex items-start gap-2 pb-4">
+  <div class="flex items-start gap-related pb-content">
     <%= lc_textarea text, name: "draft[parts][]", rows: 2, placeholder: placeholder, form: form,
-      class: "min-h-0 resize-none overflow-hidden border-0 px-0 pt-1.5 text-xl leading-snug shadow-none [--lc-field-bg:transparent] focus-visible:outline-none focus-visible:ring-0",
+      class: "min-h-0 resize-none overflow-hidden border-0 px-0 pt-1.5 text-heading leading-snug shadow-none [--lc-field-bg:transparent] focus-visible:outline-none focus-visible:ring-0",
       data: { composer_target: "input", action: "input->composer#edit focus->composer#focus" } %>
-    <button type="button" class="mt-2 inline-flex cursor-pointer rounded-full p-1 text-muted-foreground hover:text-foreground" data-remove data-action="composer#remove" aria-label="Remove this post" hidden>
+    <button type="button" class="mt-related inline-flex cursor-pointer rounded-full p-tight text-muted-foreground hover:text-foreground" data-remove data-action="composer#remove" aria-label="Remove this post" hidden>
       <%= lc_icon "x-mark", options: { class: "size-4", "aria-hidden": true } %>
     </button>
   </div>

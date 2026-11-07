@@ -8,7 +8,7 @@ gem "importmap-rails"
 gem "turbo-rails"
 gem "stimulus-rails"
 gem "tailwindcss-rails", "~> 4.4"
-gem "lostcoords-ui", "~> 0.7.0", git: "https://github.com/lostcoords/ui.git", ref: "35fa0bc9fd72f1d70b5e0b04247893ced6fa46f1"
+gem "lostcoords-ui", "~> 0.8.2", git: "https://github.com/lostcoords/ui.git", tag: "v0.8.2"
 
 group :test do
   gem "minitest-mock", require: false

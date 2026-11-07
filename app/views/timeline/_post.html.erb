@@ -5,7 +5,7 @@
 <% owner = post.author_x_id == Current.workspace.owner_x_id %>
 <% name = owner ? "You" : person&.name || account&.name || "Unknown account" %>
 <% handle = owner ? X::Connection.current&.username : person&.handle || account&.handle %>
-<div class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3">
+<div class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-heading">
   <div>
     <% if owner %><%= owner_avatar %>
     <% elsif person %><%= person_avatar person, ring: person.follow_state(timeline.follow_graph) %>
@@ -13,7 +13,7 @@
     <% else %><%= lc_avatar name.first(2).upcase %><% end %>
   </div>
   <div class="flex min-w-0 flex-col gap-1.5">
-    <div class="flex items-baseline gap-1.5 text-sm">
+    <div class="flex items-baseline gap-1.5 text-small">
       <% if person %><%= link_to name, person, class: "truncate font-semibold hover:underline" %><% else %><span class="truncate font-semibold"><%= name %></span><% end %>
       <% if handle %><span class="truncate text-muted-foreground">@<%= handle %></span><% end %>
       <span class="text-muted-foreground">·</span>
@@ -21,30 +21,30 @@
     </div>
     <% if post.reply_to_x_id %>
       <% target = timeline.people[post.reply_to_x_id] || timeline.accounts[post.reply_to_x_id] %>
-      <p class="text-sm text-muted-foreground">Replying to <%= post.reply_to_x_id == Current.workspace.owner_x_id ? "you" : target ? "@#{target.handle}" : "a post" %></p>
+      <p class="text-small text-muted-foreground">Replying to <%= post.reply_to_x_id == Current.workspace.owner_x_id ? "you" : target ? "@#{target.handle}" : "a post" %></p>
     <% end %>
     <p class="whitespace-pre-line break-words"><%= CGI.unescapeHTML(post.body) %></p>
     <% if post.media_kinds.present? %>
-      <p class="flex items-center gap-1 text-sm text-muted-foreground">
+      <p class="flex items-center gap-tight text-small text-muted-foreground">
         <%= lc_icon(post.media_kinds.include?("video") || post.media_kinds.include?("animated_gif") ? "film" : "photo", options: { class: "size-4", "aria-hidden": true }) %>
         <%= post.media_kinds.split(",").map { |kind| { "photo" => "Photo", "video" => "Video", "animated_gif" => "GIF" }.fetch(kind, kind) }.join(", ") %>
       </p>
     <% end %>
     <% if (quote = timeline.quoted[post.quoted_x_id]) %>
       <% quote_author = timeline.people[quote.author_x_id] || timeline.accounts[quote.author_x_id] %>
-      <div class="flex flex-col gap-1 rounded-xl bg-tile p-3 text-sm">
+      <div class="flex flex-col gap-tight rounded-xl bg-tile p-heading text-small">
         <span class="font-semibold"><%= quote_author&.name || "Quoted post" %><% if quote_author %> <span class="font-normal text-muted-foreground">@<%= quote_author.handle %></span><% end %></span>
         <span class="line-clamp-4 whitespace-pre-line break-words"><%= CGI.unescapeHTML(quote.body) %></span>
       </div>
     <% end %>
-    <div class="mt-1 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm tabular-nums text-muted-foreground">
+    <div class="mt-tight flex flex-wrap items-center gap-x-inset gap-y-tight text-small tabular-nums text-muted-foreground">
       <% [ [ "chat-bubble-oval-left", post.reply_count, "replies" ], [ "arrow-path-rounded-square", post.repost_count, "reposts" ], [ "heart", post.like_count, "likes" ], [ "chart-bar", post.view_count, "views" ], [ "bookmark", post.bookmark_count, "bookmarks" ] ].each do |icon, count, label| %>
-        <span class="inline-flex items-center gap-1" title="<%= label.capitalize %>"><%= lc_icon icon, options: { class: "size-4", "aria-hidden": true } %><span class="sr-only"><%= label %>:</span><%= count ? compact_count(count) : "—" %></span>
+        <span class="inline-flex items-center gap-tight" title="<%= label.capitalize %>"><%= lc_icon icon, options: { class: "size-4", "aria-hidden": true } %><span class="sr-only"><%= label %>:</span><%= count ? compact_count(count) : "—" %></span>
       <% end %>
       <% unless demo? %><%= link_to "View on X", "https://x.com/i/status/#{post.x_id}", target: "_blank", rel: "noopener noreferrer", class: "ms-auto text-you hover:underline" %><% end %>
     </div>
     <% if post.metrics_observed_at %>
-      <p class="text-xs text-muted-foreground">Counts as of <%= post.metrics_observed_at.strftime("%-d %b, %H:%M") %><% if (seen = timeline.sightings[post.x_id].to_i) > 1 %> · seen <%= seen %> times<% end %></p>
+      <p class="text-caption text-muted-foreground">Counts as of <%= post.metrics_observed_at.strftime("%-d %b, %H:%M") %><% if (seen = timeline.sightings[post.x_id].to_i) > 1 %> · seen <%= seen %> times<% end %></p>
     <% end %>
   </div>
 </div>

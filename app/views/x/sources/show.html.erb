@@ -1,60 +1,37 @@
 <% content_for :title, "X data" %>
 <h1 class="sr-only">X data</h1>
-<div class="grid grid-cols-2 items-start gap-8">
-  <div class="flex flex-col gap-8">
-    <%= lc_section title: "Source health" do %>
-      <%= lc_card do %>
-        <div class="flex flex-col gap-5">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="font-semibold">Followers</p>
-              <p class="mt-2 text-sm text-muted-foreground">
-                <%= @followers ? "#{@followers.person_ids.size} #{@followers.completed_at ? 'complete' : 'partial'} records · #{@followers.observed_at.strftime('%-d %b, %H:%M')} · #{@followers.source.humanize}" : "No complete snapshot collected" %>
-              </p>
-            </div>
-            <%= lc_badge @followers&.fresh? ? "Current snapshot" : "Unavailable", tone: @followers&.fresh? ? :success : :neutral %>
-          </div>
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="font-semibold">Following</p>
-              <p class="mt-2 text-sm text-muted-foreground">
-                <%= @following ? "#{@following.person_ids.size} #{@following.completed_at ? 'complete' : 'partial'} records · #{@following.observed_at.strftime('%-d %b, %H:%M')} · #{@following.source.humanize}" : "No complete snapshot collected" %>
-              </p>
-            </div>
-            <%= lc_badge @following&.completed_at ? "Snapshot available" : "Incomplete" %>
-          </div>
-          <div><%= lc_button_link_to "Follower changes and timing", follower_history_path, variant: :secondary, size: :sm, icon: "chart-bar" %></div>
-          <div>
-            <p class="font-semibold">Reply history</p>
-            <p class="mt-2 text-sm text-muted-foreground">
-              <%= ReplyEvent.count %> supported events · limited coverage. An empty direction is not a guarantee that no replies ever happened.</p>
-            </div>
-            <div>
-              <p class="font-semibold">Private messages</p>
-              <p class="mt-2 text-sm text-muted-foreground"><% if (since = DirectMessage.covered_since) %><%= pluralize(DirectMessage.count, "one-to-one message") %> since <%= since.strftime("%-d %b %Y") %>; sender and time only, never text.<% else %>Not collected.<% end %> Private messages are excluded from the Grok context file.</p>
-            </div>
-          </div>
+<div class="grid grid-cols-2 items-start gap-section">
+  <div class="<%= lc_stack_class(gap: :section) %>">
+    <%= lc_list_section "What's saved", id: "health", footnote: "Reply history has limited coverage: an empty direction doesn't mean no replies ever happened." do %>
+      <%= lc_list_group do %>
+        <%= lc_list_row "Followers", icon: "user-group", subtitle: (@followers ? "#{@followers.person_ids.size} #{@followers.completed_at ? 'complete' : 'partial'} records · #{@followers.observed_at.strftime('%-d %b, %H:%M')} · #{@followers.source.humanize}" : "No complete snapshot collected") do %>
+          <%= lc_badge @followers&.fresh? ? "Current" : "Unavailable", tone: @followers&.fresh? ? :success : :neutral %>
         <% end %>
+        <%= lc_list_row "Following", icon: "user-plus", subtitle: (@following ? "#{@following.person_ids.size} #{@following.completed_at ? 'complete' : 'partial'} records · #{@following.observed_at.strftime('%-d %b, %H:%M')} · #{@following.source.humanize}" : "No complete snapshot collected") do %>
+          <%= lc_badge @following&.completed_at ? "Snapshot available" : "Incomplete" %>
+        <% end %>
+        <%= lc_list_row "Follower changes and timing", icon: "chart-bar", href: follower_history_path do %>
+          <%= lc_icon "chevron-right", options: { class: "size-4 text-muted-foreground", "aria-hidden": true } %>
+        <% end %>
+        <%= lc_list_row "Reply history", icon: "chat-bubble-left-right", subtitle: "#{ReplyEvent.count} supported events" %>
+        <%= lc_list_row "Private messages", icon: "envelope", subtitle: ((since = DirectMessage.covered_since) ? "#{pluralize(DirectMessage.count, "one-to-one message")} since #{since.strftime("%-d %b %Y")} · sender and time only, never text, and never sent to Grok" : "Not collected · never sent to Grok") %>
       <% end %>
+    <% end %>
     <%= render "capture" %>
-    <%= lc_section title: "Import your X archive", id: "archive", class: "scroll-mt-8" do %>
+    <%= lc_list_section "Import your X archive", id: "archive", class: "scroll-mt-section", footnote: "Must be the archive of the connected account. Re-importing a newer archive only adds messages not already saved. Posts, likes, and follows in the archive aren't imported; X API collection covers them." do %>
       <%= lc_card do %>
-        <div class="flex flex-col gap-5">
-          <%= lc_text "Upload the .zip X sent you to fill in your full DM history, including encrypted chats the API can't see. Only the manifest, account, and DM files are opened. For one-to-one conversations it keeps who sent each message and when; message text is never stored, and encrypted contents stay encrypted.", tone: :muted %>
+        <%= form_with url: x_archive_imports_path, multipart: true, class: lc_stack_class(gap: :content) do %>
+          <%= lc_text "Upload the .zip X sent you to fill in your full DM history, including encrypted chats the API can't see. Only the manifest, account, and DM files are opened. For one-to-one conversations it keeps who sent each message and when; message text is never stored.", size: :small, tone: :muted %>
           <% if (last_import = X::ArchiveImport.order(:created_at).last) %>
-            <p class="text-sm">Last import <%= relative_day last_import.created_at %>: archive generated <%= last_import.generated_at.strftime("%-d %b %Y") %> · <%= pluralize(last_import.direct_messages_count, "new DM") %><%= " · partial archive, so coverage isn't claimed" if last_import.partial %></p>
+            <%= lc_text "Last import #{relative_day last_import.created_at}: archive generated #{last_import.generated_at.strftime("%-d %b %Y")} · #{pluralize(last_import.direct_messages_count, "new DM")}#{" · partial archive, so coverage isn't claimed" if last_import.partial}", size: :small %>
           <% end %>
-          <%= form_with url: x_archive_imports_path, multipart: true, class: "flex flex-col gap-4" do %>
-            <label for="archive-file" class="text-sm font-semibold">X archive · .zip</label>
-            <input id="archive-file" name="file" type="file" accept="application/zip,.zip" required class="text-sm">
-            <div><%= lc_button "Import DM history", type: :submit, variant: :secondary, size: :sm, icon: "arrow-up-tray" %></div>
+          <%= lc_field label: "X archive · .zip", id: "archive-file" do |field| %>
+            <%= tag.input type: :file, name: "file", accept: "application/zip,.zip", required: true, class: "text-small", **field %>
           <% end %>
-          <%= lc_text "Must be the archive of the connected account. Re-importing a newer archive only adds messages not already saved. Your posts, likes, and follows in the archive are already covered by X API collection, so they aren't imported.", size: :small, tone: :muted %>
-        </div>
+          <div><%= lc_button "Import DM history", type: :submit, variant: :secondary, size: :sm, icon: "arrow-up-tray" %></div>
+        <% end %>
       <% end %>
     <% end %>
   </div>
-  <div class="flex flex-col gap-8">
-    <%= render "collection" %>
-  </div>
+  <%= render "collection" %>
 </div>

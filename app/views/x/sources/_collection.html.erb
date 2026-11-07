@@ -1,83 +1,66 @@
-<section id="collection" class="flex flex-col gap-4 scroll-mt-8">
-  <%= lc_heading "Collect a small sample", level: 2, size: :heading %>
-  <%= lc_card do %>
-    <div class="flex flex-col gap-5">
-      <%= lc_text "Each action reads one bounded page. Start with the four samples here; their combined standard-rate maximum is $2.10. A continuation always needs another click.", tone: :muted %>
-      <% unless @cycle %>
-        <%= lc_alert "Record the current billing cycle and account spend on Spending before reading X.", tone: :warning %>
-        <div><%= lc_button_link_to "Open Spending", x_billing_cycles_path, variant: :secondary, size: :sm %></div>
-      <% end %>
-      <div class="grid grid-cols-2 gap-3">
-        <% [["followers", "Sample followers", "$1.00 · up to 100"], ["following", "Sample following", "$1.00 · up to 100"], ["own_posts", "Sample your posts", "$0.05 · up to 10"], ["mentions", "Sample mentions", "$0.05 · up to 10"]].each do |dataset, label, cost| %>
-          <div class="flex flex-col gap-2">
-            <%= lc_button_to label, x_sync_runs_path, params: {dataset: dataset, request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: {"followers" => "user-group", "following" => "user-plus", "own_posts" => "document-text", "mentions" => "at-symbol"}.fetch(dataset), disabled: demo? || !@cycle || !X::Connection.current %>
-            <p class="text-xs text-muted-foreground"><%= cost %> at standard rates</p>
-          </div>
-        <% end %>
-      </div>
-      <div class="flex flex-col gap-2">
-        <%= lc_button_to "Refresh follower baseline", x_sync_runs_path, params: {dataset: "followers", mode: "refresh", request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: "arrow-path", disabled: demo? || !@cycle || !X::Connection.current %>
-        <p class="text-xs text-muted-foreground">Up to 200 followers per page. $0.20 maximum with recorded owned pricing, $2.00 at standard rates. One completed refresh also checks for follower losses.</p>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <% ["own_posts", "mentions"].each do |dataset| %>
-          <%= lc_button_to "Refresh #{dataset == 'own_posts' ? 'sent replies' : 'incoming activity'}", x_sync_runs_path, params: {dataset: dataset, mode: "refresh", request_key: SecureRandom.uuid}, variant: :ghost, size: :sm, disabled: demo? || !@cycle || !X::Connection.current %>
-        <% end %>
-      </div>
-      <div class="flex flex-col gap-3 pt-2">
-        <p class="text-sm font-semibold">Private interactions</p>
-        <% connection = X::Connection.current %>
-        <% missing = X::Config::DATASET_SCOPES.values.reject { |scope| connection&.granted?(scope) } %>
-        <% if connection && missing.any? %>
-          <%= lc_alert "Reconnect X to grant #{missing.to_sentence}. Your existing data is kept.", tone: :warning %>
-        <% end %>
-        <div class="grid grid-cols-3 gap-3">
-          <% [["liked_posts", "Collect your likes", "heart", "Up to 100 per page · $0.10 owned, $0.50 standard"],
-              ["bookmarks", "Collect bookmarks", "bookmark", "Up to 100 per page · $0.10 owned, $0.50 standard"],
-              ["dm_events", "Collect DM activity", "envelope", "Up to 20 per page · $0.20, no owned rate"]].each do |dataset, label, icon, cost| %>
-            <div class="flex flex-col gap-2">
-              <%= lc_button_to label, x_sync_runs_path, params: {dataset: dataset, request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, icon: icon, disabled: demo? || !@cycle || !connection&.granted?(X::Config::DATASET_SCOPES.fetch(dataset)) %>
-              <p class="text-xs text-muted-foreground"><%= cost %></p>
-            </div>
-          <% end %>
-        </div>
-        <%= lc_text "The first run reads from the newest item backwards; later runs stop once they reach items already saved. X doesn't report when you liked or bookmarked something, so the post date (or the previous check) is the earliest possible time. DMs keep only who sent each one-to-one message and when, never the text, and X serves only the last 30 days.", size: :small, tone: :muted %>
-      </div>
-      <%= lc_text "Replies update only after their author and parent evidence can be resolved. Old history enriches people without increasing today's outreach. Collection ends 15 seconds before each check, so a just-sent reply may need a later refresh.", size: :small, tone: :muted %>
-      <% unknown_users = X::SyncRun.unresolved_user_ids %>
-      <% unknown_parents = X::SyncRun.unresolved_parent_ids %>
-      <% if unknown_users.any? || unknown_parents.any? %>
-        <div class="flex flex-col gap-3">
-          <p class="text-sm font-semibold">Resolve missing context</p>
-          <p class="text-xs text-muted-foreground"><%= unknown_users.size %> unresolved people · <%= unknown_parents.size %> missing parent posts. Each action resolves up to 20, within the remaining budget.</p>
-          <div class="flex flex-wrap gap-2">
-            <% if unknown_users.any? %><%= lc_button_to "Resolve people", x_sync_runs_path, params: {dataset: "users", request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, disabled: demo? || !@cycle %><% end %>
-            <% if unknown_parents.any? %><%= lc_button_to "Resolve parents", x_sync_runs_path, params: {dataset: "posts", request_key: SecureRandom.uuid}, variant: :secondary, size: :sm, disabled: demo? || !@cycle %><% end %>
-          </div>
-        </div>
-      <% end %>
-    </div>
-  <% end %>
-  <% if @runs.any? %>
-    <%= lc_card do %>
-      <div class="flex flex-col gap-5">
-        <%= lc_heading "Recent collection", level: 3, size: :subheading %>
-        <% @runs.each do |run| %>
-          <div id="<%= dom_id(run) %>" data-request-key="<%= run.request_key %>" class="flex flex-col gap-2 border-b border-border pb-4 last:border-0 last:pb-0">
-            <div class="flex items-start justify-between gap-3">
-              <p class="text-sm font-semibold"><%= run.dataset.humanize %> · <%= run.mode.humanize %></p>
-              <%= lc_badge run.status.humanize, tone: run.status == "completed" ? :success : :neutral %>
-            </div>
-            <p class="text-xs text-muted-foreground"><%= run.resource_count %> resources · <%= run.page_number %> pages · <%= run.created_at.strftime("%-d %b, %H:%M") %></p>
-            <% if run.message.present? %><p class="text-xs text-muted-foreground"><%= run.message %></p><% end %>
-            <% if X::SyncRun::ACTIVE_STATUSES.include?(run.status) %>
-              <div><%= lc_button_to "Recover interrupted page", x_sync_run_path(run), method: :patch, params: {recover: "1"}, variant: :ghost, size: :sm, disabled: run.updated_at > 2.minutes.ago %></div>
-            <% elsif run.status == "partial" || run.status == "ready" || (run.status == "paused" && run.page_number.zero?) || run.x_reads.where(status: "received").exists? %>
-              <div><%= lc_button_to(run.status == "paused" ? "Retry this page" : "Read next page", x_sync_run_path(run), method: :patch, params: {page: run.page_number}, variant: :secondary, size: :sm, disabled: demo? || (run.retry_at && run.retry_at > Time.current)) %></div>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
+<% connection = X::Connection.current %>
+<% locked = demo? || !@cycle || !connection %>
+<% missing = X::Config::DATASET_SCOPES.values.reject { |scope| connection&.granted?(scope) } %>
+<% read = ->(label, dataset, mode: nil, disabled: locked, **options) { lc_button_to label, x_sync_runs_path, params: { dataset: dataset, mode: mode, request_key: SecureRandom.uuid }.compact, variant: :secondary, size: :sm, disabled: disabled, **options } %>
+<div id="collection" class="<%= lc_stack_class(gap: :section) %> scroll-mt-section">
+  <% unless @cycle %>
+    <%= lc_alert "Record the current billing cycle and account spend on Spending before reading X.", tone: :warning do %>
+      <%= lc_button_link_to "Open Spending", x_billing_cycles_path, variant: :secondary, size: :sm %>
     <% end %>
   <% end %>
-</section>
+  <% if connection && missing.any? %><%= lc_alert "Reconnect X to grant #{missing.to_sentence}. Your existing data is kept.", tone: :warning %><% end %>
+
+  <%= lc_list_section "Collect a small sample", footnote: "Each action reads one bounded page; a continuation always needs another click. The four samples together cost at most $2.10 at standard rates." do %>
+    <%= lc_list_group do %>
+      <% [["followers", "Sample followers", "user-group", "Up to 100 · $1.00 standard"], ["following", "Sample following", "user-plus", "Up to 100 · $1.00 standard"], ["own_posts", "Sample your posts", "document-text", "Up to 10 · $0.05 standard"], ["mentions", "Sample mentions", "at-symbol", "Up to 10 · $0.05 standard"]].each do |dataset, label, icon, cost| %>
+        <%= lc_list_row label, icon: icon, subtitle: cost do %><%= read.(label.split.first, dataset, aria: { label: label }) %><% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <%= lc_list_section "Refresh", footnote: "Replies update only once their author and parent can be resolved. Old history enriches people without adding to today's outreach. Collection ends 15 seconds before each check, so a reply you just sent may need a later refresh." do %>
+    <%= lc_list_group do %>
+      <%= lc_list_row "Follower baseline", icon: "arrow-path", subtitle: "Up to 200 per page · $0.20 owned, $2.00 standard · a completed refresh also finds losses" do %><%= read.("Refresh", "followers", mode: "refresh", aria: { label: "Refresh follower baseline" }) %><% end %>
+      <%= lc_list_row "Sent replies", icon: "arrow-up-right", subtitle: "Your newest posts and replies" do %><%= read.("Refresh", "own_posts", mode: "refresh", aria: { label: "Refresh sent replies" }) %><% end %>
+      <%= lc_list_row "Incoming activity", icon: "arrow-down-left", subtitle: "Your newest mentions" do %><%= read.("Refresh", "mentions", mode: "refresh", aria: { label: "Refresh incoming activity" }) %><% end %>
+    <% end %>
+  <% end %>
+
+  <%= lc_list_section "Private interactions", footnote: "The first run reads from the newest item backwards; later runs stop at items already saved. X doesn't say when you liked or bookmarked something, so the post date (or the previous check) is the earliest possible time. DMs keep only who sent each one-to-one message and when, and X serves only the last 30 days." do %>
+    <%= lc_list_group do %>
+      <% [["liked_posts", "Your likes", "heart", "Up to 100 per page · $0.10 owned, $0.50 standard"],
+          ["bookmarks", "Bookmarks", "bookmark", "Up to 100 per page · $0.10 owned, $0.50 standard"],
+          ["dm_events", "DM activity", "envelope", "Up to 20 per page · $0.20, no owned rate"]].each do |dataset, label, icon, cost| %>
+        <%= lc_list_row label, icon: icon, subtitle: cost do %><%= read.("Collect", dataset, disabled: demo? || !@cycle || !connection&.granted?(X::Config::DATASET_SCOPES.fetch(dataset)), aria: { label: "Collect #{label.downcase}" }) %><% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <% unknown_users = X::SyncRun.unresolved_user_ids %>
+  <% unknown_parents = X::SyncRun.unresolved_parent_ids %>
+  <% if unknown_users.any? || unknown_parents.any? %>
+    <%= lc_list_section "Missing context", footnote: "Each action resolves up to 20, within the remaining budget." do %>
+      <%= lc_list_group do %>
+        <% if unknown_users.any? %><%= lc_list_row "Unresolved people", icon: "user", subtitle: unknown_users.size.to_s do %><%= read.("Resolve", "users", disabled: demo? || !@cycle, aria: { label: "Resolve people" }) %><% end %><% end %>
+        <% if unknown_parents.any? %><%= lc_list_row "Missing parent posts", icon: "chat-bubble-left", subtitle: unknown_parents.size.to_s do %><%= read.("Resolve", "posts", disabled: demo? || !@cycle, aria: { label: "Resolve parents" }) %><% end %><% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <% if @runs.any? %>
+    <%= lc_list_section "Recent collection" do %>
+      <%= lc_list_group do %>
+        <% @runs.each do |run| %>
+          <%= lc_list_row "#{run.dataset.humanize} · #{run.mode.humanize}", subtitle: [ "#{run.resource_count} resources · #{run.page_number} pages · #{run.created_at.strftime("%-d %b, %H:%M")}", run.message.presence ].compact.join(" · "), id: dom_id(run), data: { request_key: run.request_key } do %>
+            <% if X::SyncRun::ACTIVE_STATUSES.include?(run.status) %>
+              <%= lc_button_to "Recover interrupted page", x_sync_run_path(run), method: :patch, params: {recover: "1"}, variant: :ghost, size: :sm, disabled: run.updated_at > 2.minutes.ago %>
+            <% elsif run.status == "partial" || run.status == "ready" || (run.status == "paused" && run.page_number.zero?) || run.x_reads.where(status: "received").exists? %>
+              <%= lc_button_to(run.status == "paused" ? "Retry this page" : "Read next page", x_sync_run_path(run), method: :patch, params: {page: run.page_number}, variant: :secondary, size: :sm, disabled: demo? || (run.retry_at && run.retry_at > Time.current)) %>
+            <% end %>
+            <%= lc_badge run.status.humanize, tone: run.status == "completed" ? :success : :neutral %>
+          <% end %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

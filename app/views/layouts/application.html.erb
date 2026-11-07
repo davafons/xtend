@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
   <head>
-    <title><%= content_for(:title).presence || "Today" %> · Twitter CRM</title>
+    <title><%= content_for(:title).presence || "Twitter CRM" %> · Twitter CRM</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -9,22 +9,22 @@
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
-  <body class="min-h-screen bg-background text-foreground">
-    <% if demo? %><div class="bg-warning-soft px-6 py-3 text-center text-sm font-medium" role="status">Demo workspace · fictional people and activity · separate from your real data · no X requests</div><% end %>
-    <div class="flex min-h-screen">
+  <body class="min-h-dvh bg-background text-foreground">
+    <%= lc_skip_link %>
+    <% if demo? %><div class="bg-warning-soft px-inset py-related text-center text-small font-medium" role="status">Demo workspace · fictional people and activity · separate from your real data · no X requests</div><% end %>
+    <div class="flex min-h-dvh">
       <% if Current.workspace %><%= render "layouts/application/sidebar" %><% end %>
       <div class="min-w-0 flex-1">
         <%= lc_container do %>
-          <% if Current.workspace && X::SyncRun.active.exists? %>
-            <div data-controller="refresh" data-refresh-at-value="<%= Time.current.to_f %>" role="status" class="mt-4"><%= lc_alert "Reading from X in the background. This page updates when it finishes.", tone: :neutral %></div>
-          <% end %>
-          <main class="pb-16 pt-6">
-            <% flash.each do |kind, message| %><div class="mb-6"><%= lc_alert message, tone: (kind == "alert" ? :destructive : :success) %></div><% end %>
+          <main id="main" class="<%= lc_stack_class(gap: :section) %> py-section">
+            <% if Current.workspace && X::SyncRun.active.exists? %>
+              <div data-controller="refresh" data-refresh-at-value="<%= Time.current.to_f %>" role="status"><%= lc_alert "Reading from X in the background. This page updates when it finishes.", tone: :neutral %></div>
+            <% end %>
+            <% flash.each do |kind, message| %><%= lc_alert message, tone: (kind == "alert" ? :destructive : :success) %><% end %>
             <%= yield %>
           </main>
-          <footer class="flex items-center justify-between gap-4 py-6 text-xs text-muted-foreground"><span>Twitter CRM</span><span>English discovery · You write every reply</span></footer>
         <% end %>
       </div>
     </div>
-    </body>
-  </html>
+  </body>
+</html>

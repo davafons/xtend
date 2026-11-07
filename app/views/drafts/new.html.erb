@@ -1,8 +1,8 @@
 <% content_for :title, "New draft" %>
-<div class="flex items-center justify-between gap-8 pb-6">
+<div class="flex items-center justify-between gap-section">
   <%= lc_button_link_to "Drafts", drafts_path, variant: :ghost, size: :sm, icon: "arrow-left" %>
 </div>
-<div class="grid grid-cols-[minmax(0,40rem)_20rem] items-start justify-between gap-8">
-  <div class="flex flex-col gap-4"><%= render "form", draft: @draft %></div>
+<div class="grid grid-cols-[minmax(0,40rem)_20rem] items-start justify-between gap-section">
+  <div class="flex flex-col gap-content"><%= render "form", draft: @draft %></div>
   <aside class="sticky top-6"><%= render "details", draft: @draft %></aside>
 </div>

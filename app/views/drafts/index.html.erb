@@ -1,54 +1,42 @@
 <% content_for :title, "Compose" %>
 <h1 class="sr-only">Compose</h1>
-<div class="flex items-center justify-end gap-8 pb-6">
-  <%= render "tabs" %>
-</div>
+<%= render "tabs" %>
 
-<div class="grid grid-cols-[minmax(0,40rem)] gap-8">
-  <div class="flex flex-col gap-6">
+<div class="grid grid-cols-[minmax(0,40rem)] gap-section">
+  <div class="flex flex-col gap-inset">
     <%= lc_card do %>
       <%= form_with model: @draft do %>
         <%= render "drafts/composer", parts: [], submit: "Save idea" %>
       <% end %>
     <% end %>
 
-    <nav class="flex flex-wrap items-center gap-1" aria-label="Stage">
-      <%= lc_button_link_to "Open · #{@counts.except("posted").values.sum}", drafts_path, variant: @status ? :ghost : :secondary, size: :sm, aria: { current: ("page" unless @status) } %>
-      <% Draft::STATUSES.each do |status, label| %>
-        <%= lc_button_link_to "#{label} · #{@counts.fetch(status, 0)}", drafts_path(status: status), variant: @status == status ? :secondary : :ghost, size: :sm, aria: { current: ("page" if @status == status) } %>
-      <% end %>
-    </nav>
+    <%= view_tabs "Stage", [ [ "Open · #{@counts.except("posted").values.sum}", drafts_path, @status.nil? ], *Draft::STATUSES.map { |status, label| [ "#{label} · #{@counts.fetch(status, 0)}", drafts_path(status: status), @status == status ] } ] %>
 
     <% if @drafts.empty? %>
-      <%= lc_card class: "py-10" do %>
-        <div class="flex flex-col items-center gap-2 text-center">
-          <%= lc_heading(@status ? "Nothing in #{Draft::STATUSES[@status]}." : "No ideas yet.", level: 2, size: :subheading) %>
-          <%= lc_text "Write one above, or ask your Grok bot to save an idea and a few versions of it.", tone: :muted, size: :small %>
-        </div>
-      <% end %>
+      <%= empty_state(@status ? "Nothing in #{Draft::STATUSES[@status]}." : "No ideas yet.", "Write one above, or ask your Grok bot to save an idea and a few versions of it.", icon: "light-bulb") %>
     <% else %>
       <%= lc_card padding: :none do %>
         <ol class="flex flex-col divide-y divide-border">
           <% @drafts.each do |draft| %>
-            <li class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 px-5 py-4" id="<%= dom_id(draft) %>">
+            <li class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-heading px-inset py-content" id="<%= dom_id(draft) %>">
               <%= owner_avatar %>
-              <div class="flex min-w-0 flex-col gap-2">
-                <div class="flex items-center gap-2 text-sm text-muted-foreground">
+              <div class="flex min-w-0 flex-col gap-related">
+                <div class="flex items-center gap-related text-small text-muted-foreground">
                   <span class="font-semibold text-foreground">@<%= X::Connection.current&.username || "you" %></span>
                   <span><%= draft.posted_at ? draft.posted_at.strftime("%-d %b") : "#{time_ago_in_words(draft.updated_at)} ago" %></span>
                   <% if draft.source == "grok" %><%= grok_badge %><% end %>
                   <%= lc_badge Draft::STATUSES.fetch(draft.status), class: "ms-auto" %>
                 </div>
-                <%= link_to edit_draft_path(draft), class: "flex flex-col gap-1 hover:opacity-80" do %>
+                <%= link_to edit_draft_path(draft), class: "flex flex-col gap-tight hover:opacity-80" do %>
                   <% if draft.parts.any? %>
                     <span class="line-clamp-6 whitespace-pre-line break-words"><%= draft.parts.first %></span>
                   <% else %>
                     <span class="text-muted-foreground"><%= draft.topic.presence || draft.notes.to_s.truncate(200) %></span>
                   <% end %>
                 <% end %>
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                  <% if draft.thread? %><span class="inline-flex items-center gap-1"><%= lc_icon "queue-list", options: { class: "size-4", "aria-hidden": true } %>Thread of <%= draft.parts.size %></span><% end %>
-                  <% if draft.alternatives.any? %><span class="inline-flex items-center gap-1"><%= lc_icon "square-2-stack", options: { class: "size-4", "aria-hidden": true } %><%= pluralize(draft.alternatives.size, "alternative") %></span><% end %>
+                <div class="flex flex-wrap items-center gap-x-content gap-y-tight text-small text-muted-foreground">
+                  <% if draft.thread? %><span class="inline-flex items-center gap-tight"><%= lc_icon "queue-list", options: { class: "size-4", "aria-hidden": true } %>Thread of <%= draft.parts.size %></span><% end %>
+                  <% if draft.alternatives.any? %><span class="inline-flex items-center gap-tight"><%= lc_icon "square-2-stack", options: { class: "size-4", "aria-hidden": true } %><%= pluralize(draft.alternatives.size, "alternative") %></span><% end %>
                   <% if draft.over_limit? %><span class="text-destructive">Too long</span><% end %>
                   <% if draft.topic.present? && draft.parts.any? %><span class="truncate"><%= draft.topic %></span><% end %>
                   <% if draft.posted_url && !demo? %>

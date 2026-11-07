@@ -7,7 +7,7 @@ module PeopleHelper
 
   def people_sort_header(label, sort, align: nil)
     active = @sort == sort
-    link_to people_path(people_filter_params(sort: sort)), class: [ "inline-flex items-center gap-1 hover:text-primary", ("text-primary" if active), align ], aria: { sort: (active ? "descending" : nil) } do
+    link_to people_path(people_filter_params(sort: sort)), class: [ "inline-flex items-center gap-tight hover:text-primary", ("text-primary" if active), align ], aria: { sort: (active ? "descending" : nil) } do
       safe_join([ label, (lc_icon("chevron-down", options: { class: "size-3.5", "aria-hidden": true }) if active) ].compact)
     end
   end

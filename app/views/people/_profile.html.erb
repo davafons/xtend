@@ -5,10 +5,10 @@
   <% else %>
     <div class="aspect-[5/1] w-full bg-accent"></div>
   <% end %>
-  <div class="flex flex-col gap-3 px-6 pb-6">
-    <div class="flex items-start justify-between gap-4">
+  <div class="flex flex-col gap-heading px-inset pb-inset">
+    <div class="flex items-start justify-between gap-content">
       <%= person_avatar person, size: :xl, ring: person.follow_state(graph), class: "-mt-[4.25rem] size-34 text-3xl [--lc-avatar-border:4px]" %>
-      <div class="flex flex-wrap items-center justify-end gap-2 pt-3">
+      <div class="flex flex-wrap items-center justify-end gap-related pt-heading">
         <%= person_actions(person) %>
         <%= source_link "View on X", person.profile_url, variant: :secondary, size: :sm %>
       </div>
@@ -20,7 +20,7 @@
     <% if person.description.present? %>
       <p class="whitespace-pre-line"><%= person.description %></p>
     <% else %>
-      <%= lc_text "No profile description collected yet.", tone: :muted %>
+      <%= lc_text "No profile description collected yet.", size: :small, tone: :muted %>
     <% end %>
     <% if person.x_id.nil? && person.posts.where(source: "grok").exists? %>
       <%= lc_alert "Known only from Grok research. No X read has confirmed this account yet; the profile shown is what Grok reported.", tone: :warning %>
@@ -31,27 +31,27 @@
       ([ "calendar", "Joined #{person.joined_x_at.strftime('%B %Y')}" ] if person.joined_x_at)
     ].compact %>
     <% if facts.any? %>
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
-        <% facts.each do |icon, fact| %><span class="inline-flex items-center gap-1"><%= lc_icon icon, options: { class: "size-4", "aria-hidden": true } %><%= fact %></span><% end %>
+      <div class="flex flex-wrap items-center gap-x-content gap-y-tight text-muted-foreground">
+        <% facts.each do |icon, fact| %><span class="inline-flex items-center gap-tight"><%= lc_icon icon, options: { class: "size-4", "aria-hidden": true } %><%= fact %></span><% end %>
       </div>
     <% end %>
     <% if person.followers_count %>
-      <div class="flex flex-wrap items-center gap-x-5 gap-y-1 text-small text-muted-foreground">
+      <div class="flex flex-wrap items-center gap-x-inset gap-y-tight text-small text-muted-foreground">
         <span><strong class="font-semibold text-foreground tabular-nums"><%= number_with_delimiter(person.following_count) %></strong> Following</span>
         <span><strong class="font-semibold text-foreground tabular-nums"><%= compact_count(person.followers_count) %></strong> Followers</span>
         <span><strong class="font-semibold text-foreground tabular-nums"><%= number_with_delimiter(person.posts_count) %></strong> posts</span>
         <% if person.profile_observed_at %><span class="text-caption">as of <%= person.profile_observed_at.strftime("%-d %b %Y") %></span><% end %>
       </div>
     <% end %>
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="flex flex-wrap items-center gap-related">
       <%= relationship_badge person.reply_state %>
       <%= relationship_badge person.follow_state(graph) %>
     </div>
-    <div class="flex flex-wrap items-center gap-2" id="tags">
+    <div class="flex flex-wrap items-center gap-related" id="tags">
       <% person.tags.each do |tag| %>
         <%= tag_chip tag.name, remove: person_tag_path(person, tag) %>
       <% end %>
-      <%= form_with url: person_tags_path(person), class: "flex items-center gap-1" do %>
+      <%= form_with url: person_tags_path(person), class: "flex items-center gap-tight" do %>
         <%= lc_input name: "name", size: :sm, placeholder: person.tags.any? ? "Add a tag" : "Add tags, e.g. tokyo, ios dev", list: "tag-options", aria: { label: "Add tags" }, class: "w-56" %>
         <datalist id="tag-options"><% Tag.order(:name).pluck(:name).each do |name| %><option value="<%= name %>"></option><% end %></datalist>
         <%= lc_button "Add", type: :submit, variant: :ghost, size: :sm, icon: "tag" %>

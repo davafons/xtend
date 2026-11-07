@@ -1,5 +1,1 @@
-<nav class="flex items-center gap-1" aria-label="Compose">
-  <% [["Drafts", drafts_path], ["Ideas", ideas_drafts_path]].each do |label, path| %>
-    <%= lc_button_link_to label, path, variant: current_page?(path) ? :secondary : :ghost, size: :sm, aria: { current: ("page" if current_page?(path)) } %>
-  <% end %>
-</nav>
+<%= view_tabs "Compose", [ [ "Drafts", drafts_path, current_page?(drafts_path) ], [ "Ideas", ideas_drafts_path, current_page?(ideas_drafts_path) ] ] %>
