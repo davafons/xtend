@@ -2,8 +2,11 @@ import { Controller } from "@hotwired/stimulus"
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, forceX, forceY } from "d3-force"
 
 // Draws the network as a force-directed graph on a canvas: avatars ringed in their follow relationship's color,
-// lines weighted by how often two accounts interacted. Selecting someone lists their connections in the panel.
-const KIND_LABELS = { reply: "replies", quote: "quotes", repost: "reposts", mention: "mentions", like: "likes", follow: "follows" }
+// arrows from who acted to who received it, weighted by how often. Two-way pairs curve apart so both arrows show. Selecting someone lists their connections in the panel.
+const KIND_LABELS = {
+  reply: ["reply", "replies"], quote: ["quote", "quotes"], repost: ["repost", "reposts"],
+  mention: ["mention", "mentions"], like: ["like", "likes"], follow: ["follow", "follows"],
+}
 
 export default class extends Controller {
   static targets = ["canvas", "tooltip", "panel"]
@@ -41,6 +44,8 @@ export default class extends Controller {
     this.nodes = data.nodes.map((node) => ({ ...node, radius: node.owner ? 22 : Math.min(7 + 3 * Math.sqrt(node.weight), 26) }))
     const byId = new Map(this.nodes.map((node) => [node.id, node]))
     this.links = data.links.filter((link) => byId.has(link.source) && byId.has(link.target)).map((link) => ({ ...link }))
+    const directed = new Set(this.links.map((link) => `${link.source}>${link.target}`))
+    for (const link of this.links) link.reciprocal = directed.has(`${link.target}>${link.source}`)
     this.neighbors = new Map(this.nodes.map((node) => [node.id, []]))
     for (const link of this.links) {
       this.neighbors.get(link.source).push({ id: link.target, link, outgoing: true })
@@ -50,12 +55,13 @@ export default class extends Controller {
     for (const node of this.nodes) this.loadImage(node)
     this.resize()
     this.simulation = forceSimulation(this.nodes)
-      .force("link", forceLink(this.links).id((node) => node.id).distance((link) => 90 / Math.sqrt(link.weight)).strength(0.4))
-      .force("charge", forceManyBody().strength(-160))
-      .force("collide", forceCollide((node) => node.radius + 3))
+      .force("link", forceLink(this.links).id((node) => node.id)
+        .distance((link) => link.source.radius + link.target.radius + 110 / Math.sqrt(link.weight)).strength(0.3))
+      .force("charge", forceManyBody().strength(-420).distanceMax(600))
+      .force("collide", forceCollide((node) => node.radius + 14))
       .force("center", forceCenter(0, 0))
-      .force("x", forceX(0).strength(0.04))
-      .force("y", forceY(0).strength(0.04))
+      .force("x", forceX(0).strength(0.025))
+      .force("y", forceY(0).strength(0.025))
       .on("tick", () => this.draw())
   }
 
@@ -232,10 +238,13 @@ export default class extends Controller {
       name.className = "cursor-pointer text-start text-sm font-medium hover:underline"
       name.textContent = connection.node.owner ? "You" : connection.node.name
       name.addEventListener("click", () => this.select(connection.node))
-      const detail = document.createElement("span")
-      detail.className = "text-xs text-muted-foreground"
-      detail.textContent = connection.summary
-      item.append(name, detail)
+      item.append(name)
+      for (const line of connection.lines) {
+        const detail = document.createElement("span")
+        detail.className = "text-xs text-muted-foreground"
+        detail.textContent = line
+        item.append(detail)
+      }
       list.append(item)
     }
     if (connections.length === 0) {
@@ -259,12 +268,13 @@ export default class extends Controller {
       }
       merged.set(id, entry)
     }
-    const describe = (counts) => Object.entries(counts).map(([kind, count]) => `${count} ${KIND_LABELS[kind]}`).join(", ")
+    const describe = (counts) => Object.entries(counts).map(([kind, count]) => `${count} ${KIND_LABELS[kind][count === 1 ? 0 : 1]}`).join(", ")
+    const label = (other) => (other.owner ? "You" : `@${other.handle}`)
     return [...merged.values()].sort((a, b) => b.weight - a.weight).map((entry) => {
-      const parts = []
-      if (Object.keys(entry.out).length) parts.push(`to them: ${describe(entry.out)}`)
-      if (Object.keys(entry.in).length) parts.push(`from them: ${describe(entry.in)}`)
-      return { node: entry.node, summary: parts.join(" · ") }
+      const lines = []
+      if (Object.keys(entry.out).length) lines.push(`${label(node)} → ${label(entry.node)}: ${describe(entry.out)}`)
+      if (Object.keys(entry.in).length) lines.push(`${label(entry.node)} → ${label(node)}: ${describe(entry.in)}`)
+      return { node: entry.node, lines }
     })
   }
 
@@ -282,6 +292,52 @@ export default class extends Controller {
     return this.colors.line
   }
 
+  // A line from the source's ring to an arrowhead at the target's ring, bent to one side when the pair goes both ways.
+  drawLink(context, link, k) {
+    const { source, target } = link
+    const dx = target.x - source.x
+    const dy = target.y - source.y
+    const distance = Math.hypot(dx, dy)
+    if (distance <= source.radius + target.radius + 4 / k) return
+    const bend = link.reciprocal ? Math.min(distance * 0.18, 40) : 0
+    const cx = (source.x + target.x) / 2 - (dy / distance) * bend
+    const cy = (source.y + target.y) / 2 + (dx / distance) * bend
+    const edge = (node, gap) => {
+      const ax = cx - node.x
+      const ay = cy - node.y
+      const length = Math.hypot(ax, ay) || 1
+      return { x: node.x + (ax / length) * (node.radius + gap), y: node.y + (ay / length) * (node.radius + gap) }
+    }
+    const start = edge(source, 3 / k)
+    const tip = edge(target, 4 / k)
+    const lineWidth = (0.6 + Math.log2(link.weight + 1)) / Math.sqrt(k)
+    const head = (7 + 1.5 * Math.log2(link.weight + 1)) / Math.sqrt(k)
+    const ex = tip.x - cx
+    const ey = tip.y - cy
+    const length = Math.hypot(ex, ey) || 1
+    const ux = ex / length
+    const uy = ey / length
+    const base = { x: tip.x - ux * head, y: tip.y - uy * head }
+
+    const color = this.linkColor(link)
+    context.strokeStyle = color
+    context.fillStyle = color
+    context.lineWidth = lineWidth
+    context.setLineDash(link.kinds.follow && Object.keys(link.kinds).length === 1 ? [4 / k, 4 / k] : [])
+    context.beginPath()
+    context.moveTo(start.x, start.y)
+    if (bend) context.quadraticCurveTo(cx, cy, base.x, base.y)
+    else context.lineTo(base.x, base.y)
+    context.stroke()
+    context.setLineDash([])
+    context.beginPath()
+    context.moveTo(tip.x, tip.y)
+    context.lineTo(base.x - uy * head * 0.55, base.y + ux * head * 0.55)
+    context.lineTo(base.x + uy * head * 0.55, base.y - ux * head * 0.55)
+    context.closePath()
+    context.fill()
+  }
+
   draw() {
     if (!this.nodes || !this.width) return
     const context = this.canvasTarget.getContext("2d")
@@ -296,13 +352,7 @@ export default class extends Controller {
       if (typeof link.source !== "object") continue
       const active = !focus || (focus.has(link.source.id) && focus.has(link.target.id) && (link.source.id === (this.hovered || this.selected).id || link.target.id === (this.hovered || this.selected).id))
       context.globalAlpha = active ? (focus ? 0.9 : 0.35) : 0.05
-      context.strokeStyle = this.linkColor(link)
-      context.lineWidth = (0.6 + Math.log2(link.weight + 1)) / Math.sqrt(k)
-      context.setLineDash(link.kinds.follow && Object.keys(link.kinds).length === 1 ? [4 / k, 4 / k] : [])
-      context.beginPath()
-      context.moveTo(link.source.x, link.source.y)
-      context.lineTo(link.target.x, link.target.y)
-      context.stroke()
+      this.drawLink(context, link, k)
     }
     context.setLineDash([])
 

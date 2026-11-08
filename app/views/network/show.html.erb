@@ -51,6 +51,8 @@
             <span class="flex items-center gap-related"><span class="h-0.5 w-4 bg-you"></span>Your interactions</span>
             <span class="flex items-center gap-related"><span class="h-0.5 w-4 bg-like"></span>Likes</span>
             <span class="flex items-center gap-related"><span class="h-0.5 w-4 bg-foreground/40"></span>Replies, quotes, reposts, mentions</span>
+            <span class="flex items-center gap-related"><span class="w-4 border-t-2 border-dashed border-foreground/40"></span>Follows only</span>
+            <span class="flex items-center gap-related"><%= lc_icon "arrow-long-right", options: { class: "size-4 shrink-0 text-muted-foreground", "aria-hidden": true } %>Arrows point from who acted to who received it</span>
           </div>
         </div>
       <% end %>

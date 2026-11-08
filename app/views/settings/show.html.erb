@@ -17,6 +17,18 @@
         <% end %>
       <% end %>
     <% end %>
+    <%= lc_section title: "Posting reminders" do %>
+      <%= lc_card do %>
+        <%= form_with model: @workspace, url: settings_path, class: "flex flex-col gap-inset" do %>
+          <%= lc_field label: "Posting times and strategy", id: "workspace-posting-notes", hint: "Keep your preferred times, time zone, and audience here as a reminder." do |field| %>
+            <%= lc_textarea @workspace.posting_notes, name: "workspace[posting_notes]", rows: 14, **field %>
+          <% end %>
+          <div>
+            <%= lc_button "Save posting reminders", type: :submit, size: :sm, icon: "bookmark" %>
+          </div>
+        <% end %>
+      <% end %>
+    <% end %>
   </div>
   <div class="flex flex-col gap-section">
     <%= lc_section title: "X account" do %>
