@@ -23,6 +23,10 @@ class Person < ApplicationRecord
   scope :pinned, -> { joins(:pin) }
   scope :tagged, ->(name) { where(id: PersonTag.joins(:tag).where(tags: { name: Tag.normalize(name) }).select(:person_id)) }
   scope :untagged, -> { where.not(id: PersonTag.select(:person_id)) }
+  # People you exchanged a reply or a DM with in a time range, in either direction.
+  scope :talked_between, ->(range) {
+    where(id: ReplyEvent.where(occurred_at: range).select(:person_id)).or(where(x_id: DirectMessage.where(occurred_at: range).select(:partner_x_id)))
+  }
 
   # Adds tags without touching existing ones; returns the tags that were new for this person.
   def add_tags!(names, source: "owner")

@@ -1,0 +1,68 @@
+<% content_for :title, "Insights" %>
+<h1 class="sr-only">Insights</h1>
+
+<% period_dates = [ @activity.starts_at.to_date, @activity.ends_at.to_date ] %>
+<div class="flex flex-wrap items-center justify-between gap-heading">
+  <div class="flex flex-wrap items-center gap-related">
+    <%= view_tabs "Period", Network::Activity::PERIODS.map { |key, period| [ period[:label], insights_path(period: key), @activity.period == key ] } %>
+    <% if @activity.custom? %>
+      <%= lc_button_link_to date_range_label(@activity.range), insights_path, variant: :secondary, size: :sm, icon: "x-mark", icon_position: :end, aria: { label: "Remove the date range #{date_range_label(@activity.range)}" } %>
+    <% end %>
+  </div>
+  <p class="text-small text-muted-foreground">Drag across a chart to zoom in; click a bar to see who you talked with</p>
+</div>
+
+<%= stat_cards [
+  [ "Your replies", number_with_delimiter(@activity.replies_sent.sum) ],
+  [ "Replies to you", number_with_delimiter(@activity.replies_received.sum) ],
+  [ "People you talked with", link_to(number_with_delimiter(@activity.partner_count), people_path(from: period_dates.first, to: period_dates.last), class: "hover:underline") ],
+  [ "Two-way", number_with_delimiter(@activity.two_way_count) ]
+] %>
+
+<%= lc_card do %>
+  <div class="flex flex-col gap-content">
+    <%= lc_heading "Conversations", level: 2, size: :subheading %>
+    <% if @activity.empty? %>
+      <%= lc_text "No replies or DMs saved for this period. Replies come from X data checks and the capture extension; DMs from an archive import.", size: :small, tone: :muted %>
+    <% else %>
+      <% axis, title = { day: [ "%-d %b", "%a %-d %b" ], week: [ "%-d %b", "Week of %-d %b %Y" ], month: [ "%b %Y", "%B %Y" ] }.fetch(@activity.unit) %>
+      <% dates = @activity.buckets.map { |bucket| @activity.bucket_dates(bucket) } %>
+      <%= chart :bar, label: "Replies and DMs per #{@activity.unit}", stacked: true, zoom: insights_path, dates: dates,
+        links: dates.map { |first, last| people_path(from: first, to: last) },
+        labels: @activity.buckets.map { |bucket| bucket.strftime(axis) }, titles: @activity.buckets.map { |bucket| bucket.strftime(title) },
+        series: [
+          { name: "Your replies", meaning: :you, values: @activity.replies_sent },
+          { name: "Replies to you", meaning: :them, values: @activity.replies_received },
+          { name: "DMs", meaning: :message, values: @activity.messages }
+        ] %>
+    <% end %>
+  </div>
+<% end %>
+
+<%= lc_card do %>
+  <div class="flex flex-col gap-content">
+    <%= lc_heading "Followers", level: 2, size: :subheading %>
+    <% if @followers.none? { |_, count| count } %>
+      <%= lc_text "No complete follower check in this period. Run one from X data; each complete check adds a point.", size: :small, tone: :muted %>
+    <% else %>
+      <%= chart :line, label: "Followers at each check", ticks: "date", missing: "Incomplete check", zoom: insights_path,
+        x: @followers.map { |at, _| at.to_i * 1000 }, labels: @followers.map { |at, _| at.strftime("%-d %b %Y, %H:%M") },
+        series: [ { name: "Followers", meaning: :them, values: @followers.map(&:last) } ] %>
+      <%= lc_text "Each point is a complete follower check. An incomplete check leaves a gap; between checks the count is unknown.", size: :small, tone: :muted %>
+    <% end %>
+    <% compared = @changes.select { |_, gained| gained } %>
+    <% if compared.any? && compared.all? { |_, gained, lost| gained.zero? && lost.zero? } %>
+      <%= lc_text "No followers gained or lost across #{pluralize(compared.size, 'later check')} in this period.", size: :small, tone: :muted %>
+    <% elsif compared.any? %>
+      <h3 class="<%= lc_text_class(size: :label, extra: "mt-related") %>">Gained and lost at each check</h3>
+      <%= chart :bar, label: "Followers gained and lost at each check", stacked: true, zoom: insights_path, missing: "Baseline check",
+        dates: @changes.map { |at, _| [ at.to_date ] * 2 },
+        labels: @changes.map { |at, _| at.strftime("%-d %b %H:%M") }, titles: @changes.map { |at, _| at.strftime("%-d %b %Y, %H:%M") },
+        series: [
+          { name: "New followers", meaning: :them, values: @changes.map { |_, gained, _| gained } },
+          { name: "Lost", meaning: :neutral, values: @changes.map { |_, _, lost| lost&.then { -_1 } } }
+        ] %>
+      <%= lc_text "Someone who followed and unfollowed between two checks never shows up. A loss can also be a suspended or deactivated account.", size: :small, tone: :muted %>
+    <% end %>
+  </div>
+<% end %>

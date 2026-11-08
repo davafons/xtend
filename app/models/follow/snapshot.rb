@@ -13,6 +13,30 @@ class Follow::Snapshot < ApplicationRecord
     where(direction: direction).order(observed_at: :desc, id: :desc).first
   end
 
+  # [observed_at, follower count] for every follower check in a time range. An incomplete check has no count,
+  # so a chart shows a gap there instead of a partial total.
+  def self.follower_counts(since: nil, before: nil)
+    snapshots = where(direction: "followers").order(:observed_at)
+    snapshots = snapshots.where(observed_at: since..before) if since || before
+    snapshots = snapshots.to_a
+    counts = Follow::Membership.where(follow_snapshot_id: snapshots.select(&:completed_at).map(&:id)).group(:follow_snapshot_id).count
+    snapshots.map { |snapshot| [ snapshot.observed_at, (counts.fetch(snapshot.id, 0) if snapshot.completed_at) ] }
+  end
+
+  # [observed_at, gained, lost] for each tracked follower check in a time range. The first tracked check is the
+  # baseline, so its changes are unknown (nil) rather than zero.
+  def self.follower_changes(since: nil, before: nil)
+    checks = where(direction: "followers").where.not(follower_tracking_completed_at: nil).order(:observed_at, :id)
+    baseline = checks.first
+    checks = checks.where(observed_at: since..before) if since || before
+    checks = checks.to_a
+    gained = Follow::FollowerPeriod.known_starts.where(first_snapshot_id: checks.map(&:id)).group(:first_snapshot_id).count
+    lost = Follow::FollowerPeriod.where(ended_snapshot_id: checks.map(&:id)).group(:ended_snapshot_id).count
+    checks.map do |check|
+      check == baseline ? [ check.observed_at, nil, nil ] : [ check.observed_at, gained.fetch(check.id, 0), lost.fetch(check.id, 0) ]
+    end
+  end
+
   def fresh?
     completed_at.present? && observed_at >= 24.hours.ago
   end

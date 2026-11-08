@@ -9,6 +9,11 @@
   <% if @tags.any? %>
     <%= lc_select [["Any tag", ""], *@tags.map { |tag| ["##{tag.name} · #{tag.people_count}", tag.name] }], name: "tag", selected: params[:tag], size: :sm, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% end %>
+  <% if @talked %>
+    <%= hidden_field_tag :from, params[:from] %>
+    <%= hidden_field_tag :to, params[:to] %>
+    <%= lc_button_link_to "Talked #{date_range_label(@talked)}", people_path(people_filter_params.except(:from, :to)), variant: :secondary, size: :sm, icon: "x-mark", icon_position: :end, aria: { label: "Remove the date filter: talked #{date_range_label(@talked)}" } %>
+  <% end %>
   <%= lc_button "Search", type: :submit, variant: :secondary, class: "sr-only" %>
   <% if people_filter_params.except(:sort).any? %><%= lc_button_link_to "Clear", people_path(people_filter_params.slice(:sort)), variant: :ghost, size: :sm, icon: "x-mark" %><% end %>
   <div class="ms-auto flex items-center gap-related">

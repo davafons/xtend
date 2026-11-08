@@ -6,13 +6,21 @@ module ApplicationHelper
   def navigation_sections
     [
       [ "Work", [ [ "People", people_path, "users" ], [ "Compose", drafts_path, "pencil-square" ] ] ],
-      [ "Relationships", [ [ "Network", network_path, "share" ], [ "Timeline", timeline_path, "queue-list" ], [ "Follow review", follow_reviews_path, "user-minus" ], [ "Followers", follower_history_path, "chart-bar" ] ] ],
+      [ "Relationships", [ [ "Network", network_path, "share" ], [ "Timeline", timeline_path, "queue-list" ], [ "Follow review", follow_reviews_path, "user-minus" ], [ "Followers", follower_history_path, "chart-bar" ], [ "Insights", insights_path, "presentation-chart-line" ] ] ],
       [ "Data", [ [ "X data", x_sources_path, "circle-stack" ], [ "Grok", grok_connector_path, "sparkles" ], [ "Spending", x_billing_cycles_path, "banknotes" ] ] ]
     ]
   end
 
   def navigation_active?(path)
     request.path.start_with?(path) || (path == people_path && current_page?(root_path))
+  end
+
+  # "14 Sep 2026", "14–20 Sep 2026", or "28 Sep – 4 Oct 2026".
+  def date_range_label(range)
+    first, last = range.first, range.last
+    return first.strftime("%-d %b %Y") if first == last
+    return "#{first.day}–#{last.strftime('%-d %b %Y')}" if first.month == last.month && first.year == last.year
+    "#{first.strftime(first.year == last.year ? '%-d %b' : '%-d %b %Y')} – #{last.strftime('%-d %b %Y')}"
   end
 
   def demo?

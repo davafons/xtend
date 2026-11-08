@@ -17,6 +17,8 @@ class PeopleController < ApplicationController
     @people = @people.where.not(notes: [nil, ""]) if params[:filter] == "notes"
     @people = @people.untagged if params[:filter] == "untagged"
     @people = @people.tagged(params[:tag]) if params[:tag].present?
+    @talked = date_range_param
+    @people = @people.talked_between(@talked.first.in_time_zone..@talked.last.in_time_zone.end_of_day) if @talked
     @tags = Tag.by_use.to_a
     if params[:follow].present?
       if @graph.complete?
