@@ -58,6 +58,37 @@ module WebCaptureHelper
     { "data" => { "timeline" => { "instructions" => [ { "type" => "TimelineAddEntries", "entries" => entries } ] } } }
   end
 
+  # One page of x.com's notifications, in the shape NotificationsTimeline returns: grouped notifications name
+  # their type on the entry and list accounts and posts in a template; replies and mentions are plain posts.
+  def web_notifications(*entries)
+    { "data" => { "viewer_v2" => { "user_results" => { "result" => { "__typename" => "User", "rest_id" => Current.workspace.owner_x_id,
+      "notification_timeline" => { "timeline" => { "instructions" => [
+        { "type" => "TimelineClearCache" },
+        { "type" => "TimelineAddEntries", "entries" => entries },
+        { "type" => "TimelineMarkEntriesUnreadGreaterThanSortIndex", "sort_index" => "1" }
+      ] } } } } } } }
+  end
+
+  def web_notification(element, users, posts: [], at: 1.day.ago, icon: "heart_icon")
+    { "entryId" => "notification-#{SecureRandom.hex(4)}", "sortIndex" => (at.to_f * 1000).to_i.to_s,
+      "content" => { "entryType" => "TimelineTimelineItem", "__typename" => "TimelineTimelineItem",
+        "clientEventInfo" => { "component" => "urt", "element" => element },
+        "itemContent" => { "__typename" => "TimelineNotification", "itemType" => "TimelineNotification", "notification_icon" => icon,
+          "rich_message" => { "text" => "#{users.first.dig('core', 'name')} acted", "entities" => [
+            { "fromIndex" => 0, "ref" => { "type" => "TimelineRichTextUser", "user_results" => { "result" => users.first } } } ] },
+          "template" => { "__typename" => "TimelineNotificationAggregateUserActions",
+            "from_users" => users.map { |user| { "__typename" => "TimelineNotificationUserRef", "user_results" => { "result" => user } } },
+            "target_objects" => posts.map { |post| { "__typename" => "TimelineNotificationTweetRef", "tweet_results" => { "result" => post } } } },
+          "timestamp_ms" => at.utc.iso8601(3) } } }
+  end
+
+  def web_notification_post(element, tweet)
+    { "entryId" => "notification-#{SecureRandom.hex(4)}", "sortIndex" => "1",
+      "content" => { "entryType" => "TimelineTimelineItem", "clientEventInfo" => { "component" => "urt", "element" => element },
+        "itemContent" => { "__typename" => "TimelineTweet", "itemType" => "TimelineTweet", "tweetDisplayType" => "Tweet",
+          "tweet_results" => { "result" => tweet } } } }
+  end
+
   def web_response(operation, document, variables: {})
     { "operation" => operation, "variables" => variables, "body" => document.to_json }
   end

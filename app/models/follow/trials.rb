@@ -38,6 +38,7 @@ class Follow::Trials
       owner = Current.workspace.owner_x_id
       clicked = X::FollowEdge.where(follower_x_id: owner, followed_x_id: people.filter_map(&:x_id)).pluck(:followed_x_id, :first_seen_at).to_h
       back = Follow::FollowerPeriod.ongoing.where(person_id: people.map(&:id)).group(:person_id).minimum(:first_seen_at)
+      notified = X::FollowEdge.where(follower_x_id: people.filter_map(&:x_id), followed_x_id: owner).where.not(followed_at: nil).pluck(:follower_x_id, :followed_at).to_h
       interactions = Person::Interactions.index(people)
       unfollowed = Follow::Review.where(person_id: people.map(&:id), decision: Follow::Progress::UNFOLLOWS).group(:person_id).maximum(:reviewed_on)
       people.filter_map do |person|
@@ -47,7 +48,7 @@ class Follow::Trials
         next if unfollowed[person.id] && unfollowed[person.id] >= by.to_date
         after = lists.reverse.find { |list| list.observed_at < by }&.observed_at || baseline.observed_at
         follows_back = graph.follower?(person)
-        since = back[person.id] || (person.follows_you_seen_at if person.follows_you)
+        since = notified[person.x_id] || back[person.id] || (person.follows_you_seen_at if person.follows_you)
         Trial.new(person, after, by, follows_back, (since if follows_back), interactions.fetch(person.id), person.follow_protection.present?)
       end.sort_by { |trial| [ -trial.days, trial.person.name ] }
     end

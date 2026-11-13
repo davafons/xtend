@@ -16,13 +16,16 @@
 # - Your follow lists: scrolling your own Followers or Following page to the end builds a complete list, the
 #   same as an X API check (see Follow::Snapshot.capture_page!). Your profile's counts tell whether pages are missing.
 # - Your actions: likes, reposts, and bookmarks x.com marks on posts you were shown, and the ones you make.
+# - Your notifications: replies and mentions are saved like any listed post; who liked or reposted your posts
+#   becomes interactions, and who followed you becomes a follow edge dated by X. A notification names only the
+#   accounts and posts it shows, so it is evidence, never a complete list.
 class X::Capture
   class Rejected < StandardError; end
   MAX_RESPONSES = 100
   MAX_RESPONSE_BYTES = 4.megabytes
   ENGAGEMENT_KINDS = { likes: "like", bookmarks: "bookmark" }.freeze
-  LISTED_PURPOSES = %i[discovery context likes bookmarks].freeze
-  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows relationships unfollows list_pages lists_completed].freeze
+  LISTED_PURPOSES = %i[discovery context likes bookmarks notifications].freeze
+  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows relationships unfollows list_pages lists_completed notifications].freeze
   OWN_LISTS = { "Followers" => "followers", "Following" => "following" }.freeze
   CLOCK_SKEW = 5.minutes
 
@@ -60,6 +63,7 @@ class X::Capture
       save_post_interactions(saved, posts, details)
       save_engagements(posts)
       save_engagement_lists(posts)
+      save_notifications(posts)
       save_follow_edges
       save_relationships(profiles)
       save_owner_counts(profiles)
@@ -223,6 +227,29 @@ class X::Capture
       next unless author
       kind = item.purpose == :likers ? "like" : "repost"
       item.payload.entry_user_ids.each { |user| interact(kind, user, author, post, post, nil) }
+    end
+  end
+
+  # Likes and reposts of your own posts, and new followers. A grouped notification is timed by its newest action,
+  # so its time is an upper bound for each account in it, like every other like time. A follower whose profile
+  # here says they no longer follow you gets no edge.
+  def save_notifications(posts)
+    @parsed.each do |item|
+      item.payload.notifications.each do |notification|
+        if notification.kind == "follow"
+          notification.actor_ids.each do |actor|
+            next if item.payload.relationships.dig(actor, :follows_you) == false
+            X::FollowEdge.record!(follower: actor, followed: @owner, seen_on: item.payload.operation, at: @now, followed_at: notification.at)
+            @result[:follows] += 1
+          end
+        else
+          notification.post_ids.each do |post|
+            next unless (posts.dig(post, "author_id") || X::SourcePost.find_by(x_id: post)&.author_x_id) == @owner
+            notification.actor_ids.each { |actor| interact(notification.kind, actor, @owner, post, post, notification.at) }
+          end
+        end
+        @result[:notifications] += 1
+      end
     end
   end
 

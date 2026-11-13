@@ -1,7 +1,11 @@
 // Queues captured responses in extension storage and sends them to the CRM in batches: a few seconds after you stop
 // scrolling, on demand, or every minute as a fallback. After each batch it tells open CRM tabs to refresh and shows
 // follow-list progress on x.com.
-const DEFAULT_SETTINGS = { crmUrl: "https://xtend.example.com", token: "", auto: true, paused: false };
+const DEFAULT_SETTINGS = { crmUrl: "https://xtend.example.com", token: "", auto: true, paused: false, rawDebug: false };
+// The raw debug log stays in extension storage until you download it from the popup; it is never sent anywhere.
+const RAW_PREFIX = "raw:";
+const MAX_RAW_ENTRIES = 5000;
+const MAX_RAW_BYTES = 100 * 1024 * 1024;
 const MAX_QUEUE = 2000;
 const MAX_BATCH_RESPONSES = 50;
 const MAX_BATCH_BYTES = 6 * 1024 * 1024;
@@ -32,10 +36,13 @@ async function setState(changes) {
   return next;
 }
 
-async function queuedKeys() {
-  const all = await chrome.storage.local.get(null);
-  return Object.keys(all).filter((key) => key.startsWith(ITEM_PREFIX)).sort();
+// Lists storage keys without loading every stored body.
+async function keysWith(prefix) {
+  const keys = chrome.storage.local.getKeys ? await chrome.storage.local.getKeys() : Object.keys(await chrome.storage.local.get(null));
+  return keys.filter((key) => key.startsWith(prefix)).sort();
 }
+
+const queuedKeys = () => keysWith(ITEM_PREFIX);
 
 function enqueue(message) {
   return serial(async () => {
@@ -148,7 +155,7 @@ function flush() {
       const byOperation = { ...current.byOperation };
       for (const item of responses) byOperation[item.operation] = Math.max((byOperation[item.operation] || 1) - 1, 0);
       const totals = { ...current.totals };
-      for (const field of ["posts", "people_added", "people_updated", "likes", "bookmarks", "accounts", "interactions", "follows", "observations", "relationships", "unfollows", "lists_completed"]) {
+      for (const field of ["posts", "people_added", "people_updated", "likes", "bookmarks", "accounts", "interactions", "follows", "observations", "relationships", "unfollows", "lists_completed", "notifications"]) {
         totals[field] = (totals[field] || 0) + (result.body[field] || 0);
       }
       await setState({ pending: Math.max(current.pending - batchKeys.length, 0), byOperation, totals,
@@ -171,6 +178,44 @@ async function testConnection() {
   }
 }
 
+async function rawState() {
+  const { rawState } = await chrome.storage.local.get("rawState");
+  return { count: 0, bytes: 0, ...rawState };
+}
+
+// Raw keys carry the body size, so trimming the log never reads the bodies.
+const rawKeys = () => keysWith(RAW_PREFIX);
+const rawKeySize = (key) => Number(key.split("-")[1]) || 0;
+
+function recordRaw(entry, tab) {
+  return serial(async () => {
+    if (!(await settings()).rawDebug) return;
+    const key = `${RAW_PREFIX}${Date.now().toString().padStart(15, "0")}-${entry.body.length}-${crypto.randomUUID()}`;
+    await chrome.storage.local.set({ [key]: { ...entry, page: tab?.url || null } });
+    let { count, bytes } = await rawState();
+    count += 1;
+    bytes += entry.body.length;
+    if (count > MAX_RAW_ENTRIES || bytes > MAX_RAW_BYTES) {
+      const dropped = [];
+      for (const old of await rawKeys()) {
+        if (count <= MAX_RAW_ENTRIES && bytes <= MAX_RAW_BYTES) break;
+        dropped.push(old);
+        count -= 1;
+        bytes -= rawKeySize(old);
+      }
+      await chrome.storage.local.remove(dropped);
+    }
+    await chrome.storage.local.set({ rawState: { count, bytes } });
+  });
+}
+
+function clearRaw() {
+  return serial(async () => {
+    await chrome.storage.local.remove(await rawKeys());
+    await chrome.storage.local.set({ rawState: { count: 0, bytes: 0 } });
+  });
+}
+
 function clearQueue() {
   return serial(async () => {
     await chrome.storage.local.remove(await queuedKeys());
@@ -183,8 +228,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id === chrome.runtime.id && sender.tab) enqueue(message);
     return false;
   }
+  if (message.type === "raw") {
+    if (sender.id === chrome.runtime.id && sender.tab && typeof message.entry?.body === "string") recordRaw(message.entry, sender.tab);
+    return false;
+  }
   const actions = {
-    status: async () => ({ settings: await settings(), state: await state() }),
+    status: async () => ({ settings: await settings(), state: await state(), raw: await rawState() }),
+    "clear-raw": () => clearRaw(),
     flush: () => flush().then(state),
     clear: () => clearQueue(),
     test: () => testConnection(),

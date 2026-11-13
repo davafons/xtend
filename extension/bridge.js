@@ -8,6 +8,21 @@ window.addEventListener("message", (event) => {
     .catch(() => {});
 });
 
+// The raw debug log: tells page.js whether to copy every X API response, and relays the copies.
+const postRawSetting = (settings) =>
+  window.postMessage({ source: "twitter-crm-config", raw: settings?.rawDebug === true }, location.origin);
+chrome.storage.local.get("settings").then(({ settings }) => postRawSetting(settings)).catch(() => postRawSetting(null));
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.settings) postRawSetting(changes.settings.newValue);
+});
+window.addEventListener("message", (event) => {
+  if (event.source !== window || event.origin !== location.origin) return;
+  const data = event.data;
+  if (!data || data.source !== "twitter-crm-raw" || typeof data.body !== "string") return;
+  const { source, ...entry } = data;
+  chrome.runtime.sendMessage({ type: "raw", entry }).catch(() => {});
+});
+
 // A small notice from the CRM, such as follow-list progress while you scroll. It lives in a shadow root so x.com's
 // styles can't reach it, and it never blocks the page.
 let toast;

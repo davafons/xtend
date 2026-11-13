@@ -2,12 +2,17 @@
 
 A Brave/Chrome extension that forwards what x.com already loaded while you browse to your Twitter CRM.
 
-- **No requests to X.** It copies responses the web app received for timelines, lists, search, profiles, threads, likes, bookmarks, follow lists ("Followers", "Following", "Followers you know"), and "Liked by" / "Reposted by" lists. It also copies the answers to your own actions: follow and unfollow clicks, likes, reposts, bookmarks, and new posts or replies. It never starts, changes, or repeats a request, and never reads DMs.
+- **No requests to X.** It copies responses the web app received for timelines, lists, search, profiles (every tab), threads, likes, bookmarks, notifications, follow lists ("Followers", "Following", "Followers you know", and the "Followed by" line on profile hover cards), and "Liked by" / "Reposted by" lists. It also copies the answers to your own actions: follow and unfollow clicks, likes, reposts, bookmarks, and new posts or replies. It never starts, changes, or repeats a request, and never reads DMs.
 - **What the CRM keeps.** Every account it sees goes in a directory; only people you showed interest in (visited profiles, likes, bookmarks, reply exchanges) become people. Posts you were shown and posts touching your people are saved with their counts at each sighting, and replies, quotes, reposts, mentions, likes, and follow edges feed the Network page.
+- **Your notifications.** Scrolling `x.com/notifications` saves replies and mentions as posts, records who liked or reposted your posts (grouped notifications list every account), and dates new followers to the minute X reports. A "liked 2 of your posts" notification names only one post, and the list only reaches as far back as you scroll.
 - **Your follow state, live.** Every account x.com shows says whether you follow it and whether it follows you. The newest sighting per person corrects the last follow check, and an unfollow you make on X is recorded in Follow review on its own. Every post says whether you liked, reposted, or bookmarked it, so those count as interactions without visiting your Likes page.
 - **Complete follow lists by scrolling.** Scroll your own Followers or Following page on x.com to the end and the CRM saves a complete list, the same as an X API check, for free. Each page has to continue where the previous one ended, and the total has to match your profile's count, so a skipped page leaves the list unfinished and nothing changes. A complete follower list dates who started or stopped following you since the last one.
 - **Otherwise only what you saw.** Everything else covers only what you scrolled past. The CRM never treats it as a complete like history or as proof something didn't happen.
 - **Only your account.** The CRM refuses batches when the browser is signed in to a different X account than the workspace.
+
+## Raw debug log
+
+To study a payload the CRM doesn't parse yet, turn on **Raw debug log** in the popup and browse. Every JSON response from X's API (`x.com/i/api/…` and `api.x.com`) is kept in extension storage with its method, URL (without the long `features` flags), status, GraphQL operation and variables, the x.com page it was loaded on, and the body as received. DMs, sign-in, onboarding, and telemetry are never logged. The log holds the newest 5,000 responses or 100 MB, is never sent to the CRM, and leaves the browser only when you choose **Download log** (a `.jsonl` file, one response per line). Turn it off and clear it when you are done.
 
 ## Install
 

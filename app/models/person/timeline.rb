@@ -149,9 +149,17 @@ class Person::Timeline
     end
   end
 
+  # Complete follower lists bound when a follow started; a "followed you" notification on X dates it exactly.
   def follower_entries
-    person.follower_periods.flat_map do |period|
-      started = if period.baseline?
+    followed_at = followed_you_at
+    dated = nil
+    entries = person.follower_periods.flat_map do |period|
+      notified = followed_at && followed_at <= period.first_seen_at && (period.baseline? || followed_at >= period.followed_after)
+      dated = period if notified
+      started = if notified
+        Entry.new(at: followed_at, category: "follows", icon: "user-plus", tone: :both, title: "Started following you",
+          detail: "On #{followed_at.strftime('%-d %b %Y')}, from your X notifications")
+      elsif period.baseline?
         Entry.new(at: period.first_seen_at, category: "follows", icon: "arrow-down-left", tone: :both,
           title: "Already following you at the first complete follower check",
           detail: "The start date is unknown. A baseline check cannot show when they followed.")
@@ -165,6 +173,16 @@ class Person::Timeline
       end
       [started, ended].compact
     end
+    if followed_at && !dated
+      entries << Entry.new(at: followed_at, category: "follows", icon: "user-plus", tone: :both, title: "Followed you",
+        detail: "From your X notifications. Follow checks show whether they still do.")
+    end
+    entries
+  end
+
+  def followed_you_at
+    owner = Current.workspace.owner_x_id
+    X::FollowEdge.where(follower_x_id: person.x_id, followed_x_id: owner).pick(:followed_at) if person.x_id && owner
   end
 
   def following_entries

@@ -3,7 +3,7 @@
 class X::PostObservation < ApplicationRecord
   include WorkspaceScoped
   self.table_name = "x_post_observations"
-  SURFACES = %w[home search profile thread list likes bookmarks other].freeze
+  SURFACES = %w[home search profile thread list likes bookmarks notifications other].freeze
   METRICS = %i[reply_count like_count repost_count quote_count bookmark_count view_count].freeze
 
   validates :surface, inclusion: { in: SURFACES }

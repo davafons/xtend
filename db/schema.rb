@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_13_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_13_140000) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -438,6 +438,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_120000) do
     t.string "seen_on", null: false
     t.datetime "first_seen_at", null: false
     t.datetime "last_seen_at", null: false
+    t.datetime "followed_at"
     t.index ["workspace_id", "followed_x_id"], name: "index_x_follows_on_workspace_id_and_followed_x_id"
     t.index ["workspace_id", "follower_x_id", "followed_x_id"], name: "idx_on_workspace_id_follower_x_id_followed_x_id_dc37aec6a3", unique: true
     t.index ["workspace_id"], name: "index_x_follows_on_workspace_id"

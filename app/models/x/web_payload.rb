@@ -5,12 +5,18 @@ class X::WebPayload
   OPERATIONS = {
     "HomeTimeline" => :discovery, "HomeLatestTimeline" => :discovery, "SearchTimeline" => :discovery,
     "UserTweets" => :discovery, "UserOriginalsTimeline" => :discovery, "UserTweetsAndReplies" => :discovery,
+    "UserRepliesTimeline" => :discovery, "UserRepostsTimeline" => :discovery, "UserVideoTimeline" => :discovery,
     "TweetDetail" => :context, "TweetResultByRestId" => :context,
     "Likes" => :likes, "Bookmarks" => :bookmarks,
-    "UserByScreenName" => :profile, "UserByRestId" => :profile,
+    "UserByScreenName" => :profile, "UserByRestId" => :profile, "UsersByRestIds" => :context,
     "Followers" => :people, "Following" => :people, "BlueVerifiedFollowers" => :people, "FollowersYouKnow" => :people,
     "ListLatestTweetsTimeline" => :discovery, "UserMedia" => :discovery,
     "Favoriters" => :likers, "Retweeters" => :reposters,
+    # A profile hover card's "Followed by" line: accounts you follow who follow that account. A REST call in the
+    # older flat layout; the extension names it.
+    "FollowingFollowers" => :people,
+    # Your notifications: replies and mentions as posts, plus who liked or reposted your posts and who followed you.
+    "NotificationsTimeline" => :notifications,
     # Your own actions. A new post or reply comes back in full; a like, repost, or bookmark only names the post.
     "CreateTweet" => :context, "CreateNoteTweet" => :context,
     "FavoriteTweet" => :liked, "CreateRetweet" => :reposted, "CreateBookmark" => :bookmarked,
@@ -22,14 +28,24 @@ class X::WebPayload
   SURFACES = {
     "HomeTimeline" => "home", "HomeLatestTimeline" => "home", "SearchTimeline" => "search",
     "UserTweets" => "profile", "UserOriginalsTimeline" => "profile", "UserTweetsAndReplies" => "profile", "UserMedia" => "profile",
+    "UserRepliesTimeline" => "profile", "UserRepostsTimeline" => "profile", "UserVideoTimeline" => "profile",
+    "NotificationsTimeline" => "notifications",
     "TweetDetail" => "thread", "TweetResultByRestId" => "thread", "ListLatestTweetsTimeline" => "list",
     "Likes" => "likes", "Bookmarks" => "bookmarks"
   }.freeze
+  # Notification types that name who acted on your posts or account. Others (new-post alerts, archive notices,
+  # likes on your reposts or on posts you were mentioned in) say nothing about your own posts and are skipped.
+  NOTIFICATION_KINDS = {
+    "users_liked_your_tweet" => "like", "user_liked_multiple_tweets" => "like",
+    "users_retweeted_your_tweet" => "repost",
+    "users_followed_you" => "follow", "follow_from_recommended_user" => "follow"
+  }.freeze
+  Notification = Data.define(:kind, :actor_ids, :post_ids, :at)
   COUNT_LIMIT = 0..2_000_000_000
   TIME_FORMAT = "%a %b %d %H:%M:%S %z %Y".freeze
 
   attr_reader :operation, :purpose, :posts, :profiles, :entry_post_ids, :entry_user_ids, :skipped, :details, :verified_ids,
-    :relationships, :viewer_actions, :bottom_cursor
+    :relationships, :viewer_actions, :bottom_cursor, :notifications
 
   def initialize(operation, document)
     @operation = operation
@@ -42,11 +58,17 @@ class X::WebPayload
     @verified_ids = Set.new
     @relationships = {}
     @viewer_actions = {}
+    @notifications = []
     @skipped = 0
     # A follow or unfollow answers with the account in the older flat layout, and its relationship fields
     # still describe the moment before the change, so only the profile is kept.
     if FOLLOW_ACTIONS.include?(@purpose)
-      document = document.is_a?(Hash) && document["id_str"].is_a?(String) ? { "__typename" => "User", "rest_id" => document["id_str"], "legacy" => document } : {}
+      document = document.is_a?(Hash) && document["id_str"].is_a?(String) ? flat_user(document) : {}
+    end
+    if operation == "FollowingFollowers"
+      users = document.is_a?(Hash) && document["users"].is_a?(Array) ? document["users"].select { |user| user.is_a?(Hash) && user["id_str"].is_a?(String) } : []
+      @entry_user_ids = users.map { |user| user["id_str"] }
+      document = users.map { |user| flat_user(user) }
     end
     walk(document)
     @relationships.clear if FOLLOW_ACTIONS.include?(@purpose)
@@ -73,6 +95,7 @@ class X::WebPayload
     when Array then node.each { |child| walk(child) }
     when Hash
       collect_entry(node["itemContent"]) if node["itemContent"].is_a?(Hash)
+      collect_notification(node) if node.dig("itemContent", "__typename") == "TimelineNotification"
       # Where the next page of a list starts. X ends a list with a cursor that starts with "0|".
       @bottom_cursor = node["value"] if node["cursorType"] == "Bottom" && node["value"].is_a?(String)
       @terminated = true if node["type"] == "TimelineTerminateTimeline" && node["direction"] == "Bottom"
@@ -96,6 +119,27 @@ class X::WebPayload
       user = content.dig("user_results", "result")
       @entry_user_ids << user["rest_id"] if user.is_a?(Hash) && user["rest_id"].is_a?(String)
     end
+  end
+
+  # One notification: its type is on the entry, the accounts and posts it names are in its template, and its time
+  # is when the newest of those actions happened.
+  def collect_notification(content)
+    kind = NOTIFICATION_KINDS[content.dig("clientEventInfo", "element")]
+    item = content["itemContent"]
+    template = item["template"]
+    return unless kind && template.is_a?(Hash)
+    actors = Array(template["from_users"]).filter_map { |ref| ref.dig("user_results", "result", "rest_id") if ref.is_a?(Hash) }
+    posts = Array(template["target_objects"]).filter_map { |ref| unwrap(ref.dig("tweet_results", "result"))&.dig("rest_id") if ref.is_a?(Hash) }
+    at = Time.iso8601(item["timestamp_ms"]) rescue nil
+    actors.select! { |id| id.is_a?(String) && id.match?(/\A\d{1,30}\z/) }
+    posts.select! { |id| id.is_a?(String) && id.match?(/\A\d{1,30}\z/) }
+    return if actors.empty? || (kind != "follow" && posts.empty?)
+    @notifications << Notification.new(kind: kind, actor_ids: actors.uniq, post_ids: posts.uniq, at: at)
+  end
+
+  # The older flat user layout, as REST answers send it, in the GraphQL shape add_profile reads.
+  def flat_user(user)
+    { "__typename" => "User", "rest_id" => user["id_str"], "legacy" => user }
   end
 
   def unwrap(result)

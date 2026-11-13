@@ -20,6 +20,15 @@
   <label class="toggle"><input type="checkbox" id="auto"> Send automatically (a few seconds after you stop scrolling)</label>
   <label class="toggle"><input type="checkbox" id="paused"> Pause capture</label>
   <p id="totals" class="muted"></p>
+  <section class="debug">
+    <label class="toggle"><input type="checkbox" id="rawDebug"> Raw debug log</label>
+    <p class="muted">Keeps every X API response you load (never DMs or sign-in) in this browser, for studying new payloads. Nothing is sent until you download it.</p>
+    <p id="rawCount" class="muted"></p>
+    <div class="row">
+      <button id="rawDownload">Download log</button>
+      <button id="rawClear">Clear log</button>
+    </div>
+  </section>
   <a href="options.html" target="_blank">Options</a>
   <script src="popup.js" type="module"></script>
 </body>

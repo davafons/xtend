@@ -33,3 +33,5 @@ button {
 button.primary { background: var(--you); color: #fff; font-weight: 600; }
 button:disabled { opacity: 0.5; cursor: default; }
 a { color: var(--you); font-size: 13px; }
+.debug { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 10px; background: var(--tile); }
+.debug button { background: #000; }
