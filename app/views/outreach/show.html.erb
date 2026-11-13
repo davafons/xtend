@@ -1,0 +1,17 @@
+<% content_for :title, "Outreach" %>
+<h1 class="sr-only">Outreach</h1>
+
+<%= lc_split do %>
+  <section class="flex min-w-0 flex-col gap-content" aria-label="<%= @view == "posts" ? "Posts worth a reply" : "People to engage more" %>">
+    <%= lc_tab_bar label: "Outreach", fill: true do |bar| %>
+      <%= bar.link "Reply now", outreach_path, current: @view == "posts", count: @openings.size %>
+      <%= bar.link "People", outreach_path(view: "people"), current: @view == "people", count: @prospects.all.size %>
+    <% end %>
+    <%= render(@view == "posts" ? "outreach/openings" : "outreach/prospects", prospects: @prospects, openings: @openings) %>
+  </section>
+
+  <aside class="flex flex-col gap-section lg:sticky lg:top-6" aria-label="Session">
+    <%= render "outreach/session", session: @session %>
+    <%= render "outreach/coverage", graph: @prospects.graph %>
+  </aside>
+<% end %>

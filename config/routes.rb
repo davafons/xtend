@@ -20,6 +20,7 @@ Rails.application.routes.draw do
     end
   end
   resource :inbox, only: :show, controller: "inbox"
+  resource :outreach, only: :show, controller: "outreach"
   resources :reply_events, only: [] do
     resource :dismissal, only: :create, controller: "reply_events/dismissals"
   end

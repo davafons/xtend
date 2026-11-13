@@ -1,0 +1,17 @@
+<%# Progress toward the session's distinct new targets. Only confirmed replies count, once each per target post. %>
+<%# locals: (session:) -%>
+<% targets = session.targets.to_a %>
+<%= lc_card id: "outreach-session" do %>
+  <%= lc_stats do %>
+    <%= lc_stat label: "of #{DailySession::TARGET} new targets", tone: (session.remaining.zero? ? :success : :default) do %><%= session.progress %><% end %>
+    <%= lc_stat session.follow_ups, label: "follow-up".pluralize(session.follow_ups), title: "Replies in exchanges you were already in. They don't count toward the target." %>
+  <% end %>
+  <% if targets.any? %>
+    <%= lc_avatar_stack do %>
+      <% targets.last(8).each do |outreach| %><%= link_to person_avatar(outreach.reply_event.person, size: :sm), outreach.reply_event.person, title: outreach.reply_event.person.name %><% end %>
+    <% end %>
+  <% end %>
+  <p class="text-caption text-muted-foreground">
+    Session since <%= session.anchor_day == Date.current ? "today" : session.anchor_day.strftime(session.anchor_day.year == Date.current.year ? "%-d %b" : "%-d %b %Y") %> · counts once a capture or sync confirms your reply
+  </p>
+<% end %>

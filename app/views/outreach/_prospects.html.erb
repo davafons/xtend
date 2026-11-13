@@ -1,0 +1,50 @@
+<%# People worth engaging more, ranked, each with why. A person's newest unanswered post is one click from a reply. %>
+<%# locals: (prospects:, openings:) -%>
+<% counts = prospects.counts %>
+<%= lc_toggle_group label: "Why", as: :nav, variant: :pills, size: :sm do %>
+  <%= lc_toggle_group_item "All", href: outreach_path(view: "people"), current: prospects.reason.nil? %>
+  <% Outreach::Prospects::REASONS.each_key do |key| %>
+    <% if counts[key].positive? %><%= outreach_reason_filter key, counts[key], prospects.reason == key %><% end %>
+  <% end %>
+<% end %>
+
+<% if prospects.to_a.empty? %>
+  <% if prospects.all.any? %>
+    <%= lc_empty_state title: "Nobody for this reason right now.", icon: "funnel", card: true %>
+  <% else %>
+    <%= lc_empty_state title: "No one to suggest yet.", text: "Suggestions come from collected replies, mentions, likes, follow checks, and posts. Browse x.com with the capture extension on to add more.", icon: "megaphone", card: true %>
+  <% end %>
+<% else %>
+  <ul class="flex flex-col divide-y divide-border border-b border-border">
+    <% prospects.to_a.each do |prospect| %>
+      <% person = prospect.person %>
+      <% latest = prospect.recent_posts.first %>
+      <li class="flex items-center gap-heading py-3" id="prospect_<%= prospect.x_id %>">
+        <div class="shrink-0"><%= outreach_avatar(person || prospect.account, prospects.graph) %></div>
+        <div class="flex min-w-0 grow flex-col gap-tight">
+          <p class="flex min-w-0 items-center gap-1 text-muted-foreground">
+            <% if person %><%= link_to prospect.name, person, class: "truncate font-semibold text-foreground hover:underline" %><% else %><span class="truncate font-semibold text-foreground"><%= prospect.name %></span><% end %>
+            <span class="min-w-0 truncate text-small">@<%= prospect.handle %></span>
+            <% if person&.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
+          </p>
+          <p class="flex min-w-0 flex-wrap items-center gap-x-heading gap-y-tight text-small text-muted-foreground">
+            <% prospect.reasons.each do |reason| %><%= outreach_reason reason %><% end %>
+          </p>
+          <% if latest %>
+            <%= tag.public_send(demo? ? :span : :a, href: ("https://x.com/#{prospect.handle}/status/#{latest.x_id}" unless demo?), target: ("_blank" unless demo?), rel: ("noopener noreferrer" unless demo?), class: "flex min-w-0 items-center gap-tight text-small hover:text-you", title: "Reply on X to their newest post") do %>
+              <%= lc_icon "chat-bubble-oval-left", options: { class: "size-4 shrink-0 text-you", "aria-hidden": true } %>
+              <span class="truncate"><%= CGI.unescapeHTML(latest.body) %></span>
+              <span class="shrink-0 text-caption text-muted-foreground"><%= lc_time latest.published_at %></span>
+            <% end %>
+          <% end %>
+        </div>
+        <div class="flex shrink-0 items-center gap-related">
+          <% if prospect.last_touch_at %>
+            <span class="text-caption text-muted-foreground" title="Last contact seen between you"><%= lc_time prospect.last_touch_at %></span>
+          <% end %>
+          <% unless demo? %><%= lc_icon_button_link_to "Open @#{prospect.handle} on X", prospect.profile_url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open profile on X" %><% end %>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
