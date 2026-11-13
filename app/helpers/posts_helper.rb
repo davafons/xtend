@@ -36,14 +36,14 @@ module PostsHelper
     id ? "https://x.com/intent/#{action}?tweet_id=#{id}" : post_url
   end
 
-  # Post text with line breaks kept and links, @mentions and #hashtags in the link color, as X shows them.
+  # Post text with line breaks kept and links, @mentions and #hashtags in the accent, as X shows them in its link color.
   def x_post_body(text)
     parts = text.to_s.split(%r{(https?://\S+|(?<![\w@])@\w{1,15}|(?<![\w#])#[A-Za-z_]\w*)})
     safe_join(parts.map.with_index do |part, index|
       if index.odd? && part.start_with?("http")
-        link_to(part.sub(%r{\Ahttps?://(www\.)?}, "").truncate(32), part, target: "_blank", rel: "noopener noreferrer", class: "text-you hover:underline")
+        link_to(part.sub(%r{\Ahttps?://(www\.)?}, "").truncate(32), part, target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline")
       elsif index.odd?
-        tag.span(part, class: "text-you")
+        tag.span(part, class: "text-primary")
       else
         part
       end

@@ -21,6 +21,17 @@ class XCaptureEndpointTest < ActionDispatch::IntegrationTest
     assert Current.workspace.reload.capture_token_used_at
   end
 
+  test "the status page shows whether the extension is reaching Xtend and what it delivered" do
+    get x_capture_status_path
+    assert_includes response.body, "Not connected"
+    send_batch
+    get x_capture_status_path
+    assert_response :success
+    assert_includes response.body, "Working"
+    assert_includes response.body, "1 feed post"
+    assert_equal 1, X::CaptureActivity.new.batch_count(1.hour.ago)
+  end
+
   test "an empty batch tests the token and X account without saving anything" do
     post x_captures_path, params: { batch_key: SecureRandom.uuid, viewer_x_id: Current.workspace.owner_x_id, responses: [] }.to_json,
       headers: { "Content-Type" => "application/json", "Authorization" => "Bearer #{@token}" }

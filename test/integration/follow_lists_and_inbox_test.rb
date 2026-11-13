@@ -46,10 +46,10 @@ class FollowListsAndInboxTest < ActionDispatch::IntegrationTest
   end
 
   test "pages can ask when the extension last delivered something, and trials render" do
-    get x_capture_status_path
+    get x_capture_status_path, as: :json
     assert_equal({ "captured_at" => nil, "summary" => nil }, response.parsed_body)
     Current.workspace.update!(captured_at: Time.current, last_capture: { "posts" => 2 })
-    get x_capture_status_path
+    get x_capture_status_path, as: :json
     assert_equal "2 posts", response.parsed_body["summary"]
 
     get follow_trials_path

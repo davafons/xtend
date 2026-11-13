@@ -29,7 +29,7 @@
   <% end %>
   <% facts = [
     ([ "map-pin", person.location ] if person.location.present?),
-    ([ "link", link_to(person.website_url.sub(%r{\Ahttps?://(www\.)?}, "").sub(/[?#].*\z/, "").delete_suffix("/").truncate(40), person.website_url, target: "_blank", rel: "noopener noreferrer", class: "text-you hover:underline") ] if person.website_url.present? && !demo?),
+    ([ "link", link_to(person.website_url.sub(%r{\Ahttps?://(www\.)?}, "").sub(/[?#].*\z/, "").delete_suffix("/").truncate(40), person.website_url, target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline") ] if person.website_url.present? && !demo?),
     ([ "calendar", "Joined #{person.joined_x_at.strftime('%B %Y')}" ] if person.joined_x_at)
   ].compact %>
   <% if facts.any? %>

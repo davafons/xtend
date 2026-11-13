@@ -50,7 +50,7 @@ export default class extends Controller {
     this.tick()
     if (summary) {
       this.summaryTarget.textContent = summary
-      this.statusTarget.title = summary
+      this.statusTarget.title = `Extension status: ${summary}`
     }
     this.dotTarget.classList.replace("bg-muted-foreground", "bg-ai")
     this.pingTarget.classList.add("animate-ping")

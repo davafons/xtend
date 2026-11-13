@@ -1,4 +1,4 @@
-/* Xtend's Dim palette (app/assets/tailwind/tokens.css): X's blue-grey, with your blue for actions. The extension
+/* Xtend's Dim palette (app/assets/tailwind/tokens.css): X's blue-grey, with Cobalt Green as the one accent. The extension
    can't load the app's stylesheet, so the values are repeated here; keep them in step. */
 :root {
   color-scheme: dark;
@@ -12,8 +12,8 @@
   --you: oklch(72% 0.14 245deg);
   --ai: oklch(78% 0.11 185deg);
   --like: oklch(72% 0.17 0deg);
-  --primary: var(--you);
-  --primary-foreground: #0d1620;
+  --primary: #96d1aa;
+  --primary-foreground: #0f1d15;
   --success: oklch(78% 0.089 144.3deg);
   --warning: oklch(80% 0.11 86deg);
   --radius: 0.5rem;
@@ -31,13 +31,10 @@ h1 { font-size: 20px; margin: 0; }
 p, ul { margin: 0; }
 ul { padding-left: 18px; }
 
-/* The signature gradient marks the app itself: only the wordmark. */
+/* The wordmark, in the accent. */
 .wordmark {
   font-weight: 700;
-  background: linear-gradient(90deg, var(--you), var(--ai) 55%, var(--like));
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
+  color: var(--primary);
 }
 .brand { display: flex; align-items: center; gap: 8px; }
 .brand img { flex-shrink: 0; }

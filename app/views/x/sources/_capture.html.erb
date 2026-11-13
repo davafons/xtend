@@ -10,6 +10,9 @@
         <%= lc_button_to "Create token", x_capture_token_path, variant: :secondary, size: :sm, data: { turbo: false }, aria: { label: "Create capture token" } %>
       <% end %>
     <% end %>
+    <%= lc_list_row "Connection and recent batches", icon: "signal", href: x_capture_status_path do %>
+      <%= lc_icon "chevron-right", options: { class: "size-4 text-muted-foreground", "aria-hidden": true } %>
+    <% end %>
     <% if @capture_totals.values.any?(&:positive?) %>
       <%= lc_list_row "Last 7 days", icon: "arrow-down-tray" do %>
         <span class="text-small tabular-nums text-muted-foreground"><%= pluralize(@capture_totals[:posts], "post") %> | <%= pluralize(@capture_totals[:likes], "like") %> | <%= pluralize(@capture_totals[:bookmarks], "bookmark") %></span>

@@ -9,7 +9,6 @@
   --xtend-like: oklch(72% 0.17 0deg);
   --xtend-message: oklch(74% 0.13 295deg);
   --xtend-ai: oklch(78% 0.11 185deg);
-  --lc-tab-bar-indicator: var(--xtend-you);
 }
 
 @theme inline {
@@ -19,7 +18,9 @@
   --color-ai: var(--xtend-ai);
 }
 
-/* Dim: X's "Dim" surfaces. Actions take your blue. */
+/* Dim: X's "Dim" surfaces. The one accent, for actions, links, the current page and the wordmark, is Cobalt
+   Green from Sanzo Wada's combination No. 202 (Slate Color, Cobalt Green, Turquoise Green): Dim is already a
+   slate, and the green is Sprout Buddy's leaf. */
 html[data-palette="dim"] {
   --background: #15202b;
   --foreground: #f7f9f9;
@@ -27,9 +28,11 @@ html[data-palette="dim"] {
   --muted: #1e2a36;
   --accent: #273340;
   --border: #38444d;
-  --primary: var(--xtend-you);
-  --primary-foreground: #0d1620;
-  --lc-sidebar-current: color-mix(in oklab, var(--xtend-you) 16%, transparent);
+  --xtend-accent: #96d1aa;
+  --primary: var(--xtend-accent);
+  --primary-foreground: #0f1d15;
+  --lc-tab-bar-indicator: var(--xtend-accent);
+  --lc-sidebar-current: color-mix(in oklab, var(--xtend-accent) 14%, transparent);
 }
 
 /* The sidebar's current link: a soft fill and a primary icon, with no edge indicator. */
@@ -40,10 +43,7 @@ html[data-palette="dim"] {
   color: var(--primary);
 }
 
-/* The signature: the three meaning colors you, ai, and like in one gradient. It marks the app itself,
-   on the wordmark. */
+/* The wordmark, in the accent. */
 .xtend-signature-text {
-  background: linear-gradient(90deg, var(--xtend-you), var(--xtend-ai) 55%, var(--xtend-like));
-  background-clip: text;
-  color: transparent;
+  color: var(--primary);
 }

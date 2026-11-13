@@ -1,0 +1,57 @@
+<% content_for :title, "Browser extension" %>
+<% workspace = @activity.workspace %>
+<% contact = @activity.last_contact %>
+<h1 class="sr-only">Browser extension</h1>
+<div class="<%= lc_columns_class %>">
+  <%= lc_list_section "Connection", footnote: "The extension sends what x.com already loaded while you browse. Quiet just means nothing new was loaded, not that something failed." do %>
+    <%= lc_list_group do %>
+      <% case @activity.state %>
+      <% when :working %>
+        <%= lc_list_row "Status", icon: "signal", subtitle: "Reached Xtend in the last #{X::CaptureActivity::ACTIVE.in_minutes.to_i} minutes" do %><%= lc_badge "Working", tone: :success %><% end %>
+      <% when :idle %>
+        <%= lc_list_row "Status", icon: "signal", subtitle: "Connected before; browse x.com to send more" do %><%= lc_badge "Quiet", tone: :neutral %><% end %>
+      <% else %>
+        <%= lc_list_row "Status", icon: "signal-slash", subtitle: (workspace.capture_token_digest ? "The extension hasn't used its token yet. Paste it in the extension's options." : "Create a token, then paste it in the extension's options.") do %><%= lc_badge "Not connected", tone: :warning %><% end %>
+      <% end %>
+      <%= lc_list_row "Token", icon: "key", href: x_sources_path(anchor: "capture"),
+            subtitle: (workspace.capture_token_digest ? "Created #{time_ago_in_words(workspace.capture_token_created_at)} ago" : "None yet") do %>
+        <%= lc_icon "chevron-right", options: { class: "size-4 text-muted-foreground", "aria-hidden": true } %>
+      <% end %>
+      <%= lc_list_row "Last contact", icon: "arrows-right-left", subtitle: "Any request from the extension, including its connection test" do %>
+        <span class="text-small text-muted-foreground"><%= contact ? lc_time(contact) : "Never" %></span>
+      <% end %>
+      <%= lc_list_row "Last new data", icon: "arrow-down-tray", subtitle: capture_summary(workspace.last_capture) || "Nothing yet" do %>
+        <span class="text-small text-muted-foreground"><%= workspace.captured_at ? lc_time(workspace.captured_at) : "Never" %></span>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <%= lc_card do %>
+    <div class="flex flex-col gap-section">
+      <%= lc_stats layout: :grid, columns: 3 do %>
+        <%= lc_stat number_with_delimiter(@activity.batch_count(24.hours.ago)), label: "batches today" %>
+        <%= lc_stat number_with_delimiter(@activity.batch_count(7.days.ago)), label: "batches this week" %>
+        <%= lc_stat number_with_delimiter(@activity.sightings(24.hours.ago)), label: "post sightings today" %>
+      <% end %>
+      <% days = @activity.daily_batches %>
+      <%= chart :bar, label: "Batches with posts, likes, or bookmarks per day",
+            labels: days.map { |day, _| day.strftime("%-d %b") }, series: [ { name: "Batches", meaning: :ai, values: days.map(&:last) } ] %>
+      <p class="text-caption text-muted-foreground">Counts batches that saved posts, likes, or bookmarks. Batches that only refreshed profiles, follow states, or interactions aren't counted here.</p>
+    </div>
+  <% end %>
+
+  <% batches = @activity.recent_batches %>
+  <%= lc_list_section "Recent batches" do %>
+    <% if batches.any? %>
+      <%= lc_list_group do %>
+        <% batches.each do |batch| %>
+          <%= lc_list_row batch.counts.map { |word, count| pluralize(number_with_delimiter(count), word) }.join(" | "), icon: "inbox-arrow-down" do %>
+            <span class="text-small text-muted-foreground"><%= lc_time(batch.at) %></span>
+          <% end %>
+        <% end %>
+      <% end %>
+    <% else %>
+      <%= lc_empty_state title: "No batches yet.", text: "Browse x.com with the extension on; timelines, profiles, and threads you open land here.", icon: "inbox-arrow-down", card: true %>
+    <% end %>
+  <% end %>
+</div>

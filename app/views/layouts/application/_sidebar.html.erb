@@ -26,8 +26,9 @@
     <% unless demo? %>
       <% workspace = Current.workspace %>
       <div data-controller="live" data-live-url-value="<%= x_capture_status_path %>" data-live-captured-at-value="<%= workspace.captured_at&.iso8601(3) %>">
-      <div class="flex items-center gap-related px-heading lc-rail:justify-center lc-rail:px-0"
-        title="<%= capture_summary(workspace.last_capture) || "Nothing from the extension yet" %>" data-live-target="status">
+      <%= lc_card href: x_capture_status_path, padding: :sm, class: "lc-rail:bg-transparent lc-rail:p-0",
+            title: "Extension status: #{capture_summary(workspace.last_capture) || "nothing from the extension yet"}", data: { live_target: "status" } do %>
+      <span class="flex items-center gap-related lc-rail:justify-center">
         <span class="flex w-6.5 shrink-0 justify-center" aria-hidden="true">
           <span class="relative flex size-2">
             <span class="absolute inline-flex size-full rounded-full bg-ai opacity-0" data-live-target="ping"></span>
@@ -35,10 +36,15 @@
           </span>
         </span>
         <span class="min-w-0 grow lc-rail:sr-only" role="status">
-          <span class="block truncate text-caption text-muted-foreground">Extension | <time data-live-target="time" datetime="<%= workspace.captured_at&.iso8601 %>"><%= workspace.captured_at ? "#{time_ago_in_words(workspace.captured_at)} ago" : "nothing yet" %></time></span>
-          <span class="block truncate text-caption" data-live-target="summary"><%= capture_summary(workspace.last_capture) %></span>
+          <span class="flex items-baseline justify-between gap-related text-caption">
+            <span class="font-medium">Extension</span>
+            <time class="shrink-0 text-muted-foreground" data-live-target="time" datetime="<%= workspace.captured_at&.iso8601 %>"><%= workspace.captured_at ? "#{time_ago_in_words(workspace.captured_at)} ago" : "nothing yet" %></time>
+          </span>
+          <span class="block truncate text-caption text-muted-foreground" data-live-target="summary"><%= capture_summary(workspace.last_capture) || "Nothing captured yet" %></span>
         </span>
-      </div>
+        <%= lc_icon "chevron-right", options: { class: "size-4 shrink-0 text-muted-foreground lc-rail:hidden", "aria-hidden": true } %>
+      </span>
+      <% end %>
       <template data-live-target="notice">
         <%= lc_toast tone: :primary, timeout: 0, data: { live_notice: true } do %>New data from x.com <%= lc_button_link_to "Refresh", request.fullpath, size: :sm, variant: :secondary, data: { turbo_action: "replace" } %><% end %>
       </template>
