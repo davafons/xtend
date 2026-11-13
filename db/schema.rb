@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_071000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_072000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -158,7 +158,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_071000) do
   create_table "follower_periods", force: :cascade do |t|
     t.integer "person_id", null: false
     t.integer "first_snapshot_id", null: false
-    t.integer "last_snapshot_id", null: false
     t.integer "ended_snapshot_id"
     t.datetime "followed_after"
     t.datetime "first_seen_at", null: false
@@ -169,7 +168,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_071000) do
     t.integer "workspace_id", null: false
     t.index ["ended_snapshot_id"], name: "index_follower_periods_on_ended_snapshot_id"
     t.index ["first_snapshot_id"], name: "index_follower_periods_on_first_snapshot_id"
-    t.index ["last_snapshot_id"], name: "index_follower_periods_on_last_snapshot_id"
     t.index ["person_id", "first_snapshot_id"], name: "index_follower_periods_on_person_id_and_first_snapshot_id", unique: true
     t.index ["person_id"], name: "one_open_follow_period_per_person", unique: true, where: "ended_by IS NULL"
     t.index ["workspace_id"], name: "index_follower_periods_on_workspace_id"
@@ -313,7 +311,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_071000) do
 
   create_table "workspaces", force: :cascade do |t|
     t.string "name", default: "Your workspace", null: false
-    t.text "builder_interests", default: "AI agents and coding tools\nBuilding and shipping Rails products\nDeveloper workflows\nJapanese learning tools\nLocal-first personal data", null: false
+    t.text "builder_interests", default: "", null: false
     t.integer "monthly_budget_cents", default: 1000, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -491,7 +489,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_071000) do
     t.string "mode", default: "backfill", null: false
     t.string "request_key", null: false
     t.string "cursor"
-    t.string "since_id"
     t.datetime "upper_bound", null: false
     t.integer "page_limit", null: false
     t.integer "page_number", default: 0, null: false
@@ -531,7 +528,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_071000) do
   add_foreign_key "follow_snapshots", "workspaces"
   add_foreign_key "follower_periods", "follow_snapshots", column: "ended_snapshot_id"
   add_foreign_key "follower_periods", "follow_snapshots", column: "first_snapshot_id"
-  add_foreign_key "follower_periods", "follow_snapshots", column: "last_snapshot_id"
   add_foreign_key "follower_periods", "people"
   add_foreign_key "follower_periods", "workspaces"
   add_foreign_key "outreach_candidates", "people"

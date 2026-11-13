@@ -6,7 +6,9 @@ require_relative "test_helpers/session_test_helper"
 class ActiveSupport::TestCase
   setup do
     RATE_LIMIT_STORE.clear
-    Current.workspace = Workspace.create!(owner_x_id: "999")
+    # New workspaces start with no interests; the ranking tests use a builder's.
+    Current.workspace = Workspace.create!(owner_x_id: "999",
+      builder_interests: "AI agents and coding tools\nBuilding and shipping Rails products\nDeveloper workflows")
     X::BillingCycle.create!(starts_on: Date.current, ends_on: Date.current + 30, observed_at: Time.current)
   end
 

@@ -38,7 +38,7 @@ class X::Client
     X::Payload.identity(get("/2/users/me", access_token, "user.fields" => "profile_image_url"))
   end
 
-  def page(access_token, owner_id:, dataset:, limit:, cursor: nil, since_id: nil, upper_bound: nil, parameters: {})
+  def page(access_token, owner_id:, dataset:, limit:, cursor: nil, upper_bound: nil, parameters: {})
     query = {}
     case dataset
     when "followers", "following"
@@ -48,7 +48,6 @@ class X::Client
       path = "/2/users/#{owner_id}/#{dataset == 'own_posts' ? 'tweets' : 'mentions'}"
       query = { max_results: limit, "tweet.fields" => "author_id,created_at,lang,conversation_id,in_reply_to_user_id,referenced_tweets,public_metrics" }
       query[:end_time] = upper_bound.utc.iso8601 if upper_bound
-      query[:since_id] = since_id if since_id
       query[:start_time] = parameters["start_time"] if parameters["start_time"]
       query[:exclude] = "retweets" if dataset == "own_posts"
     when "liked_posts", "bookmarks"

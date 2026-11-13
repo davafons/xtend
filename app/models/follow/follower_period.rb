@@ -3,7 +3,6 @@ class Follow::FollowerPeriod < ApplicationRecord
   self.table_name = "follower_periods"
   belongs_to :person
   belongs_to :first_snapshot, class_name: "Follow::Snapshot"
-  belongs_to :last_snapshot, class_name: "Follow::Snapshot"
   belongs_to :ended_snapshot, class_name: "Follow::Snapshot", optional: true
   scope :ongoing, -> { where(ended_by: nil) }
   scope :ended, -> { where.not(ended_by: nil) }
@@ -22,9 +21,9 @@ class Follow::FollowerPeriod < ApplicationRecord
       members.each do |person_id|
         period = ongoing.find_by(person_id: person_id)
         if period
-          period.update!(last_seen_at: snapshot.observed_at, last_snapshot: snapshot)
+          period.update!(last_seen_at: snapshot.observed_at)
         else
-          create!(person_id: person_id, first_snapshot: snapshot, last_snapshot: snapshot,
+          create!(person_id: person_id, first_snapshot: snapshot,
             followed_after: previous&.observed_at, first_seen_at: snapshot.completed_at, last_seen_at: snapshot.observed_at)
         end
       end

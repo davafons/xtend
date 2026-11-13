@@ -111,7 +111,7 @@ class X::SyncRun < ApplicationRecord
       access_token = connection.access_token!
       read = X::Read.fetch!(dataset: dataset, limit: page_limit, run: self) do
         X::Client.new.page(access_token, owner_id: owner_x_id, dataset: dataset, limit: page_limit,
-          cursor: cursor, since_id: since_id, upper_bound: upper_bound, parameters: parameters)
+          cursor: cursor, upper_bound: upper_bound, parameters: parameters)
       end
     end
     apply_page!(read)
