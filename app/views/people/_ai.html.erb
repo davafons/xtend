@@ -1,9 +1,9 @@
-<% recap = person.grok_proposals.latest_recap %>
-<% pending = person.grok_proposals.pending.order(:created_at) %>
+<% recap = person.ai_proposals.latest_recap %>
+<% pending = person.ai_proposals.pending.order(:created_at) %>
 <% if recap || pending.any? %>
   <%= lc_card padding: :sm do %>
     <div class="flex flex-col gap-content">
-      <h2 class="flex items-center gap-tight text-small font-semibold text-grok"><%= lc_icon "sparkles", options: { class: "size-4", "aria-hidden": true } %>AI</h2>
+      <h2 class="flex items-center gap-tight text-small font-semibold text-ai"><%= lc_icon "sparkles", options: { class: "size-4", "aria-hidden": true } %>AI</h2>
       <% if recap %>
         <div>
           <p class="whitespace-pre-line text-small"><%= recap.payload["summary"] %></p>
@@ -31,8 +31,8 @@
             <p class="text-caption text-muted-foreground">Accepting fills only empty fields. X-collected data and your edits always win.</p>
           <% end %>
           <div class="flex gap-related">
-            <%= lc_button_to "Accept", grok_proposal_path(proposal), method: :patch, params: { decision: "accept" }, variant: :secondary, size: :sm, icon: "check" %>
-            <%= lc_button_to "Dismiss", grok_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, variant: :ghost, size: :sm, icon: "x-mark" %>
+            <%= lc_button_to "Accept", ai_proposal_path(proposal), method: :patch, params: { decision: "accept" }, variant: :secondary, size: :sm, icon: "check" %>
+            <%= lc_button_to "Dismiss", ai_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, variant: :ghost, size: :sm, icon: "x-mark" %>
           </div>
         </div>
       <% end %>

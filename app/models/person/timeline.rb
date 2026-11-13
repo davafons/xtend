@@ -3,7 +3,7 @@ class Person::Timeline
 
   # A post entry renders like a tweet: an author (:you or :them), its text, and the post it replied to
   # as a parent, when that text was collected. Other entries are compact events. Tones are the
-  # app's meaning colors: :you, :both, :them, :like, :message, :grok, or :neutral.
+  # app's meaning colors: :you, :both, :them, :like, :message, :ai, or :neutral.
   Entry = Data.define(:at, :category, :icon, :tone, :title, :kind, :author, :body, :parent, :x_id, :detail, :url) do
     def initialize(at:, category:, icon:, title:, tone: :neutral, kind: :event, author: nil, body: nil, parent: nil, x_id: nil, detail: nil, url: nil)
       super
@@ -100,7 +100,7 @@ class Person::Timeline
   def post_entries
     person.outreach_candidates.map do |post|
       Entry.new(at: post.published_at, category: "conversation", kind: :post, author: :them, icon: "sparkles",
-        tone: post.source == "grok" ? :grok : :neutral, title: "Posted · suggested for outreach", body: text(post.body), x_id: post.x_id,
+        tone: post.source == "ai" ? :ai : :neutral, title: "Posted · suggested for outreach", body: text(post.body), x_id: post.x_id,
         detail: post.match_reason, url: post.source_url)
     end
   end

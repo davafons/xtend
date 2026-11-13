@@ -7,7 +7,7 @@ module ApplicationHelper
     [
       [ "Work", [ [ "Outreach", outreach_path, "megaphone" ], [ "People", people_path, "users" ], [ "Replies to you", inbox_path, "inbox-arrow-down" ], [ "Compose", drafts_path, "pencil-square" ] ] ],
       [ "Relationships", [ [ "Network", network_path, "share" ], [ "Timeline", timeline_path, "queue-list" ], [ "Follow review", follow_reviews_path, "user-minus" ], [ "Follow trials", follow_trials_path, "beaker" ], [ "Followers", follower_history_path, "chart-bar" ], [ "Insights", insights_path, "presentation-chart-line" ] ] ],
-      [ "Data", [ [ "X data", x_sources_path, "circle-stack" ], [ "AI", grok_connector_path, "sparkles" ], [ "Spending", x_billing_cycles_path, "banknotes" ] ] ]
+      [ "Data", [ [ "X data", x_sources_path, "circle-stack" ], [ "AI", ai_connector_path, "sparkles" ], [ "Spending", x_billing_cycles_path, "banknotes" ] ] ]
     ]
   end
 
@@ -30,11 +30,11 @@ module ApplicationHelper
   # Fills and text for the app's meaning colors (see tokens.css). Badges keep the library shape.
   MEANING_CLASSES = {
     you: "bg-you/15 text-you", both: "bg-success-soft text-success", them: "bg-warning-soft text-warning",
-    like: "bg-like/15 text-like", message: "bg-message/15 text-message", grok: "bg-grok/15 text-grok",
+    like: "bg-like/15 text-like", message: "bg-message/15 text-message", ai: "bg-ai/15 text-ai",
     neutral: "bg-tile text-muted-foreground"
   }.freeze
   MEANING_TEXT = { you: "text-you", both: "text-success", them: "text-warning", like: "text-like",
-    message: "text-message", grok: "text-grok", neutral: "text-muted-foreground" }.freeze
+    message: "text-message", ai: "text-ai", neutral: "text-muted-foreground" }.freeze
 
   # Two-way is green, only you is blue, only them is amber: the person reached out and you have not yet.
   def state_meaning(state)
@@ -110,9 +110,9 @@ module ApplicationHelper
     end
   end
 
-  # The teal grok meaning color marks anything an AI assistant wrote or proposed, whichever client it was.
-  def grok_badge(label = "AI")
-    lc_badge(class: "bg-grok/15 text-grok") { safe_join([ lc_icon("sparkles", options: { class: "size-3.5", "aria-hidden": true }), label ]) }
+  # The teal ai meaning color marks anything an AI assistant wrote or proposed, whichever client it was.
+  def ai_badge(label = "AI")
+    lc_badge(class: "bg-ai/15 text-ai") { safe_join([ lc_icon("sparkles", options: { class: "size-3.5", "aria-hidden": true }), label ]) }
   end
 
   def relationship_badge(state)

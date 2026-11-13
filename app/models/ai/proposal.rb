@@ -1,5 +1,5 @@
-# Profile facts, recaps, and tags that Grok Bot proposed for a person. Nothing applies until the owner accepts it.
-class Grok::Proposal < ApplicationRecord
+# Profile facts, recaps, and tags that an AI assistant proposed for a person. Nothing applies until the owner accepts it.
+class AI::Proposal < ApplicationRecord
   include WorkspaceScoped
   KINDS = %w[profile recap tags].freeze
   belongs_to :person
@@ -16,8 +16,8 @@ class Grok::Proposal < ApplicationRecord
   # Accepted profile facts only fill empty fields, so X-collected data and owner edits always win.
   def accept!
     transaction do
-      person.fill_blank_profile!(payload.slice(*Grok::Intake::PROFILE_FIELDS)) if kind == "profile"
-      person.add_tags!(payload["tags"], source: "grok") if kind == "tags"
+      person.fill_blank_profile!(payload.slice(*AI::Intake::PROFILE_FIELDS)) if kind == "profile"
+      person.add_tags!(payload["tags"], source: "ai") if kind == "tags"
       update!(status: "accepted", reviewed_at: Time.current)
     end
   end

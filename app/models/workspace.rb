@@ -3,7 +3,7 @@ class Workspace < ApplicationRecord
   validates :name, presence: true
   validates :monthly_budget_cents, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100_000 }
 
-  # Bearer tokens identify their workspace: :mcp for the Grok connector, :capture for the browser extension.
+  # Bearer tokens identify their workspace: :mcp for the AI connector, :capture for the browser extension.
   # Only a digest is stored, and the lookup compares digests.
   def self.find_by_token(kind, token)
     return if token.blank?
@@ -41,7 +41,7 @@ class Workspace < ApplicationRecord
     OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, token.to_s)
   end
 
-  def grok_context
+  def ai_context
     graph = Follow::Graph.latest
     {
       format: "twitter-crm-context-v1", exported_at: Time.current.iso8601,

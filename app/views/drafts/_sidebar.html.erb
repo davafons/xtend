@@ -26,9 +26,9 @@
       <%= lc_heading "Angles from AI", level: 2, size: :subheading %>
       <%= lc_text "A prompt with your focus areas, recent posts, and open drafts.", size: :small, tone: :muted %>
       <div class="flex items-center gap-related">
-        <%= lc_copy_button "Copy prompt", value: ideas.grok_prompt, variant: :secondary, size: :sm %>
+        <%= lc_copy_button "Copy prompt", value: ideas.ai_prompt, variant: :secondary, size: :sm %>
       </div>
-      <%= lc_collapsible title: "Read the prompt", card: false, indicator: :chevron, button: { variant: :ghost, size: :sm } do %><p class="whitespace-pre-wrap rounded-2xl bg-tile p-content text-caption"><%= ideas.grok_prompt %></p><% end %>
+      <%= lc_collapsible title: "Read the prompt", card: false, indicator: :chevron, button: { variant: :ghost, size: :sm } do %><p class="whitespace-pre-wrap rounded-2xl bg-tile p-content text-caption"><%= ideas.ai_prompt %></p><% end %>
     </div>
   <% end %>
 </aside>

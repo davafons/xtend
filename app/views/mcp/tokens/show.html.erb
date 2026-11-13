@@ -8,7 +8,7 @@
     </div>
   <% end %>
   <%= lc_list_section "Connect an assistant" do %>
-    <%= render "grok/connectors/setup", token: @token %>
+    <%= render "ai/connectors/setup", token: @token %>
   <% end %>
-  <div><%= lc_button_link_to "Done", grok_connector_path, variant: :secondary, size: :sm, icon: "arrow-left", aria: { label: "Back to AI" } %></div>
+  <div><%= lc_button_link_to "Done", ai_connector_path, variant: :secondary, size: :sm, icon: "arrow-left", aria: { label: "Back to AI" } %></div>
 </div>

@@ -9,7 +9,7 @@ class Person < ApplicationRecord
   has_many :follow_reviews, class_name: "Follow::Review", dependent: :destroy
   has_many :engagements, primary_key: :x_id, foreign_key: :author_x_id, inverse_of: false
   has_many :direct_messages, primary_key: :x_id, foreign_key: :partner_x_id, inverse_of: false
-  has_many :grok_proposals, class_name: "Grok::Proposal", dependent: :destroy
+  has_many :ai_proposals, class_name: "AI::Proposal", dependent: :destroy
   has_many :person_tags, dependent: :destroy
   has_many :tags, -> { order(:name) }, through: :person_tags
 
@@ -64,9 +64,9 @@ class Person < ApplicationRecord
     person
   end
 
-  # Known only from Grok research: no X read has tied this handle to a numeric account yet.
-  def grok_only?
-    x_id.nil? && outreach_candidates.where(source: "grok").exists?
+  # Known only from AI research: no X read has tied this handle to a numeric account yet.
+  def ai_only?
+    x_id.nil? && outreach_candidates.where(source: "ai").exists?
   end
 
   def fill_blank_profile!(facts)
@@ -74,10 +74,10 @@ class Person < ApplicationRecord
     update!(blanks) if blanks.any?
   end
 
-  # X says post_x_id was written by author_x_id. If a Grok-only person holds that post, bind them to the real account;
+  # X says post_x_id was written by author_x_id. If an AI-only person holds that post, bind them to the real account;
   # if another record already has that X ID, move the post there.
-  def self.bind_grok_author!(post_x_id:, author_x_id:)
-    post = Outreach::Candidate.find_by(x_id: post_x_id, source: "grok")
+  def self.bind_ai_author!(post_x_id:, author_x_id:)
+    post = Outreach::Candidate.find_by(x_id: post_x_id, source: "ai")
     return unless post && author_x_id.to_s.match?(/\A\d{1,30}\z/)
     if (existing = find_by(x_id: author_x_id))
       post.update!(person: existing) unless post.person_id == existing.id

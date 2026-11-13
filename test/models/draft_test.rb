@@ -37,15 +37,15 @@ class DraftTest < ActiveSupport::TestCase
   end
 
   test "an idea keeps its variations as alternatives and records who wrote the main text" do
-    draft = Draft.capture!(texts: [ "Main take", " ", "Shorter take", "Question hook?" ], editor: "grok", note: "different hooks")
-    assert_equal "grok", draft.source
+    draft = Draft.capture!(texts: [ "Main take", " ", "Shorter take", "Question hook?" ], editor: "ai", note: "different hooks")
+    assert_equal "ai", draft.source
     assert_equal [ "Shorter take", "Question hook?" ], draft.alternatives.map(&:body)
-    assert draft.alternatives.all? { |alternative| alternative.source == "grok" && alternative.note == "different hooks" }
-    assert_equal [ [ "Main take", "grok" ] ], draft.revisions.map { |revision| [ revision.body, revision.source ] }
+    assert draft.alternatives.all? { |alternative| alternative.source == "ai" && alternative.note == "different hooks" }
+    assert_equal [ [ "Main take", "ai" ] ], draft.revisions.map { |revision| [ revision.body, revision.source ] }
   end
 
   test "quick saves by one author share a revision, and a new author or a later save starts another" do
-    draft = Draft.capture!(texts: [ "From Grok" ], editor: "grok")
+    draft = Draft.capture!(texts: [ "From Grok" ], editor: "ai")
     draft.update!(body: "Edited once")
     draft.update!(body: "Edited twice")
     assert_equal [ "Edited twice", "From Grok" ], draft.revisions.newest_first.map(&:body)
@@ -57,11 +57,11 @@ class DraftTest < ActiveSupport::TestCase
   end
 
   test "using an alternative swaps it with the main text, and restoring adds a step instead of rewriting history" do
-    draft = Draft.capture!(texts: [ "Original", "Alternative from Grok" ], editor: "grok")
+    draft = Draft.capture!(texts: [ "Original", "Alternative from Grok" ], editor: "ai")
     draft.update!(body: "Original, edited by me")
     draft.use_alternative!(draft.alternatives.first)
     assert_equal "Alternative from Grok", draft.body
-    assert_equal "grok", draft.source
+    assert_equal "ai", draft.source
     assert_equal [ [ "Original, edited by me", "owner", "Previous main version" ] ], draft.alternatives.reload.map { |a| [ a.body, a.source, a.note ] }
     assert_equal [ "Alternative from Grok", "Original, edited by me", "Original" ], draft.revisions.newest_first.map(&:body)
     draft.restore!(draft.revisions.find_by(body: "Original, edited by me"))

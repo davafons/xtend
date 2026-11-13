@@ -1,5 +1,5 @@
 # The owner's labels for people, such as "tokyo" or "ios dev". Tags are the owner's data: X sync never
-# changes them, and Grok can only propose them.
+# changes them, and AI can only propose them.
 class Tag < ApplicationRecord
   include WorkspaceScoped
   MAX_LENGTH = 40

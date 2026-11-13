@@ -61,7 +61,7 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_equal Mcp::Tools.names, names
     assert names.none? { |name| name.match?(/post_reply|follow|unfollow|send|message|delete/) }
     instructions = rpc("initialize", { protocolVersion: "2025-06-18" })["result"]["instructions"]
-    assert_no_match(/grok/i, instructions + Mcp::Tools.definitions.to_json.gsub(/Grok::\w+/, ""))
+    assert_no_match(/grok/i, instructions + Mcp::Tools.definitions.to_json.gsub(/AI::\w+/, ""))
   end
 
   test "read tools respect sharing choices and limits" do
@@ -102,7 +102,7 @@ class McpTest < ActionDispatch::IntegrationTest
   end
 
   test "settings shows the token once, paste intake works, and proposals are reviewed on the person page" do
-    get grok_connector_path
+    get ai_connector_path
     assert_includes response.body, "Assistant connector (MCP)"
     assert_includes response.body, "claude mcp add --transport http twitter-crm"
     assert_select "a[aria-current=page]", text: "AI"
@@ -118,12 +118,12 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_nil Workspace.find_by_mcp_token(@token)
 
     paste = "Results:\n```json\n" + { format: "twitter-crm-grok-v1", recaps: [{ handle: "builder", summary: "Ships Rails tools." }] }.to_json + "\n```"
-    post grok_intakes_path, params: { grok_output: paste }
-    assert_redirected_to grok_connector_path
+    post ai_intakes_path, params: { ai_output: paste }
+    assert_redirected_to ai_connector_path
     assert_match "1 staged", flash[:notice]
     get person_path(@person)
     assert_includes response.body, "Proposed recap"
-    patch grok_proposal_path(Grok::Proposal.last), params: { decision: "accept" }
+    patch ai_proposal_path(AI::Proposal.last), params: { decision: "accept" }
     follow_redirect!
     assert_includes response.body, "Ships Rails tools."
   end
@@ -156,7 +156,7 @@ class McpTest < ActionDispatch::IntegrationTest
     assert tool("list_pending_proposals", { "kind" => "follows" })["isError"]
     assert_empty @person.reload.tags
 
-    Grok::Proposal.pending.find_by!(kind: "tags").accept!
+    AI::Proposal.pending.find_by!(kind: "tags").accept!
     assert_equal [ "recap" ], tool("list_pending_proposals")["structuredContent"]["proposals"].map { |item| item["kind"] }
   end
 
@@ -164,7 +164,7 @@ class McpTest < ActionDispatch::IntegrationTest
     result = tool("save_post_idea", { "texts" => [ "SQLite is enough for most side projects.", "Your side project doesn't need Postgres." ], "topic" => "Rails", "variation_note" => "contrarian hook" })
     saved = result.fetch("structuredContent").fetch("draft")
     draft = Draft.find(saved["id"])
-    assert_equal [ "grok", "idea", "SQLite is enough for most side projects." ], [ draft.source, draft.status, draft.body ]
+    assert_equal [ "ai", "idea", "SQLite is enough for most side projects." ], [ draft.source, draft.status, draft.body ]
     assert_equal [ "contrarian hook" ], draft.alternatives.map(&:note)
     assert_equal "ai", saved["written_by"]
 

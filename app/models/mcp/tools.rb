@@ -1,6 +1,6 @@
 # Tools that any MCP client (Grok Bot, Claude, ChatGPT, ...) can call. Reads are bounded and scoped by the owner's sharing
-# choices; writes stage research through Grok::Intake or save post drafts. No tool posts, follows, messages, applies
-# changes without owner review, or runs paid X reads. Grok::* is the internal name for all AI research.
+# choices; writes stage research through AI::Intake or save post drafts. No tool posts, follows, messages, applies
+# changes without owner review, or runs paid X reads. AI::* is the internal name for all AI research.
 class Mcp::Tools
   class Invalid < StandardError; end
 
@@ -49,7 +49,7 @@ class Mcp::Tools
     { name: "list_pending_proposals", title: "Proposals awaiting review",
       description: "Tags, recaps, and profile facts staged for the owner that he has not accepted or dismissed yet, plus unverified reply targets still on his Outreach page. Check it before proposing so you add to the queue instead of repeating it.",
       inputSchema: { type: "object", properties: {
-        kind: { type: "string", enum: Grok::Proposal::KINDS + %w[posts], description: "Only one kind. Defaults to all." },
+        kind: { type: "string", enum: AI::Proposal::KINDS + %w[posts], description: "Only one kind. Defaults to all." },
         limit: { type: "integer", minimum: 1, maximum: 50 } } },
       annotations: { readOnlyHint: true } },
     { name: "list_known_posts", title: "Known post IDs",
@@ -144,7 +144,7 @@ class Mcp::Tools
     session = Outreach::Session.current
     { demo: @demo, target: Outreach::Session::TARGET, progress: session.progress,
       remaining: [Outreach::Session::TARGET - session.progress, 0].max,
-      queue: { available: Outreach::Candidate.opportunities.count, unverified_from_ai: Outreach::Candidate.opportunities.where(source: "grok").count },
+      queue: { available: Outreach::Candidate.opportunities.count, unverified_from_ai: Outreach::Candidate.opportunities.where(source: "ai").count },
       replied_post_ids: ReplyEvent.where(direction: "outgoing").order(occurred_at: :desc).limit(200).pluck(:target_x_id) }
   end
 
@@ -188,7 +188,7 @@ class Mcp::Tools
     person = find_person!(args)
     graph = Follow::Graph.latest
     recent = person.x_id ? X::SourcePost.where(author_x_id: person.x_id, repost: false).order(published_at: :desc).limit(5) : []
-    recap = person.grok_proposals.latest_recap
+    recap = person.ai_proposals.latest_recap
     context = person_summary(person, graph, person.interactions).merge(
       profile_url: person.profile_url, location: person.location, website_url: person.website_url,
       followers_count: person.followers_count, following_count: person.following_count,
@@ -229,11 +229,11 @@ class Mcp::Tools
 
   def list_pending_proposals(args)
     kind = args["kind"].presence
-    raise Invalid, "kind must be one of #{(Grok::Proposal::KINDS + %w[posts]).join(", ")}." if kind && !(Grok::Proposal::KINDS + %w[posts]).include?(kind)
+    raise Invalid, "kind must be one of #{(AI::Proposal::KINDS + %w[posts]).join(", ")}." if kind && !(AI::Proposal::KINDS + %w[posts]).include?(kind)
     limit = bounded(args["limit"], 25, 50)
     result = { demo: @demo, note: "Nothing here has applied yet. The owner accepts or dismisses each item in the app." }
     unless kind == "posts"
-      proposals = Grok::Proposal.pending.includes(:person).order(created_at: :desc)
+      proposals = AI::Proposal.pending.includes(:person).order(created_at: :desc)
       proposals = proposals.where(kind: kind) if kind
       result[:total] = proposals.count
       result[:proposals] = proposals.limit(limit).map do |proposal|
@@ -242,7 +242,7 @@ class Mcp::Tools
       end
     end
     if kind.nil? || kind == "posts"
-      posts = Outreach::Candidate.opportunities.where(source: "grok").order(created_at: :desc)
+      posts = Outreach::Candidate.opportunities.where(source: "ai").order(created_at: :desc)
       result[:unverified_posts_total] = posts.count
       result[:unverified_posts] = posts.limit(limit).map do |post|
         { url: "https://x.com/i/status/#{post.x_id}", text: post.body.to_s.first(280), reason: post.match_reason, proposed_at: post.created_at.iso8601 }
@@ -261,7 +261,7 @@ class Mcp::Tools
 
   def propose_candidate_posts(args)
     posts = args["posts"]
-    raise Invalid, "posts must be an array of 1 to 20 items." unless posts.is_a?(Array) && posts.size.between?(1, Grok::Intake::MAX_ITEMS)
+    raise Invalid, "posts must be an array of 1 to 20 items." unless posts.is_a?(Array) && posts.size.between?(1, AI::Intake::MAX_ITEMS)
     intake(args).call("posts" => posts).slice(:run_id, :posts)
   end
 
@@ -275,7 +275,7 @@ class Mcp::Tools
 
   def propose_tags(args)
     assignments = args["assignments"]
-    raise Invalid, "assignments must be an array of 1 to 50 items." unless assignments.is_a?(Array) && assignments.size.between?(1, Grok::Intake::MAX_TAG_ITEMS)
+    raise Invalid, "assignments must be an array of 1 to 50 items." unless assignments.is_a?(Array) && assignments.size.between?(1, AI::Intake::MAX_TAG_ITEMS)
     intake(args).call("tags" => assignments).slice(:run_id, :tags)
   end
 
@@ -319,7 +319,7 @@ class Mcp::Tools
     texts = variation_texts(args["texts"])
     stage = args["stage"].presence || "idea"
     raise Invalid, "stage must be idea or drafting." unless %w[idea drafting].include?(stage)
-    draft = Draft.capture!(texts: texts, editor: "grok", note: args["variation_note"].to_s.first(200).presence, status: stage,
+    draft = Draft.capture!(texts: texts, editor: "ai", note: args["variation_note"].to_s.first(200).presence, status: stage,
       topic: args["topic"].to_s.first(120).presence, notes: args["notes"].to_s.first(2000).presence, inspiration_url: args["inspiration_url"].presence)
     { saved: true, draft: draft_summary(draft) }
   rescue ActiveRecord::RecordInvalid => error
@@ -328,7 +328,7 @@ class Mcp::Tools
 
   def add_post_variations(args)
     draft = Draft.find_by(id: args["draft_id"]) or raise Invalid, "Draft not found. Use an id from list_post_drafts."
-    draft.add_alternatives!(variation_texts(args["texts"]), source: "grok", note: args["note"].to_s.first(200).presence)
+    draft.add_alternatives!(variation_texts(args["texts"]), source: "ai", note: args["note"].to_s.first(200).presence)
     { saved: true, draft: draft_summary(draft.reload) }
   rescue ActiveRecord::RecordInvalid => error
     raise Invalid, error.record.errors.full_messages.to_sentence
@@ -353,14 +353,14 @@ class Mcp::Tools
   end
 
   def draft_summary(draft)
-    { id: draft.id, stage: draft.status, written_by: draft.source == "grok" ? "ai" : "david", topic: draft.topic, notes: draft.notes,
+    { id: draft.id, stage: draft.status, written_by: draft.source == "ai" ? "ai" : "david", topic: draft.topic, notes: draft.notes,
       text: draft.body, posts: draft.parts.size, weighted_lengths: draft.part_lengths, over_limit: draft.over_limit?,
-      alternatives: draft.alternatives.map { |alternative| { text: alternative.body, written_by: alternative.source == "grok" ? "ai" : "david", note: alternative.note } },
+      alternatives: draft.alternatives.map { |alternative| { text: alternative.body, written_by: alternative.source == "ai" ? "ai" : "david", note: alternative.note } },
       updated_at: draft.updated_at.iso8601 }
   end
 
   def intake(args)
-    Grok::Intake.new(via: "mcp", run_id: args["run_id"])
+    AI::Intake.new(via: "mcp", run_id: args["run_id"])
   end
 
   def person_summary(person, graph, interactions)

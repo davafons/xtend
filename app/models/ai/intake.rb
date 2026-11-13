@@ -1,7 +1,7 @@
-# Accepts research from Grok Bot, either through the MCP connector or a pasted JSON block.
-# Grok data is research, not evidence: it never creates replies, follow state, progress, or coverage,
+# Accepts research from an AI assistant, either through the MCP connector or a pasted JSON block.
+# AI data is research, not evidence: it never creates replies, follow state, progress, or coverage,
 # and it never overwrites X-sourced fields or the owner's edits.
-class Grok::Intake
+class AI::Intake
   class Invalid < StandardError; end
   FORMAT = "twitter-crm-grok-v1"
   MAX_ITEMS = 20
@@ -21,7 +21,7 @@ class Grok::Intake
     nil
   end
 
-  # Extracts the versioned document from pasted Grok output, which may wrap it in prose or a code fence.
+  # Extracts the versioned document from a pasted AI answer, which may wrap it in prose or a code fence.
   def self.parse_paste(text)
     raise Invalid, "Paste up to 100 KB of AI output." unless text.is_a?(String) && text.bytesize <= MAX_BYTES
     start = text.index(/\{\s*"format"\s*:/)
@@ -66,7 +66,7 @@ class Grok::Intake
     return rejected("published_at must be an ISO-8601 time in the past 30 days.", row["url"]) unless published_at && published_at.between?(30.days.ago, 1.minute.from_now)
 
     existing = Outreach::Candidate.find_by(x_id: link[:x_id])
-    return result("already_verified", link[:x_id], "Collected from X; Grok fields were not applied.") if existing && existing.source != "grok"
+    return result("already_verified", link[:x_id], "Collected from X; AI fields were not applied.") if existing && existing.source != "ai"
     if ReplyEvent.exists?(direction: "outgoing", target_x_id: link[:x_id]) || Outreach::Target.exists?(target_x_id: link[:x_id])
       return result("already_replied", link[:x_id], "You already replied to this post.")
     end
@@ -80,7 +80,7 @@ class Grok::Intake
       record.assign_attributes(person: person, body: text.first(1000), language: row["language"].to_s.presence&.first(8) || "en",
         published_at: [published_at, Time.current].min, reply_count: integer(row["reply_count"]), topic: "AI research",
         match_reason: assessment[:rank].negative? ? assessment[:reason] : (reason ? "AI: #{reason}" : "AI suggested this post; no reason given."),
-        rank: assessment[:rank], source: "grok", grok_run_id: run_id)
+        rank: assessment[:rank], source: "ai", ai_run_id: run_id)
       record.save!
       result(existing ? "updated" : "created", link[:x_id], assessment[:rank].negative? ? assessment[:reason] : nil)
     end
@@ -95,9 +95,9 @@ class Grok::Intake
     facts = profile_facts(row)
     return rejected("No supported profile fields were given.", person.handle) if facts.empty?
     observed_at = time(row["observed_at"]) || Time.current
-    Grok::Proposal.transaction do
-      Grok::Proposal.pending.where(person: person, kind: "profile").destroy_all
-      proposal = Grok::Proposal.create!(person: person, kind: "profile", via: @via, run_id: run_id,
+    AI::Proposal.transaction do
+      AI::Proposal.pending.where(person: person, kind: "profile").destroy_all
+      proposal = AI::Proposal.create!(person: person, kind: "profile", via: @via, run_id: run_id,
         payload: facts.merge("observed_at" => [observed_at, Time.current].min.iso8601))
       result("staged", person.handle, "Proposal #{proposal.id} awaits review.")
     end
@@ -111,7 +111,7 @@ class Grok::Intake
     return rejected("summary must be 1 to 1,500 characters.", person.handle) unless summary.length.between?(1, 1500)
     urls = Array.wrap(row["evidence_urls"]).first(10).map(&:to_s)
     return rejected("evidence_urls must be public x.com status URLs.", person.handle) unless urls.all? { |url| self.class.status_url(url) }
-    proposal = Grok::Proposal.create!(person: person, kind: "recap", via: @via, run_id: run_id,
+    proposal = AI::Proposal.create!(person: person, kind: "recap", via: @via, run_id: run_id,
       payload: { "summary" => summary, "evidence_urls" => urls })
     result("staged", person.handle, "Proposal #{proposal.id} awaits review.")
   end
@@ -124,9 +124,9 @@ class Grok::Intake
     names = Tag.names_from(row["tags"]).first(MAX_TAGS_PER_PERSON) - person.tags.map(&:name)
     return result("unchanged", person.handle, "They already have these tags.") if names.empty? && Tag.names_from(row["tags"]).any?
     return rejected("tags must list 1 to #{MAX_TAGS_PER_PERSON} short labels.", person.handle) if names.empty?
-    Grok::Proposal.transaction do
-      Grok::Proposal.pending.where(person: person, kind: "tags").destroy_all
-      proposal = Grok::Proposal.create!(person: person, kind: "tags", via: @via, run_id: run_id,
+    AI::Proposal.transaction do
+      AI::Proposal.pending.where(person: person, kind: "tags").destroy_all
+      proposal = AI::Proposal.create!(person: person, kind: "tags", via: @via, run_id: run_id,
         payload: { "tags" => names, "reason" => row["reason"].to_s.strip.first(300).presence }.compact)
       result("staged", person.handle, "Proposal #{proposal.id} awaits review.")
     end
@@ -139,7 +139,7 @@ class Grok::Intake
     rows
   end
 
-  # Unknown authors become Grok-only people without a numeric X ID. Their Grok profile is labeled
+  # Unknown authors become AI-only people without a numeric X ID. Their AI profile is labeled
   # on screen and gets bound to the real X ID once an X read connects them to a post.
   def author(handle, row)
     person = Person.find_by(handle: handle)

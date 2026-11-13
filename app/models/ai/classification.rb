@@ -1,6 +1,6 @@
-# Asks Grok to tag people so the owner can group them, such as followers by city, role, or topic.
+# Asks an AI assistant to tag people so the owner can group them, such as followers by city, role, or topic.
 # The prompt carries a bounded batch of untagged people; results come back as tag proposals.
-class Grok::Classification
+class AI::Classification
   BATCH = 40
 
   # Untagged followers first, when a follower list exists, then everyone else who is untagged.
@@ -36,7 +36,7 @@ class Grok::Classification
       #{extra}
       #{connector}
       Otherwise end your answer with one JSON code block in exactly this shape, so I can paste it into my CRM:
-      {"format": "#{Grok::Intake::FORMAT}", "tags": [{"handle": "handle", "tags": ["tokyo", "indie hacker"], "reason": "Bio says: Tokyo indie hacker"}]}
+      {"format": "#{AI::Intake::FORMAT}", "tags": [{"handle": "handle", "tags": ["tokyo", "indie hacker"], "reason": "Bio says: Tokyo indie hacker"}]}
       People:
       #{rows.map(&:to_json).join("\n")}
       Do not post, message, follow, or unfollow anyone.

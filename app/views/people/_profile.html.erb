@@ -24,7 +24,7 @@
   <% if person.description.present? %>
     <p class="whitespace-pre-line text-[15px] leading-5"><%= person.description %></p>
   <% end %>
-  <% if person.grok_only? %>
+  <% if person.ai_only? %>
     <%= lc_alert "Known only from AI research; no X read has confirmed this account yet.", tone: :warning %>
   <% end %>
   <% facts = [

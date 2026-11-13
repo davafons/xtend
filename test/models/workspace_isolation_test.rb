@@ -20,10 +20,10 @@ class WorkspaceIsolationTest < ActiveSupport::TestCase
     assert_equal 1, Outreach::Session.current.progress
   end
 
-  test "associations, subqueries, and Grok checks never cross workspaces" do
+  test "associations, subqueries, and AI checks never cross workspaces" do
     ingest(person_profile: profile(x_id: "555", handle: "shared"), x_id: "7001", target_x_id: "8101")
     in_other do
-      result = Grok::Intake.new(via: "mcp").call("posts" => [ { "url" => "https://x.com/shared/status/8101", "text" => "A question",
+      result = AI::Intake.new(via: "mcp").call("posts" => [ { "url" => "https://x.com/shared/status/8101", "text" => "A question",
         "published_at" => 1.hour.ago.iso8601 } ])
       assert_equal "created", result[:posts].first[:status], "another workspace's reply must not mark this post replied"
       assert_includes Outreach::Candidate.opportunities.map(&:x_id), "8101"

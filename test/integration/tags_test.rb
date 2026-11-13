@@ -23,17 +23,17 @@ class TagsTest < ActionDispatch::IntegrationTest
   end
 
   test "pasted AI tags return to the AI page and can be accepted in bulk" do
-    get grok_connector_path
+    get ai_connector_path
     assert_includes response.body, "Copy tagging prompt"
-    paste = { format: Grok::Intake::FORMAT, tags: [{ handle: "builder", tags: ["tokyo"] }, { handle: "plain", tags: ["designer"] }] }.to_json
-    post grok_intakes_path, params: { grok_output: paste, return_to: "grok" }
-    assert_redirected_to grok_connector_path(anchor: "tags")
+    paste = { format: AI::Intake::FORMAT, tags: [{ handle: "builder", tags: ["tokyo"] }, { handle: "plain", tags: ["designer"] }] }.to_json
+    post ai_intakes_path, params: { ai_output: paste, return_to: "ai" }
+    assert_redirected_to ai_connector_path(anchor: "tags")
     follow_redirect!
     assert_includes response.body, "2 people with suggested tags"
-    patch review_grok_proposals_path, params: { decision: "accept" }
+    patch review_ai_proposals_path, params: { decision: "accept" }
     assert_equal ["tokyo"], @person.reload.tags.map(&:name)
     assert_equal ["designer"], @other.reload.tags.map(&:name)
-    assert_empty Grok::Proposal.pending
+    assert_empty AI::Proposal.pending
   end
 
   test "the person page shows replies as a thread with the parent post" do

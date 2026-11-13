@@ -10,7 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_061000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_062000) do
+  create_table "ai_proposals", force: :cascade do |t|
+    t.integer "person_id", null: false
+    t.string "kind", null: false
+    t.string "status", default: "pending", null: false
+    t.json "payload", default: {}, null: false
+    t.string "run_id"
+    t.string "via", null: false
+    t.datetime "reviewed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["person_id", "kind", "status"], name: "index_ai_proposals_on_person_id_and_kind_and_status"
+    t.index ["person_id"], name: "index_ai_proposals_on_person_id"
+    t.index ["workspace_id"], name: "index_ai_proposals_on_workspace_id"
+  end
+
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -166,22 +182,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_061000) do
     t.index ["workspace_id"], name: "index_follower_periods_on_workspace_id"
   end
 
-  create_table "grok_proposals", force: :cascade do |t|
-    t.integer "person_id", null: false
-    t.string "kind", null: false
-    t.string "status", default: "pending", null: false
-    t.json "payload", default: {}, null: false
-    t.string "run_id"
-    t.string "via", null: false
-    t.datetime "reviewed_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "workspace_id", null: false
-    t.index ["person_id", "kind", "status"], name: "index_grok_proposals_on_person_id_and_kind_and_status"
-    t.index ["person_id"], name: "index_grok_proposals_on_person_id"
-    t.index ["workspace_id"], name: "index_grok_proposals_on_workspace_id"
-  end
-
   create_table "outreach_candidates", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "x_id", null: false
@@ -195,7 +195,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_061000) do
     t.datetime "updated_at", null: false
     t.integer "reply_count"
     t.string "source", default: "x_api", null: false
-    t.string "grok_run_id"
+    t.string "ai_run_id"
     t.integer "workspace_id", null: false
     t.index ["person_id"], name: "index_outreach_candidates_on_person_id"
     t.index ["workspace_id", "x_id"], name: "index_outreach_candidates_on_workspace_id_and_x_id", unique: true
@@ -526,6 +526,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_061000) do
     t.index ["workspace_id"], name: "index_x_sync_runs_on_workspace_id"
   end
 
+  add_foreign_key "ai_proposals", "people"
+  add_foreign_key "ai_proposals", "workspaces"
   add_foreign_key "archive_imports", "workspaces"
   add_foreign_key "direct_messages", "workspaces"
   add_foreign_key "direct_messages", "x_sync_runs"
@@ -549,8 +551,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_061000) do
   add_foreign_key "follower_periods", "follow_snapshots", column: "last_snapshot_id"
   add_foreign_key "follower_periods", "people"
   add_foreign_key "follower_periods", "workspaces"
-  add_foreign_key "grok_proposals", "people"
-  add_foreign_key "grok_proposals", "workspaces"
   add_foreign_key "outreach_candidates", "people"
   add_foreign_key "outreach_candidates", "workspaces"
   add_foreign_key "outreach_sessions", "workspaces"

@@ -1,6 +1,6 @@
 /* Dark only: the layout sets data-theme="dark" and the colors are the library's dark defaults.
    The app adds a few meaning colors on top, never replacing library tokens:
-   you (your actions), like, message (DMs), and grok (research). Two-way uses the library's
+   you (your actions), like, message (DMs), and ai (anything an AI wrote or proposed). Two-way uses the library's
    success color and one-way-from-them its warning color. */
 :root {
   color-scheme: dark;
@@ -8,20 +8,20 @@
   --crm-you: oklch(72% 0.14 245deg);
   --crm-like: oklch(72% 0.17 0deg);
   --crm-message: oklch(74% 0.13 295deg);
-  --crm-grok: oklch(78% 0.11 185deg);
+  --crm-ai: oklch(78% 0.11 185deg);
 }
 
 @theme inline {
   --color-you: var(--crm-you);
   --color-like: var(--crm-like);
   --color-message: var(--crm-message);
-  --color-grok: var(--crm-grok);
+  --color-ai: var(--crm-ai);
 }
 
-/* The signature: the three meaning colors you (blue), grok (teal), and like (pink) in one gradient.
+/* The signature: the three meaning colors you (blue), ai (teal), and like (pink) in one gradient.
    It marks the app itself, so it appears only on the wordmark and the sidebar's current link. */
 .crm-sidebar {
-  --lc-sidebar-indicator: linear-gradient(180deg, var(--crm-you), var(--crm-grok), var(--crm-like));
+  --lc-sidebar-indicator: linear-gradient(180deg, var(--crm-you), var(--crm-ai), var(--crm-like));
 }
 
 /* Underlined tabs mark the current view in your color, as X does. */
@@ -30,7 +30,7 @@
 }
 
 .crm-signature-text {
-  background: linear-gradient(90deg, var(--crm-you), var(--crm-grok) 55%, var(--crm-like));
+  background: linear-gradient(90deg, var(--crm-you), var(--crm-ai) 55%, var(--crm-like));
   background-clip: text;
   color: transparent;
 }

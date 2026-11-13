@@ -37,10 +37,10 @@
       <div class="flex flex-wrap items-center gap-tight">
         <% person.tags.each do |tag| %><%= tag_chip tag.name, href: follow_reviews_path(review_filters.merge("tag" => tag.name)) %><% end %>
         <% if proposal %>
-          <span class="flex items-center gap-tight text-caption text-grok" title="<%= proposal.payload["reason"] %>"><%= lc_icon "sparkles", options: { class: "size-3.5", "aria-hidden": true } %>AI suggests</span>
+          <span class="flex items-center gap-tight text-caption text-ai" title="<%= proposal.payload["reason"] %>"><%= lc_icon "sparkles", options: { class: "size-3.5", "aria-hidden": true } %>AI suggests</span>
           <% proposal.payload["tags"].each do |name| %><%= tag_chip name, href: follow_reviews_path(review_filters.merge("tag" => name)) %><% end %>
-          <%= lc_icon_button_to "Accept suggested tags for #{person.name}", grok_proposal_path(proposal), method: :patch, params: { decision: "accept" }, icon: "check", size: :sm, title: "Accept tags" %>
-          <%= lc_icon_button_to "Dismiss suggested tags for #{person.name}", grok_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, icon: "x-mark", size: :sm, title: "Dismiss tags" %>
+          <%= lc_icon_button_to "Accept suggested tags for #{person.name}", ai_proposal_path(proposal), method: :patch, params: { decision: "accept" }, icon: "check", size: :sm, title: "Accept tags" %>
+          <%= lc_icon_button_to "Dismiss suggested tags for #{person.name}", ai_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, icon: "x-mark", size: :sm, title: "Dismiss tags" %>
         <% end %>
       </div>
     <% end %>

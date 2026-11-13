@@ -61,7 +61,7 @@ class Mcp::Server
     raise Error.new(-32602, "arguments must be an object.") unless arguments.is_a?(Hash)
     result = Mcp::Tools.new.public_send(name, arguments)
     { content: [{ type: "text", text: JSON.generate(result) }], structuredContent: result, isError: false }
-  rescue Mcp::Tools::Invalid, Grok::Intake::Invalid => error
+  rescue Mcp::Tools::Invalid, AI::Intake::Invalid => error
     { content: [{ type: "text", text: error.message }], isError: true }
   end
 end

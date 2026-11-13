@@ -52,7 +52,7 @@ export default class extends Controller {
       this.summaryTarget.textContent = summary
       this.statusTarget.title = summary
     }
-    this.dotTarget.classList.replace("bg-muted-foreground", "bg-grok")
+    this.dotTarget.classList.replace("bg-muted-foreground", "bg-ai")
     this.pingTarget.classList.add("animate-ping")
     this.pingTarget.classList.replace("opacity-0", "opacity-75")
     setTimeout(() => {

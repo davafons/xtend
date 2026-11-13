@@ -7,7 +7,7 @@ class FollowListsAndInboxTest < ActionDispatch::IntegrationTest
     snapshot("following", [ a, b ], observed_at: 2.days.ago)
     snapshot("following", [ a ], observed_at: 1.hour.ago)
     Follow::Review.record!(b, "reported_unfollow")
-    Grok::Proposal.create!(person: a, kind: "tags", status: "pending", via: "paste", payload: { "tags" => [ "off-topic" ], "reason" => "Posts only about sports" })
+    AI::Proposal.create!(person: a, kind: "tags", status: "pending", via: "paste", payload: { "tags" => [ "off-topic" ], "reason" => "Posts only about sports" })
 
     get follow_reviews_path(mutuals: "1", reason: "strangers")
     assert_response :success
@@ -17,7 +17,7 @@ class FollowListsAndInboxTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "2 → 1 since"
     assert_select "[data-controller=chart]", 2
 
-    patch grok_proposal_path(Grok::Proposal.last), params: { decision: "accept" }, headers: { "HTTP_REFERER" => follow_reviews_path(mutuals: "1") }
+    patch ai_proposal_path(AI::Proposal.last), params: { decision: "accept" }, headers: { "HTTP_REFERER" => follow_reviews_path(mutuals: "1") }
     assert_redirected_to follow_reviews_path(mutuals: "1")
     assert_equal [ "off-topic" ], a.reload.tags.map(&:name)
   end

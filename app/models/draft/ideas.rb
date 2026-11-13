@@ -44,7 +44,7 @@ class Draft::Ideas
     "https://x.com/i/status/#{post.x_id}"
   end
 
-  def grok_prompt
+  def ai_prompt
     recent = own_posts.first(8).map { |post| "- #{strip_mentions(post.body).squish.truncate(200)}" }
     drafts = Draft.where.not(status: "posted").recent.limit(10).filter_map(&:title).map { |title| "- #{title.truncate(120)}" }
     <<~PROMPT

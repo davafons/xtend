@@ -7,7 +7,7 @@
     <div class="flex items-center gap-related border-b border-border px-related py-related">
       <%= lc_icon_button_link_to "Back to drafts", drafts_path, icon: "arrow-left", title: "Back to drafts" %>
       <span class="ms-auto flex items-center gap-related text-small text-muted-foreground">
-        <% if @draft.source == "grok" %><%= grok_badge "Written by AI" %><% end %>
+        <% if @draft.source == "ai" %><%= ai_badge "Written by AI" %><% end %>
         <span>Edited <%= time_ago_in_words(@draft.updated_at) %> ago</span>
       </span>
       <%= lc_icon_button_to "Delete draft", draft_path(@draft), method: :delete, icon: "trash", tone: :destructive, title: "Delete draft", form: { data: { turbo_confirm: "Delete this draft, its alternatives, and its history?" } } %>
@@ -19,7 +19,7 @@
       <h2 id="alternatives-heading" class="px-content pt-content text-caption font-semibold text-muted-foreground" title="Different takes on the same idea. Using one swaps it with the main text.">Other versions</h2>
       <ol class="flex flex-col divide-y divide-border border-b border-border">
         <% @draft.alternatives.each do |alternative| %>
-          <% grok = alternative.source == "grok" %>
+          <% by_ai = alternative.source == "ai" %>
           <% count = capture do %>
             <span class="text-small tabular-nums <%= alternative.over_limit? ? "text-destructive" : "text-muted-foreground" %>"><%= alternative.thread? ? "#{alternative.parts.size} posts" : "#{alternative.part_lengths.first}/#{Draft::LIMIT}" %></span>
             <span class="-my-1.5 -me-1.5 flex items-center">
@@ -28,8 +28,8 @@
             </span>
           <% end %>
           <%= render layout: "drafts/post", locals: {
-                avatar: (grok ? lc_icon_badge(icon: "sparkles", shape: :circle, size: 11, class: "bg-grok/15 text-grok") : owner_avatar(size: 11)),
-                name: (grok ? "AI" : name), handle: (handle unless grok), time: alternative.note.presence, extra: count } do %>
+                avatar: (by_ai ? lc_icon_badge(icon: "sparkles", shape: :circle, size: 11, class: "bg-ai/15 text-ai") : owner_avatar(size: 11)),
+                name: (by_ai ? "AI" : name), handle: (handle unless by_ai), time: alternative.note.presence, extra: count } do %>
             <div class="flex flex-col gap-heading">
               <% alternative.parts.each do |part| %><p class="whitespace-pre-line break-words"><%= part %></p><% end %>
             </div>
@@ -59,7 +59,7 @@
             <% revisions.each_with_index do |revision, index| %>
               <li class="flex flex-col gap-tight py-heading first:pt-0 last:pb-0">
                 <div class="flex h-7 items-center gap-related text-caption text-muted-foreground">
-                  <span><%= revision.source == "grok" ? "AI" : "You" %></span>
+                  <span><%= revision.source == "ai" ? "AI" : "You" %></span>
                   <span aria-hidden="true">·</span>
                   <%= lc_time(revision.updated_at) %>
                   <% if index.zero? %>

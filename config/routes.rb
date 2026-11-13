@@ -52,8 +52,9 @@ Rails.application.routes.draw do
     end
   end
 
-  # Grok Bot
-  namespace :grok do
+  # AI assistants
+  get "/grok/connector", to: redirect("/ai/connector")
+  namespace :ai do
     resource :connector, only: :show
     resources :intakes, only: :create
     resources :proposals, only: :update do
@@ -61,7 +62,7 @@ Rails.application.routes.draw do
     end
   end
 
-  # MCP connector for Grok Bot
+  # MCP connector for any AI assistant
   namespace :mcp do
     resource :token, only: [ :create, :destroy ]
   end

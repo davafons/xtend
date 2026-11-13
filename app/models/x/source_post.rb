@@ -43,14 +43,14 @@ class X::SourcePost < ApplicationRecord
   def reconcile!
     owner = Current.workspace.owner_x_id
     return if repost || published_at > Time.current
-    grok = Outreach::Candidate.exists?(x_id: x_id, source: "grok")
-    person = Person.find_by(x_id: author_x_id) || (Person.bind_grok_author!(post_x_id: x_id, author_x_id: author_x_id) if grok) unless author_x_id == owner
-    discovery = grok || x_sync_run.discovery_posts?
+    proposed = Outreach::Candidate.exists?(x_id: x_id, source: "ai")
+    person = Person.find_by(x_id: author_x_id) || (Person.bind_ai_author!(post_x_id: x_id, author_x_id: author_x_id) if proposed) unless author_x_id == owner
+    discovery = proposed || x_sync_run.discovery_posts?
     if person && discovery
       post = Outreach::Candidate.find_or_initialize_by(x_id: x_id)
       assessment = Outreach::Assessment.call(body: body, description: person.description,
-        interests: Current.workspace.interests, handle: person.handle, selected: grok)
-      keep_reason = grok && post.rank >= 0 && assessment[:rank] >= 0
+        interests: Current.workspace.interests, handle: person.handle, selected: proposed)
+      keep_reason = proposed && post.rank >= 0 && assessment[:rank] >= 0
       post.assign_attributes(person: person, body: body, language: language.presence || "und", published_at: published_at,
         topic: post.topic.presence || "Builder conversations", rank: assessment[:rank], reply_count: reply_count,
         match_reason: keep_reason ? post.match_reason : assessment[:reason], source: source)
@@ -66,7 +66,7 @@ class X::SourcePost < ApplicationRecord
     end
     return unless direction
     person = Person.find_by(x_id: direction == "outgoing" ? target_author : author_x_id)
-    person ||= Person.bind_grok_author!(post_x_id: parent_x_id, author_x_id: target_author) if direction == "outgoing"
+    person ||= Person.bind_ai_author!(post_x_id: parent_x_id, author_x_id: target_author) if direction == "outgoing"
     return unless person
     classification = direction == "outgoing" ? outreach_classification(owner) : "continuation"
     ReplyEvent.ingest_verified!(profile: { x_id: person.x_id, handle: person.handle, name: person.name },
@@ -85,7 +85,7 @@ class X::SourcePost < ApplicationRecord
       return "continuation" if prior.exists?
     end
     ancestor = self.class.find_by(x_id: parent_x_id)
-    return grok_target_classification(owner) if ancestor.nil? && Outreach::Candidate.exists?(x_id: parent_x_id, source: "grok")
+    return ai_target_classification(owner) if ancestor.nil? && Outreach::Candidate.exists?(x_id: parent_x_id, source: "ai")
     visited = [x_id]
     40.times do
       return "unclassified" unless ancestor
@@ -98,9 +98,9 @@ class X::SourcePost < ApplicationRecord
     "unclassified"
   end
 
-  # The target came from Grok and was never read from X, so its ancestors are unknown. X still confirms the
+  # The target came from AI and was never read from X, so its ancestors are unknown. X still confirms the
   # reply's conversation, so a reply inside the owner's own thread or answering an incoming reply stays a follow-up.
-  def grok_target_classification(owner)
+  def ai_target_classification(owner)
     return "continuation" if conversation_x_id.present? && self.class.exists?(x_id: conversation_x_id, author_x_id: owner)
     return "continuation" if ReplyEvent.exists?(x_id: parent_x_id, direction: "incoming")
     "initial"

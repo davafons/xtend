@@ -1,4 +1,4 @@
-# Another version of a draft's idea, written by the owner or proposed by Grok. Using one swaps it with the
+# Another version of a draft's idea, written by the owner or proposed by AI. Using one swaps it with the
 # main text, so nothing is lost.
 class Draft::Alternative < ApplicationRecord
   include WorkspaceScoped

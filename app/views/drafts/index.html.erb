@@ -20,7 +20,7 @@
       <ol class="flex flex-col divide-y divide-border">
         <% @drafts.each do |draft| %>
           <% extra = capture do %>
-            <% if draft.source == "grok" %><%= grok_badge %><% end %>
+            <% if draft.source == "ai" %><%= ai_badge %><% end %>
             <% unless @status %><%= lc_badge Draft::STATUSES.fetch(draft.status) %><% end %>
           <% end %>
           <%= render layout: "drafts/post", locals: { avatar: owner_avatar(size: 11), name: name, handle: handle, time: lc_time(draft.posted_at || draft.updated_at), extra: extra.presence, id: dom_id(draft) } do %>

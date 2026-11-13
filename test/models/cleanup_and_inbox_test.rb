@@ -22,7 +22,7 @@ class CleanupAndInboxTest < ActiveSupport::TestCase
     assert_equal [ a ], Follow::Cleanup.new(reason: "strangers", tag: "untagged").matches
     assert_equal %w[off-topic rails], cleanup.tag_options.sort
 
-    prompt = Grok::Classification.relevance_prompt([ a ])
+    prompt = AI::Classification.relevance_prompt([ a ])
     assert_includes prompt, "off-topic"
     assert_includes prompt, Current.workspace.interests.first
     assert_includes prompt, "p11"

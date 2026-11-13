@@ -1,6 +1,6 @@
 require "test_helper"
 
-class GrokConnectorTest < ActiveSupport::TestCase
+class AIConnectorTest < ActiveSupport::TestCase
   def candidate(url: "https://x.com/newbuilder/status/8101", **overrides)
     { "url" => url, "author_handle" => "newbuilder", "author_name" => "New Builder", "author_bio" => "Rails and SQLite",
       "author_followers_count" => 1200, "text" => "How do you test Rails jobs that touch SQLite?",
@@ -8,7 +8,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
   end
 
   def intake(rows)
-    Grok::Intake.new(via: "mcp").call("posts" => rows)
+    AI::Intake.new(via: "mcp").call("posts" => rows)
   end
 
   def sync_run(dataset, mode: "refresh", parameters: {})
@@ -21,16 +21,16 @@ class GrokConnectorTest < ActiveSupport::TestCase
       "in_reply_to_user_id" => to, "conversation_id" => conversation, "referenced_posts" => [{ "type" => "replied_to", "id" => parent }] }
   end
 
-  test "a Grok candidate reaches Today unverified without X reads, replies, or progress" do
+  test "a AI candidate reaches Outreach unverified without X reads, replies, or progress" do
     result = intake([candidate])
     assert_equal "created", result[:posts].first[:status]
     post = Outreach::Candidate.find_by!(x_id: "8101")
-    assert_equal "grok", post.source
+    assert_equal "ai", post.source
     assert_includes Outreach::Candidate.opportunities, post
     assert_equal "AI: Asks a concrete Rails testing question", post.match_reason
     person = post.person
     assert_nil person.x_id
-    assert person.grok_only?
+    assert person.ai_only?
     assert_equal ["New Builder", "Rails and SQLite", 1200], [person.name, person.description, person.followers_count]
     assert_equal 0, X::Read.count
     assert_equal 0, ReplyEvent.count
@@ -48,10 +48,10 @@ class GrokConnectorTest < ActiveSupport::TestCase
     ])
     assert_equal %w[rejected rejected rejected rejected rejected created], result[:posts].map { |item| item[:status] }
     assert_equal ["8106"], Outreach::Candidate.pluck(:x_id)
-    assert_raises(Grok::Intake::Invalid) { intake(Array.new(21) { |index| candidate(url: "https://x.com/newbuilder/status/#{9000 + index}") }) }
+    assert_raises(AI::Intake::Invalid) { intake(Array.new(21) { |index| candidate(url: "https://x.com/newbuilder/status/#{9000 + index}") }) }
   end
 
-  test "Grok never overwrites X-collected posts, profiles, or the owner's choices" do
+  test "AI never overwrites X-collected posts, profiles, or the owner's choices" do
     person = Person.resolve_profile!(profile(x_id: "555", handle: "newbuilder", name: "Real Name"))
     person.update!(notes: "Met at RubyKaigi", description: "From X")
     person.create_pin!
@@ -65,7 +65,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
     assert person.pin.present?
   end
 
-  test "a sent reply to a Grok target binds the author and counts once as a new target" do
+  test "a sent reply to a AI target binds the author and counts once as a new target" do
     intake([candidate])
     reply = sync_run("own_posts")
     X::SourcePost.capture!(reply_row(id: "7101", parent: "8101", to: "555", conversation: "8101"), run: reply)
@@ -82,7 +82,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
     assert_equal 1, Outreach::Session.current.progress
   end
 
-  test "a reply to a Grok post inside the owner's own thread is a follow-up" do
+  test "a reply to a AI post inside the owner's own thread is a follow-up" do
     own = sync_run("own_posts", mode: "backfill")
     X::SourcePost.capture!({ "id" => "6000", "author_id" => "999", "text" => "My thread", "created_at" => 1.day.ago.iso8601, "lang" => "en", "referenced_posts" => [] }, run: own)
     intake([candidate])
@@ -92,7 +92,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
     assert_equal 0, Outreach::Session.current.progress
   end
 
-  test "verifying a Grok post on X replaces reported facts and keeps Grok's reason" do
+  test "verifying a AI post on X replaces reported facts and keeps AI's reason" do
     intake([candidate])
     lookup = sync_run("posts", mode: "capture", parameters: { "ids" => ["8101"], "purpose" => "discovery" })
     X::SourcePost.capture!({ "id" => "8101", "author_id" => "555", "text" => "How do you test Rails jobs on SQLite?", "created_at" => 3.hours.ago.iso8601,
@@ -117,27 +117,27 @@ class GrokConnectorTest < ActiveSupport::TestCase
   test "profile proposals fill only empty fields and recaps need acceptance" do
     person = Person.resolve_profile!(profile(x_id: "555", handle: "newbuilder", name: "Real Name"))
     person.update!(description: "From X")
-    result = Grok::Intake.new(via: "mcp").call(
+    result = AI::Intake.new(via: "mcp").call(
       "profiles" => [{ "handle" => "newbuilder", "description" => "Grok bio", "location" => "Tokyo", "followers_count" => 900 }, { "handle" => "unknown" }],
       "recaps" => [{ "person_id" => person.id, "summary" => "Builds Rails tools.", "evidence_urls" => ["https://x.com/newbuilder/status/1"] },
         { "person_id" => person.id, "summary" => "Bad evidence", "evidence_urls" => ["https://evil.example/1"] }])
     assert_equal ["staged", "rejected"], result[:profiles].map { |item| item[:status] }
     assert_equal ["staged", "rejected"], result[:recaps].map { |item| item[:status] }
     assert_nil person.reload.location
-    assert_nil person.grok_proposals.latest_recap
+    assert_nil person.ai_proposals.latest_recap
 
-    person.grok_proposals.pending.each(&:accept!)
+    person.ai_proposals.pending.each(&:accept!)
     person.reload
     assert_equal ["From X", "Tokyo", 900], [person.description, person.location, person.followers_count]
-    assert_equal "Builds Rails tools.", person.grok_proposals.latest_recap.payload["summary"]
+    assert_equal "Builds Rails tools.", person.ai_proposals.latest_recap.payload["summary"]
     assert_equal 0, ReplyEvent.count
   end
 
-  test "pasted Grok answers are read from the JSON block inside prose" do
+  test "pasted AI answers are read from the JSON block inside prose" do
     text = "Here are posts {not json}.\n```json\n{\"format\": \"twitter-crm-grok-v1\", \"posts\": [#{candidate.to_json}]}\n```\nHope this helps {really}."
-    document = Grok::Intake.parse_paste(text)
-    assert_equal 1, Grok::Intake.new(via: "paste").call(document)[:posts].count { |item| item[:status] == "created" }
-    assert_raises(Grok::Intake::Invalid) { Grok::Intake.parse_paste("no block here") }
-    assert_raises(Grok::Intake::Invalid) { Grok::Intake.parse_paste('{"format": "other", "posts": []}') }
+    document = AI::Intake.parse_paste(text)
+    assert_equal 1, AI::Intake.new(via: "paste").call(document)[:posts].count { |item| item[:status] == "created" }
+    assert_raises(AI::Intake::Invalid) { AI::Intake.parse_paste("no block here") }
+    assert_raises(AI::Intake::Invalid) { AI::Intake.parse_paste('{"format": "other", "posts": []}') }
   end
 end

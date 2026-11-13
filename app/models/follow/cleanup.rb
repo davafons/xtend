@@ -92,7 +92,7 @@ class Follow::Cleanup
     when "largest" then people.sort_by { |person| [ person.followers_count ? 0 : 1, -person.followers_count.to_i, person.id ] }
     when "smallest" then people.sort_by { |person| [ person.followers_count ? 0 : 1, person.followers_count.to_i, person.id ] }
     when "name" then people.sort_by { |person| [ person.name.downcase, person.id ] }
-    when "off_topic" then people.each_with_index.sort_by { |person, index| [ person.tags.any? { |t| t.name == Grok::Classification::OFF_TOPIC } ? 0 : 1, index ] }.map(&:first)
+    when "off_topic" then people.each_with_index.sort_by { |person, index| [ person.tags.any? { |t| t.name == AI::Classification::OFF_TOPIC } ? 0 : 1, index ] }.map(&:first)
     else people
     end
     people.first(limit)

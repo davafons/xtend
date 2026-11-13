@@ -119,10 +119,10 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     assert_empty Outreach::Candidate.opportunities
   end
 
-  test "Grok export excludes private notes and does not imply complete data" do
+  test "AI export excludes private notes and does not imply complete data" do
     person = Person.resolve_profile!(profile)
     person.update!(notes: "Private material")
-    context = Current.workspace.grok_context
+    context = Current.workspace.ai_context
     assert_equal "twitter-crm-context-v1", context[:format]
     assert_not_includes context.to_json, "Private material"
     assert_includes context[:coverage], "not a complete"

@@ -4,13 +4,13 @@ class Draft < ApplicationRecord
   LIMIT = 280
   URL = %r{https?://\S+}
   PART_SEPARATOR = /^\s*---\s*$/
-  SOURCES = %w[owner grok].freeze
+  SOURCES = %w[owner ai].freeze
   MAX_ALTERNATIVES = 20
 
   has_many :alternatives, -> { order(:created_at, :id) }, class_name: "Draft::Alternative", dependent: :destroy
   has_many :revisions, class_name: "Draft::Revision", dependent: :destroy
 
-  # Who is writing this change: the owner in the app, or Grok through the connector.
+  # Who is writing this change: the owner in the app, or an AI assistant through the connector.
   attribute :editor, :string, default: "owner"
 
   validates :status, inclusion: { in: STATUSES.keys }

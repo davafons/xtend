@@ -14,3 +14,8 @@
 # ActiveSupport::Inflector.inflections(:en) do |inflect|
 #   inflect.acronym "RESTful"
 # end
+
+# AI:: is the namespace for anything an AI assistant proposes, from any MCP client.
+ActiveSupport::Inflector.inflections(:en) do |inflect|
+  inflect.acronym "AI"
+end

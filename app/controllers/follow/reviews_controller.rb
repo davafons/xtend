@@ -10,7 +10,7 @@ class Follow::ReviewsController < ApplicationController
       @counts = @cleanup.counts
       @candidates = @cleanup.candidates(@batch)
       @recent_posts = @cleanup.recent_posts(@candidates)
-      @proposals = Grok::Proposal.pending.where(kind: "tags", person: @candidates).index_by(&:person_id)
+      @proposals = AI::Proposal.pending.where(kind: "tags", person: @candidates).index_by(&:person_id)
     else
       @counts = {}
       @candidates = []
