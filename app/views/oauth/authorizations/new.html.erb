@@ -19,10 +19,10 @@
         <%= lc_alert "This app named itself. Approve only if you just added Xtend to it.", tone: :warning %>
       <% end %>
       <p class="text-caption text-muted-foreground">You can disconnect it any time under <%= @scope == "mcp" ? "AI" : "X data" %>.</p>
-      <div class="flex gap-related">
+      <div class="flex gap-related" data-controller="submit-once" data-action="submit->submit-once#submit">
         <% hidden = params.permit(:client_id, :redirect_uri, :response_type, :code_challenge, :code_challenge_method, :scope, :state, :resource).to_h %>
-        <%= lc_button_to "Approve", oauth_authorize_path, params: hidden.merge(decision: "approve"), data: { turbo: false }, form: { class: "grow" }, class: "w-full" %>
-        <%= lc_button_to "Deny", oauth_authorize_path, params: hidden.merge(decision: "deny"), variant: :secondary, data: { turbo: false }, form: { class: "grow" }, class: "w-full" %>
+        <%= lc_button_to "Approve", oauth_authorize_path, params: hidden.merge(decision: "approve"), data: { turbo: false, submit_once_label: "Approving…" }, form: { class: "grow" }, class: "w-full" %>
+        <%= lc_button_to "Deny", oauth_authorize_path, params: hidden.merge(decision: "deny"), variant: :secondary, data: { turbo: false, submit_once_label: "Denying…" }, form: { class: "grow" }, class: "w-full" %>
       </div>
     </div>
   <% end %>

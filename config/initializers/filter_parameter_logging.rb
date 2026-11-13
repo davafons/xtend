@@ -8,3 +8,5 @@ Rails.application.config.filter_parameters += [
   :code, :state, :code_verifier, :authorization
 ]
 Rails.application.config.filter_redirect << "x.com/i/oauth2/authorize"
+# Approving an OAuth client redirects to it with a one-time code in the query.
+Rails.application.config.filter_redirect << /[?&]code=/
