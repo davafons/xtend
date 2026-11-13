@@ -159,10 +159,7 @@
             <tr>
               <th scope="row" class="font-normal"><%= link_to review.person, class: "flex items-center gap-heading" do %><%= person_avatar review.person, size: :sm %><span class="font-semibold"><%= review.person.name %></span><span class="text-caption text-muted-foreground">@<%= review.person.handle %></span><% end %></th>
               <td>
-                <% label, icon, tone = { "keep" => ["Keep following", "shield-check", :success], "defer" => ["Deferred", "clock", :neutral], "reported_unfollow" => ["Unfollow reported · confirmed by your next Following scroll", "user-minus", :warning], "unfollowed" => ["Unfollowed on X", "user-minus", :neutral] }.fetch(review.decision) %>
-                <% if review.decision == "reported_unfollow" && (list = cleanup.following) && list.observed_at > review.updated_at && list.follow_memberships.exists?(person_id: review.person_id) %>
-                  <% label, tone = "Still following on X", :warning %>
-                <% end %>
+                <% label, icon, tone = { "keep" => ["Keep following", "shield-check", :success], "defer" => ["Deferred", "clock", :neutral], "reported_unfollow" => ["Unfollow reported · checks against your next Following scroll", "user-minus", :warning], "unfollowed" => ["Unfollowed on X", "user-minus", :neutral] }.fetch(review.decision) %>
                 <%= lc_badge(tone: tone) { safe_join([lc_icon(icon, options: { class: "size-3.5", "aria-hidden": true }), label]) } %>
               </td>
               <td class="text-end text-caption tabular-nums text-muted-foreground"><%= review.updated_at.strftime("%H:%M") %></td>

@@ -37,7 +37,7 @@ class Follow::Snapshot < ApplicationRecord
 
   # What a newly complete list settles: follower changes, or which reported unfollows happened.
   def completed!
-    Follow::Review.confirm_unfollows!(self)
+    Follow::Review.settle_reported! if direction == "following"
     Follow::FollowerPeriod.observe!(self) if direction == "followers"
   rescue ArgumentError
     # An older follower list than the last tracked one still serves as a snapshot; it just can't date changes.

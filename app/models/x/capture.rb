@@ -64,6 +64,7 @@ class X::Capture
       save_relationships(profiles)
       save_owner_counts(profiles)
       save_follow_lists(profiles)
+      Follow::Review.settle_reported! if @result[:relationships].positive?
       save_viewer_actions(posts)
       reconcile(saved)
       Draft.link_published! if posts.each_value.any? { |row| row["author_id"] == @owner }

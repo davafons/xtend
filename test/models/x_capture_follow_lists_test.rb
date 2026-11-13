@@ -88,6 +88,17 @@ class XCaptureFollowListsTest < ActiveSupport::TestCase
     capture!(own_list_page("Following", [ following("252", "p252") ], bottom: "0|end"))
 
     assert_equal "unfollowed", Follow::Review.find_by!(person: gone).decision
-    assert_equal "reported_unfollow", Follow::Review.find_by!(person: stayed).decision, "still on the list: not confirmed"
+    assert_not Follow::Review.exists?(person: stayed), "still on a newer list: the report was wrong, so they return to review"
+
+    travel 1.hour do
+      late = Person.resolve_profile!(profile(x_id: "253", handle: "p253"))
+      snapshot("following", [ late ], observed_at: 1.minute.ago)
+      Follow::Review.record!(late, "reported_unfollow")
+      Follow::Review.settle_reported!
+      assert_equal "reported_unfollow", Follow::Review.find_by!(person: late).decision, "newer than every list and sighting: waits"
+      travel 1.minute
+      capture!(web_response("UserByScreenName", { "data" => { "user" => { "result" => web_user("253", "p253").merge("relationship_perspectives" => { "following" => false }) } } }))
+      assert_equal "unfollowed", Follow::Review.find_by!(person: late).decision, "x.com showing you don't follow them settles it"
+    end
   end
 end
