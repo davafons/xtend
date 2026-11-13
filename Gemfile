@@ -22,5 +22,5 @@ gem "solid_queue", "~> 1.7"
 gem "kamal", "~> 2.12", group: :development, require: false
 
 group :development do
-  gem "tensaku", git: "https://github.com/lostcoords/tensaku.git", ref: "55168f5e153c84c25048ed666ad2e058da53da67"
+  gem "tensaku", git: "https://github.com/lostcoords/tensaku.git", ref: "e3d76fbdff39100c2d82f137d65011bedc146b7f"
 end

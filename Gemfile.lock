@@ -1,7 +1,7 @@
 GIT
   remote: https://github.com/lostcoords/tensaku.git
-  revision: 55168f5e153c84c25048ed666ad2e058da53da67
-  ref: 55168f5e153c84c25048ed666ad2e058da53da67
+  revision: e3d76fbdff39100c2d82f137d65011bedc146b7f
+  ref: e3d76fbdff39100c2d82f137d65011bedc146b7f
   specs:
     tensaku (0.1.0)
       actionpack (>= 8.1, < 8.2)
