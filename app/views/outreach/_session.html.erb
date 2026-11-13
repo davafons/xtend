@@ -3,7 +3,7 @@
 <% targets = session.targets.to_a %>
 <%= lc_card id: "outreach-session" do %>
   <%= lc_stats do %>
-    <%= lc_stat label: "of #{DailySession::TARGET} new targets", tone: (session.remaining.zero? ? :success : :default) do %><%= session.progress %><% end %>
+    <%= lc_stat label: "of #{Outreach::Session::TARGET} new targets", tone: (session.remaining.zero? ? :success : :default) do %><%= session.progress %><% end %>
     <%= lc_stat session.follow_ups, label: "follow-up".pluralize(session.follow_ups), title: "Replies in exchanges you were already in. They don't count toward the target." %>
   <% end %>
   <% if targets.any? %>

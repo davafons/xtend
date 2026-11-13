@@ -65,18 +65,18 @@ class Grok::Intake
     published_at = time(row["published_at"])
     return rejected("published_at must be an ISO-8601 time in the past 30 days.", row["url"]) unless published_at && published_at.between?(30.days.ago, 1.minute.from_now)
 
-    existing = Post.find_by(x_id: link[:x_id])
+    existing = Outreach::Candidate.find_by(x_id: link[:x_id])
     return result("already_verified", link[:x_id], "Collected from X; Grok fields were not applied.") if existing && existing.source != "grok"
-    if ReplyEvent.exists?(direction: "outgoing", target_x_id: link[:x_id]) || Outreach.exists?(target_x_id: link[:x_id])
+    if ReplyEvent.exists?(direction: "outgoing", target_x_id: link[:x_id]) || Outreach::Target.exists?(target_x_id: link[:x_id])
       return result("already_replied", link[:x_id], "You already replied to this post.")
     end
 
-    Post.transaction do
+    Outreach::Candidate.transaction do
       person = author(handle, row)
-      assessment = Discovery::Assessment.call(body: text, description: person.description,
+      assessment = Outreach::Assessment.call(body: text, description: person.description,
         interests: Current.workspace.interests, handle: handle, selected: true)
       reason = row["match_reason"].to_s.strip.first(500).presence
-      record = existing || Post.new(x_id: link[:x_id])
+      record = existing || Outreach::Candidate.new(x_id: link[:x_id])
       record.assign_attributes(person: person, body: text.first(1000), language: row["language"].to_s.presence&.first(8) || "en",
         published_at: [published_at, Time.current].min, reply_count: integer(row["reply_count"]), topic: "AI research",
         match_reason: assessment[:rank].negative? ? assessment[:reason] : (reason ? "AI: #{reason}" : "AI suggested this post; no reason given."),

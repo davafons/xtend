@@ -140,7 +140,7 @@ class XCollectionTest < ActiveSupport::TestCase
       X::SourcePost.capture!(source_post(id: "7001", parent: "8001", to: "101"), run: run)
       X::SourcePost.reconcile_all!
       assert_equal "You replied only", Person.first.reply_state
-      assert_equal 0, DailySession.current.progress
+      assert_equal 0, Outreach::Session.current.progress
       assert_equal "initial", ReplyEvent.first.classification
       assert_equal false, ReplyEvent.first.outreach_eligible
     end
@@ -155,13 +155,13 @@ class XCollectionTest < ActiveSupport::TestCase
       X::SourcePost.capture!(source_post(id: "7001", parent: "8001", to: "101"), run: run)
       X::SourcePost.reconcile_all!
       assert_equal "unclassified", ReplyEvent.first.classification
-      assert_equal 0, DailySession.current.progress
+      assert_equal 0, Outreach::Session.current.progress
       X::SourcePost.capture!(source_post(id: "8001", author: "101"), run: run)
       X::SourcePost.reconcile_all!
       assert_equal "initial", ReplyEvent.first.reload.classification
-      assert_equal 1, DailySession.current.progress
+      assert_equal 1, Outreach::Session.current.progress
       X::SourcePost.reconcile_all!
-      assert_equal 1, DailySession.current.progress
+      assert_equal 1, Outreach::Session.current.progress
     end
   end
 
@@ -176,7 +176,7 @@ class XCollectionTest < ActiveSupport::TestCase
       X::SourcePost.capture!(source_post(id: "7001", parent: "8002", to: "101"), run: run)
       X::SourcePost.reconcile_all!
       assert_equal "Two-way", Person.first.reply_state
-      assert_equal 0, DailySession.current.progress
+      assert_equal 0, Outreach::Session.current.progress
       assert_equal "continuation", ReplyEvent.find_by!(x_id: "7001").classification
     end
   end

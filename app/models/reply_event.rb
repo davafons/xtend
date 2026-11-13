@@ -1,7 +1,7 @@
 class ReplyEvent < ApplicationRecord
   include WorkspaceScoped
   belongs_to :person
-  has_one :outreach, dependent: :destroy
+  has_one :outreach_target, class_name: "Outreach::Target", dependent: :destroy
 
   validates :x_id, presence: true, uniqueness: { scope: :workspace_id }
   validates :target_x_id, :occurred_at, :confirmed_at, presence: true
@@ -28,14 +28,9 @@ class ReplyEvent < ApplicationRecord
       event.assign_attributes(attributes.merge(person: person))
       event.save!
       if event.direction == "outgoing" && event.classification == "initial"
-        session = DailySession.current if event.outreach_eligible
-        belongs_to_session = session && event.occurred_at >= session.anchor_day.in_time_zone
-        Outreach.find_or_create_by!(target_x_id: event.target_x_id) do |outreach|
-          outreach.reply_event = event
-          outreach.daily_session = session if belongs_to_session
-        end
+        Outreach::Target.record!(event)
       elsif event.classification == "continuation"
-        event.outreach&.destroy!
+        event.outreach_target&.destroy!
       end
       event
     end

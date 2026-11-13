@@ -43,12 +43,12 @@ class X::SourcePost < ApplicationRecord
   def reconcile!
     owner = Current.workspace.owner_x_id
     return if repost || published_at > Time.current
-    grok = Post.exists?(x_id: x_id, source: "grok")
+    grok = Outreach::Candidate.exists?(x_id: x_id, source: "grok")
     person = Person.find_by(x_id: author_x_id) || (Person.bind_grok_author!(post_x_id: x_id, author_x_id: author_x_id) if grok) unless author_x_id == owner
     discovery = grok || x_sync_run.discovery_posts?
     if person && discovery
-      post = Post.find_or_initialize_by(x_id: x_id)
-      assessment = Discovery::Assessment.call(body: body, description: person.description,
+      post = Outreach::Candidate.find_or_initialize_by(x_id: x_id)
+      assessment = Outreach::Assessment.call(body: body, description: person.description,
         interests: Current.workspace.interests, handle: person.handle, selected: grok)
       keep_reason = grok && post.rank >= 0 && assessment[:rank] >= 0
       post.assign_attributes(person: person, body: body, language: language.presence || "und", published_at: published_at,
@@ -85,7 +85,7 @@ class X::SourcePost < ApplicationRecord
       return "continuation" if prior.exists?
     end
     ancestor = self.class.find_by(x_id: parent_x_id)
-    return grok_target_classification(owner) if ancestor.nil? && Post.exists?(x_id: parent_x_id, source: "grok")
+    return grok_target_classification(owner) if ancestor.nil? && Outreach::Candidate.exists?(x_id: parent_x_id, source: "grok")
     visited = [x_id]
     40.times do
       return "unclassified" unless ancestor

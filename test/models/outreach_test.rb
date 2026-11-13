@@ -94,7 +94,7 @@ class OutreachTest < ActiveSupport::TestCase
     post("3002", "103", at: 2.hours.ago)
     post("3003", "103", at: 3.hours.ago)
     stranger = person("107", "erin")
-    Post.create!(person: stranger, x_id: "4001", body: "How do you test Rails migrations?", published_at: 1.hour.ago, rank: 45, match_reason: "Matches Rails and databases.")
+    Outreach::Candidate.create!(person: stranger, x_id: "4001", body: "How do you test Rails migrations?", published_at: 1.hour.ago, rank: 45, match_reason: "Matches Rails and databases.")
 
     openings = Outreach::Openings.new(Outreach::Prospects.new).to_a
     assert_equal %w[4001 3001 3002], openings.map(&:x_id)
@@ -103,7 +103,7 @@ class OutreachTest < ActiveSupport::TestCase
   end
 
   test "the session counts distinct new targets and reports follow-ups separately" do
-    session = DailySession.current
+    session = Outreach::Session.current
     ingest(x_id: "o1", target_x_id: "t1", occurred_at: 1.minute.ago)
     ingest(x_id: "o2", target_x_id: "o0", classification: "continuation", occurred_at: 1.minute.ago)
     assert_equal 1, session.reload.progress

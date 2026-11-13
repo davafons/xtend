@@ -1,6 +1,4 @@
-class Outreach < ApplicationRecord
-  include WorkspaceScoped
-  belongs_to :reply_event
-  belongs_to :daily_session, optional: true
-  validates :target_x_id, presence: true, uniqueness: { scope: :workspace_id }
+# Finding who to engage with and which post to reply to, and counting distinct new targets per session.
+module Outreach
+  def self.table_name_prefix = "outreach_"
 end

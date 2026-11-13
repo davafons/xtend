@@ -4,7 +4,7 @@ class OutreachController < ApplicationController
 
   def show
     @view = VIEWS.include?(params[:view]) ? params[:view] : "posts"
-    @session = DailySession.current
+    @session = Outreach::Session.current
     @prospects = Outreach::Prospects.new(reason: params[:reason])
     @openings = Outreach::Openings.new(@prospects)
   end

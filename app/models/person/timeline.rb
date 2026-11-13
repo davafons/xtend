@@ -98,7 +98,7 @@ class Person::Timeline
   end
 
   def post_entries
-    person.posts.map do |post|
+    person.outreach_candidates.map do |post|
       Entry.new(at: post.published_at, category: "conversation", kind: :post, author: :them, icon: "sparkles",
         tone: post.source == "grok" ? :grok : :neutral, title: "Posted · suggested for outreach", body: text(post.body), x_id: post.x_id,
         detail: post.match_reason, url: post.source_url)
@@ -108,7 +108,7 @@ class Person::Timeline
   def authored_entries
     return [] if person.x_id.blank?
     # Posts you replied to already appear above your reply.
-    known = person.reply_events.flat_map { |event| [event.x_id, event.target_x_id] } + person.posts.map(&:x_id)
+    known = person.reply_events.flat_map { |event| [event.x_id, event.target_x_id] } + person.outreach_candidates.map(&:x_id)
     X::SourcePost.where(author_x_id: person.x_id, repost: false).where.not(x_id: known).map do |source|
       Entry.new(at: source.published_at, category: "conversation", kind: :post, author: :them, icon: "chat-bubble-bottom-center-text",
         title: source.parent_x_id ? "Replied in a thread" : "Posted", body: text(source.body), x_id: source.x_id, url: status_url(source.x_id))

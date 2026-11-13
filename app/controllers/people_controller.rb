@@ -69,7 +69,7 @@ class PeopleController < ApplicationController
   private :recent_people
 
   def show
-    @person = Person.includes(:pin, :follow_protection, :reply_events, :follow_reviews, :follower_periods, :posts, :engagements, :tags).find(params[:id])
+    @person = Person.includes(:pin, :follow_protection, :reply_events, :follow_reviews, :follower_periods, :outreach_candidates, :engagements, :tags).find(params[:id])
     @graph = Follow::Graph.latest
     @timeline = @person.timeline
     @category = Person::Timeline::CATEGORIES.key?(params[:show]) ? params[:show] : nil

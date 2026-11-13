@@ -27,8 +27,8 @@ class XCaptureTest < ActiveSupport::TestCase
     assert_not X::SourcePost.exists?(x_id: "3003"), "a stranger's post quoted by a stranger is only context"
     assert_not X::SourcePost.exists?(x_id: "4004"), "promoted posts are ignored"
     assert_equal %w[1001 2002], X::SourcePost.order(:x_id).pluck(:x_id)
-    assert_equal %w[1001], Post.order(:x_id).pluck(:x_id)
-    assert_equal [ "x_capture" ], Post.distinct.pluck(:source)
+    assert_equal %w[1001], Outreach::Candidate.order(:x_id).pluck(:x_id)
+    assert_equal [ "x_capture" ], Outreach::Candidate.distinct.pluck(:source)
     assert_equal 0, X::Read.count
     assert_empty X::SyncRun.unresolved_user_ids
     assert_empty X::SyncRun.unresolved_parent_ids
@@ -56,7 +56,7 @@ class XCaptureTest < ActiveSupport::TestCase
     assert_equal [ "outgoing", "initial", "x_capture" ], [ outgoing.direction, outgoing.classification, outgoing.source ]
     assert_equal "author", outgoing.person.handle
     assert ReplyEvent.exists?(x_id: "5003", direction: "incoming", source: "x_capture")
-    assert_equal 0, Post.count, "thread context is not a reply target"
+    assert_equal 0, Outreach::Candidate.count, "thread context is not a reply target"
   end
 
   test "only the owner's Likes page records likes, and capture never claims like coverage" do
@@ -83,7 +83,7 @@ class XCaptureTest < ActiveSupport::TestCase
     capture!(batch, batch_key: "batch-key-000000002")
 
     assert_equal 1, Person.where(x_id: "701").count
-    assert_equal 1, Post.where(x_id: "7001").count
+    assert_equal 1, Outreach::Candidate.where(x_id: "7001").count
     assert_equal "Met at RubyKaigi", person.reload.notes
     assert person.pin.present?
   end

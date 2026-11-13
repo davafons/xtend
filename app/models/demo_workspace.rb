@@ -1,7 +1,7 @@
 class DemoWorkspace
   def self.seed!
     raise "Demo data requires CRM_DEMO=1 and its separate database." unless Rails.configuration.x.demo
-    return if Post.exists?
+    return if Outreach::Candidate.exists?
 
     ApplicationRecord.transaction do
       Current.workspace.update!(name: "Demo workspace", owner_x_id: "999")
@@ -28,7 +28,7 @@ class DemoWorkspace
         [ 7, "A personal archive is only useful if you can find the thing you half remember. I'm trying a timeline plus local search, before adding any AI. What do you wish your own tools remembered?", "Local-first tools", "Relevant to personal data, local search, and context that stays useful over time." ]
       ]
       messages.each_with_index do |(author, body, topic, reason), index|
-        Post.create!(person: profiles[author], x_id: (81000 + index).to_s, body: body, topic: topic, match_reason: reason, published_at: (index + 1).hours.ago, rank: 100 - index)
+        Outreach::Candidate.create!(person: profiles[author], x_id: (81000 + index).to_s, body: body, topic: topic, match_reason: reason, published_at: (index + 1).hours.ago, rank: 100 - index)
       end
       12.times do |index|
         person = profiles[index.even? ? 0 : 1]

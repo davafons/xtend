@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_060000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_061000) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -22,16 +22,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_060000) do
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
     t.index ["workspace_id"], name: "index_archive_imports_on_workspace_id"
-  end
-
-  create_table "daily_sessions", force: :cascade do |t|
-    t.date "anchor_day", null: false
-    t.datetime "completed_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "workspace_id", null: false
-    t.index ["workspace_id"], name: "index_daily_sessions_on_workspace_id"
-    t.index ["workspace_id"], name: "index_one_active_daily_session", unique: true, where: "completed_at IS NULL"
   end
 
   create_table "direct_messages", force: :cascade do |t|
@@ -192,17 +182,46 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_060000) do
     t.index ["workspace_id"], name: "index_grok_proposals_on_workspace_id"
   end
 
-  create_table "outreaches", force: :cascade do |t|
-    t.integer "daily_session_id"
+  create_table "outreach_candidates", force: :cascade do |t|
+    t.integer "person_id", null: false
+    t.string "x_id", null: false
+    t.text "body", null: false
+    t.string "language", default: "en", null: false
+    t.string "topic"
+    t.text "match_reason"
+    t.integer "rank", default: 0, null: false
+    t.datetime "published_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "reply_count"
+    t.string "source", default: "x_api", null: false
+    t.string "grok_run_id"
+    t.integer "workspace_id", null: false
+    t.index ["person_id"], name: "index_outreach_candidates_on_person_id"
+    t.index ["workspace_id", "x_id"], name: "index_outreach_candidates_on_workspace_id_and_x_id", unique: true
+    t.index ["workspace_id"], name: "index_outreach_candidates_on_workspace_id"
+  end
+
+  create_table "outreach_sessions", force: :cascade do |t|
+    t.date "anchor_day", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id", "anchor_day"], name: "index_outreach_sessions_on_workspace_id_and_anchor_day", unique: true
+    t.index ["workspace_id"], name: "index_outreach_sessions_on_workspace_id"
+  end
+
+  create_table "outreach_targets", force: :cascade do |t|
+    t.integer "outreach_session_id"
     t.integer "reply_event_id", null: false
     t.string "target_x_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
-    t.index ["daily_session_id"], name: "index_outreaches_on_daily_session_id"
-    t.index ["reply_event_id"], name: "index_outreaches_on_reply_event_id", unique: true
-    t.index ["workspace_id", "target_x_id"], name: "index_outreaches_on_workspace_id_and_target_x_id", unique: true
-    t.index ["workspace_id"], name: "index_outreaches_on_workspace_id"
+    t.index ["outreach_session_id"], name: "index_outreach_targets_on_outreach_session_id"
+    t.index ["reply_event_id"], name: "index_outreach_targets_on_reply_event_id", unique: true
+    t.index ["workspace_id", "target_x_id"], name: "index_outreach_targets_on_workspace_id_and_target_x_id", unique: true
+    t.index ["workspace_id"], name: "index_outreach_targets_on_workspace_id"
   end
 
   create_table "people", force: :cascade do |t|
@@ -253,26 +272,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_060000) do
     t.integer "workspace_id", null: false
     t.index ["person_id"], name: "index_pins_on_person_id", unique: true
     t.index ["workspace_id"], name: "index_pins_on_workspace_id"
-  end
-
-  create_table "posts", force: :cascade do |t|
-    t.integer "person_id", null: false
-    t.string "x_id", null: false
-    t.text "body", null: false
-    t.string "language", default: "en", null: false
-    t.string "topic"
-    t.text "match_reason"
-    t.integer "rank", default: 0, null: false
-    t.datetime "published_at", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "reply_count"
-    t.string "source", default: "x_api", null: false
-    t.string "grok_run_id"
-    t.integer "workspace_id", null: false
-    t.index ["person_id"], name: "index_posts_on_person_id"
-    t.index ["workspace_id", "x_id"], name: "index_posts_on_workspace_id_and_x_id", unique: true
-    t.index ["workspace_id"], name: "index_posts_on_workspace_id"
   end
 
   create_table "reply_events", force: :cascade do |t|
@@ -528,7 +527,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_060000) do
   end
 
   add_foreign_key "archive_imports", "workspaces"
-  add_foreign_key "daily_sessions", "workspaces"
   add_foreign_key "direct_messages", "workspaces"
   add_foreign_key "direct_messages", "x_sync_runs"
   add_foreign_key "draft_alternatives", "drafts"
@@ -553,17 +551,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_060000) do
   add_foreign_key "follower_periods", "workspaces"
   add_foreign_key "grok_proposals", "people"
   add_foreign_key "grok_proposals", "workspaces"
-  add_foreign_key "outreaches", "daily_sessions"
-  add_foreign_key "outreaches", "reply_events"
-  add_foreign_key "outreaches", "workspaces"
+  add_foreign_key "outreach_candidates", "people"
+  add_foreign_key "outreach_candidates", "workspaces"
+  add_foreign_key "outreach_sessions", "workspaces"
+  add_foreign_key "outreach_targets", "outreach_sessions"
+  add_foreign_key "outreach_targets", "reply_events"
+  add_foreign_key "outreach_targets", "workspaces"
   add_foreign_key "people", "workspaces"
   add_foreign_key "person_tags", "people"
   add_foreign_key "person_tags", "tags"
   add_foreign_key "person_tags", "workspaces"
   add_foreign_key "pins", "people"
   add_foreign_key "pins", "workspaces"
-  add_foreign_key "posts", "people"
-  add_foreign_key "posts", "workspaces"
   add_foreign_key "reply_events", "people"
   add_foreign_key "reply_events", "workspaces"
   add_foreign_key "sessions", "users"

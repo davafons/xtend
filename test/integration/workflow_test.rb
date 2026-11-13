@@ -56,7 +56,7 @@ class WorkflowTest < ActionDispatch::IntegrationTest
     original = Rails.configuration.x.demo
     Rails.configuration.x.demo = true
     DemoWorkspace.seed!
-    assert_equal 12, DailySession.current.progress
+    assert_equal 12, Outreach::Session.current.progress
     [root_path, people_path, follow_reviews_path, settings_path, x_sources_path, grok_connector_path, x_billing_cycles_path, person_path(Person.first)].each do |path|
       get path
       assert_response :success

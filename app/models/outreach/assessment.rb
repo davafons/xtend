@@ -1,4 +1,4 @@
-class Discovery::Assessment
+class Outreach::Assessment
   TOPICS = {
     "Rails and databases" => [/rails|ruby|sqlite|products/i, /\b(ruby|sqlite|hotwire|activerecord|postgres|database|migration)\b/i],
     "Coding agents and developer workflows" => [/agent|coding|developer|workflow|tools/i, /\b(coding agents?|claude code|codex|opencode|mcp|agents? (run|running|stuck|workflow)|debugging|developer|devtools|backend|software engineer|agent.{0,30}(context|diagnosis|stuck|tab|code))\b/i],

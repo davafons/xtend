@@ -15,7 +15,7 @@ class Outreach::Prospects
   BIG_ACCOUNT = 100_000
   AUTOMATED = %w[grok bot].freeze
   LIMIT = 60
-  # Discovery is English-only; X marks posts without words (links, emoji, media) with these codes.
+  # Outreach is English-only; X marks posts without words (links, emoji, media) with these codes.
   ENGLISH = %w[en und zxx qme qam qct].freeze
 
   REASONS = {
@@ -198,7 +198,7 @@ class Outreach::Prospects
 
   def answered_ids
     ReplyEvent.where(direction: "outgoing").select(:target_x_id).distinct.pluck(:target_x_id) |
-      Outreach.pluck(:target_x_id) |
+      Outreach::Target.pluck(:target_x_id) |
       X::SourcePost.where(author_x_id: @owner).where.not(parent_x_id: nil).pluck(:parent_x_id)
   end
 

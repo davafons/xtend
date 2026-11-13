@@ -17,7 +17,7 @@ class WorkspaceIsolationTest < ActiveSupport::TestCase
     end
     assert_equal [ "A Builder" ], Person.pluck(:name)
     assert_equal 2, Person.unscoped.count
-    assert_equal 1, DailySession.current.progress
+    assert_equal 1, Outreach::Session.current.progress
   end
 
   test "associations, subqueries, and Grok checks never cross workspaces" do
@@ -26,10 +26,10 @@ class WorkspaceIsolationTest < ActiveSupport::TestCase
       result = Grok::Intake.new(via: "mcp").call("posts" => [ { "url" => "https://x.com/shared/status/8101", "text" => "A question",
         "published_at" => 1.hour.ago.iso8601 } ])
       assert_equal "created", result[:posts].first[:status], "another workspace's reply must not mark this post replied"
-      assert_includes Post.opportunities.map(&:x_id), "8101"
+      assert_includes Outreach::Candidate.opportunities.map(&:x_id), "8101"
     end
-    assert_not_includes Post.opportunities.map(&:x_id), "8101"
-    assert_empty Person.find_by!(handle: "shared").posts
+    assert_not_includes Outreach::Candidate.opportunities.map(&:x_id), "8101"
+    assert_empty Person.find_by!(handle: "shared").outreach_candidates
   end
 
   test "queries without a workspace raise instead of returning everyone's data" do

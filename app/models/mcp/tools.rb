@@ -133,7 +133,7 @@ class Mcp::Tools
 
   def get_owner_profile(_args)
     { demo: @demo, handle: X::Connection.current&.username, interests: @workspace.interests,
-      session_goal: "Replies on #{DailySession::TARGET} distinct new target posts per session. Follow-ups in existing exchanges do not count.",
+      session_goal: "Replies on #{Outreach::Session::TARGET} distinct new target posts per session. Follow-ups in existing exchanges do not count.",
       discovery_filters: ["English only", "Posted in the last 7 days", "At most 50 replies", "No crypto, airdrops, engagement bait, follow-for-follow, or pure promotion", "No automated accounts"],
       tags: Tag.by_use.limit(200).map { |tag| { name: tag.name, people: tag.people_count } },
       shared_categories: { notes: @workspace.mcp_share_notes, dm_metadata: @workspace.mcp_share_dms },
@@ -141,10 +141,10 @@ class Mcp::Tools
   end
 
   def get_session_state(_args)
-    session = DailySession.current
-    { demo: @demo, target: DailySession::TARGET, progress: session.progress,
-      remaining: [DailySession::TARGET - session.progress, 0].max,
-      queue: { available: Post.opportunities.count, unverified_from_ai: Post.opportunities.where(source: "grok").count },
+    session = Outreach::Session.current
+    { demo: @demo, target: Outreach::Session::TARGET, progress: session.progress,
+      remaining: [Outreach::Session::TARGET - session.progress, 0].max,
+      queue: { available: Outreach::Candidate.opportunities.count, unverified_from_ai: Outreach::Candidate.opportunities.where(source: "grok").count },
       replied_post_ids: ReplyEvent.where(direction: "outgoing").order(occurred_at: :desc).limit(200).pluck(:target_x_id) }
   end
 
@@ -242,7 +242,7 @@ class Mcp::Tools
       end
     end
     if kind.nil? || kind == "posts"
-      posts = Post.opportunities.where(source: "grok").order(created_at: :desc)
+      posts = Outreach::Candidate.opportunities.where(source: "grok").order(created_at: :desc)
       result[:unverified_posts_total] = posts.count
       result[:unverified_posts] = posts.limit(limit).map do |post|
         { url: "https://x.com/i/status/#{post.x_id}", text: post.body.to_s.first(280), reason: post.match_reason, proposed_at: post.created_at.iso8601 }
@@ -253,7 +253,7 @@ class Mcp::Tools
 
   def list_known_posts(args)
     since = bounded(args["days"], 7, 30).days.ago
-    ids = Post.where("published_at >= ? OR updated_at >= ?", since, since).pluck(:x_id)
+    ids = Outreach::Candidate.where("published_at >= ? OR updated_at >= ?", since, since).pluck(:x_id)
     ids += ReplyEvent.where(direction: "outgoing", occurred_at: since..).pluck(:target_x_id)
     ids += X::SourcePost.where(published_at: since..).pluck(:x_id)
     { demo: @demo, since: since.iso8601, post_ids: ids.uniq.first(1000) }

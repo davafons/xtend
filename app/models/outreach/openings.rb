@@ -46,7 +46,7 @@ class Outreach::Openings
   end
 
   def discovery
-    @discovery ||= Post.opportunities.where(published_at: DISCOVERY_RECENT.ago..).limit(LIMIT).to_a
+    @discovery ||= Outreach::Candidate.opportunities.where(published_at: DISCOVERY_RECENT.ago..).limit(LIMIT).to_a
       .reject { |post| Outreach::Prospects::AUTOMATED.include?(post.person.handle) }
   end
 

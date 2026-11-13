@@ -24,9 +24,9 @@ class GrokConnectorTest < ActiveSupport::TestCase
   test "a Grok candidate reaches Today unverified without X reads, replies, or progress" do
     result = intake([candidate])
     assert_equal "created", result[:posts].first[:status]
-    post = Post.find_by!(x_id: "8101")
+    post = Outreach::Candidate.find_by!(x_id: "8101")
     assert_equal "grok", post.source
-    assert_includes Post.opportunities, post
+    assert_includes Outreach::Candidate.opportunities, post
     assert_equal "AI: Asks a concrete Rails testing question", post.match_reason
     person = post.person
     assert_nil person.x_id
@@ -34,7 +34,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
     assert_equal ["New Builder", "Rails and SQLite", 1200], [person.name, person.description, person.followers_count]
     assert_equal 0, X::Read.count
     assert_equal 0, ReplyEvent.count
-    assert_equal 0, DailySession.current.progress
+    assert_equal 0, Outreach::Session.current.progress
   end
 
   test "invalid or fabricated-looking candidates are rejected item by item" do
@@ -47,7 +47,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
       candidate(url: "https://x.com/newbuilder/status/8106")
     ])
     assert_equal %w[rejected rejected rejected rejected rejected created], result[:posts].map { |item| item[:status] }
-    assert_equal ["8106"], Post.pluck(:x_id)
+    assert_equal ["8106"], Outreach::Candidate.pluck(:x_id)
     assert_raises(Grok::Intake::Invalid) { intake(Array.new(21) { |index| candidate(url: "https://x.com/newbuilder/status/#{9000 + index}") }) }
   end
 
@@ -55,11 +55,11 @@ class GrokConnectorTest < ActiveSupport::TestCase
     person = Person.resolve_profile!(profile(x_id: "555", handle: "newbuilder", name: "Real Name"))
     person.update!(notes: "Met at RubyKaigi", description: "From X")
     person.create_pin!
-    person.posts.create!(x_id: "8101", body: "Collected from X", published_at: 1.hour.ago)
+    person.outreach_candidates.create!(x_id: "8101", body: "Collected from X", published_at: 1.hour.ago)
     ingest(target_x_id: "8102", person_profile: profile(x_id: "555", handle: "newbuilder", name: "Real Name"))
     result = intake([candidate, candidate(url: "https://x.com/newbuilder/status/8102"), candidate(url: "https://x.com/newbuilder/status/8103", "author_bio" => "Grok bio")])
     assert_equal %w[already_verified already_replied created], result[:posts].map { |item| item[:status] }
-    assert_equal "Collected from X", Post.find_by!(x_id: "8101").body
+    assert_equal "Collected from X", Outreach::Candidate.find_by!(x_id: "8101").body
     person.reload
     assert_equal ["Real Name", "From X", "Met at RubyKaigi"], [person.name, person.description, person.notes]
     assert person.pin.present?
@@ -74,12 +74,12 @@ class GrokConnectorTest < ActiveSupport::TestCase
     assert_equal "555", person.x_id
     event = ReplyEvent.find_by!(x_id: "7101")
     assert_equal ["outgoing", "initial", person.id], [event.direction, event.classification, event.person_id]
-    assert_equal 1, DailySession.current.progress
-    assert_not_includes Post.opportunities, Post.find_by!(x_id: "8101")
+    assert_equal 1, Outreach::Session.current.progress
+    assert_not_includes Outreach::Candidate.opportunities, Outreach::Candidate.find_by!(x_id: "8101")
 
     X::SourcePost.capture!(reply_row(id: "7102", parent: "7101", to: "555", conversation: "8101"), run: reply)
     X::SourcePost.reconcile_all!
-    assert_equal 1, DailySession.current.progress
+    assert_equal 1, Outreach::Session.current.progress
   end
 
   test "a reply to a Grok post inside the owner's own thread is a follow-up" do
@@ -89,7 +89,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
     X::SourcePost.capture!(reply_row(id: "7101", parent: "8101", to: "555", conversation: "6000"), run: sync_run("own_posts"))
     X::SourcePost.reconcile_all!
     assert_equal "continuation", ReplyEvent.find_by!(x_id: "7101").classification
-    assert_equal 0, DailySession.current.progress
+    assert_equal 0, Outreach::Session.current.progress
   end
 
   test "verifying a Grok post on X replaces reported facts and keeps Grok's reason" do
@@ -98,7 +98,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
     X::SourcePost.capture!({ "id" => "8101", "author_id" => "555", "text" => "How do you test Rails jobs on SQLite?", "created_at" => 3.hours.ago.iso8601,
       "lang" => "en", "referenced_posts" => [], "reply_count" => 5 }, run: lookup)
     X::SourcePost.reconcile_all!
-    post = Post.find_by!(x_id: "8101")
+    post = Outreach::Candidate.find_by!(x_id: "8101")
     assert_equal ["x_capture", "555", "How do you test Rails jobs on SQLite?", 5], [post.source, post.person.x_id, post.body, post.reply_count]
     assert_equal "AI: Asks a concrete Rails testing question", post.match_reason
   end
@@ -110,7 +110,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
     X::SourcePost.capture!({ "id" => "8101", "author_id" => "777", "text" => "Rails jobs question", "created_at" => 3.hours.ago.iso8601,
       "lang" => "en", "referenced_posts" => [] }, run: lookup)
     X::SourcePost.reconcile_all!
-    assert_equal real, Post.find_by!(x_id: "8101").person
+    assert_equal real, Outreach::Candidate.find_by!(x_id: "8101").person
     assert_nil Person.find_by!(handle: "newbuilder").x_id
   end
 

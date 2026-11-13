@@ -3,7 +3,7 @@ namespace :demo do
   task seed: :environment do
     Current.set(workspace: Workspace.first || Workspace.create!) do
       DemoWorkspace.seed!
-      puts "Demo ready: #{Person.count} fictional people, #{Post.count} tweets. No X requests made."
+      puts "Demo ready: #{Person.count} fictional people, #{Outreach::Candidate.count} tweets. No X requests made."
     end
   end
 end

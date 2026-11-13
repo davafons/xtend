@@ -5,8 +5,8 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     event = ingest
     assert_equal "A Builder", event.person.name
     assert_equal "You replied only", event.person.reply_state
-    assert_equal 1, DailySession.current.progress
-    assert_no_difference ["Person.count", "ReplyEvent.count", "Outreach.count"] do
+    assert_equal 1, Outreach::Session.current.progress
+    assert_no_difference ["Person.count", "ReplyEvent.count", "Outreach::Target.count"] do
       ingest
     end
   end
@@ -16,14 +16,14 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     ingest(x_id: "7002")
     ingest(x_id: "7003", target_x_id: "8002", classification: "continuation")
     ingest(x_id: "7004", target_x_id: "8003", classification: "unclassified")
-    assert_equal 1, DailySession.current.progress
+    assert_equal 1, Outreach::Session.current.progress
     assert_equal 4, Person.first.outgoing_count
   end
 
   test "independent targets by the same person both count" do
     ingest
     ingest(x_id: "7002", target_x_id: "8002")
-    assert_equal 2, DailySession.current.progress
+    assert_equal 2, Outreach::Session.current.progress
     assert_equal 1, Person.count
   end
 
@@ -32,7 +32,7 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     assert_equal "They replied only", event.person.reply_state
     ingest(x_id: "7002", occurred_at: 2.years.ago)
     assert_equal "Two-way", event.person.reply_state
-    assert_equal 0, DailySession.current.progress
+    assert_equal 0, Outreach::Session.current.progress
   end
 
   test "manual notes and pins survive profile refresh and handle change" do
@@ -50,7 +50,7 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
   end
 
   test "self replies cannot create outreach" do
-    assert_no_difference "Outreach.count" do
+    assert_no_difference "Outreach::Target.count" do
       assert_raises ActiveRecord::RecordInvalid do
         ingest(person_profile: profile(x_id: "999", handle: "myself"))
       end
@@ -63,15 +63,14 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     assert_equal 0, ReplyEvent.count
   end
 
-  test "unfinished session survives midnight and completion waits for target" do
+  test "a session still in use survives midnight" do
     travel_to Time.zone.parse("2026-11-04 23:50") do
-      event = ingest
-      session = DailySession.current
-      assert_raises(ActiveRecord::RecordInvalid) { session.complete! }
+      ingest
+      session = Outreach::Session.current
       travel 2.hours
       ingest(x_id: "7002", target_x_id: "8002")
-      assert_equal session.id, DailySession.current.id
-      assert_equal 2, DailySession.current.progress
+      assert_equal session.id, Outreach::Session.current.id
+      assert_equal 2, Outreach::Session.current.progress
     end
   end
 
@@ -113,11 +112,11 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
 
   test "English queue honors prior targets" do
     person = Person.resolve_profile!(profile)
-    post = person.posts.create!(x_id: "8001", body: "Hello", published_at: 1.hour.ago)
-    person.posts.create!(x_id: "8002", body: "Hola", language: "es", published_at: 1.hour.ago)
-    assert_equal [post.id], Post.opportunities.pluck(:id)
+    post = person.outreach_candidates.create!(x_id: "8001", body: "Hello", published_at: 1.hour.ago)
+    person.outreach_candidates.create!(x_id: "8002", body: "Hola", language: "es", published_at: 1.hour.ago)
+    assert_equal [post.id], Outreach::Candidate.opportunities.pluck(:id)
     ingest
-    assert_empty Post.opportunities
+    assert_empty Outreach::Candidate.opportunities
   end
 
   test "Grok export excludes private notes and does not imply complete data" do
@@ -128,14 +127,17 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     assert_not_includes context.to_json, "Private material"
     assert_includes context[:coverage], "not a complete"
   end
-  test "completed sessions stay complete until a new day" do
-    20.times { |index| ingest(x_id: (7000 + index).to_s, target_x_id: (8000 + index).to_s) }
-    session = DailySession.current
-    session.complete!
-    assert_equal session.id, DailySession.current.id
-    travel 1.day do
-      assert_not_equal session.id, DailySession.current.id
-      assert_equal 0, DailySession.current.progress
+  test "a session that went quiet ends on its own and the next reply starts a fresh one" do
+    travel_to Time.zone.parse("2026-11-04 10:00") do
+      ingest
+      session = Outreach::Session.current
+      travel 6.hours
+      assert_equal session.id, Outreach::Session.current.id, "later the same day is the same session"
+      travel 1.day
+      assert_not_equal session.id, Outreach::Session.current.id
+      ingest(x_id: "7002", target_x_id: "8002")
+      assert_equal 1, Outreach::Session.current.progress
+      assert_equal 1, session.reload.progress
     end
   end
 
@@ -149,23 +151,23 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     ingest
     assert_raises(ArgumentError) { ingest(target_x_id: "9999") }
     assert_equal "8001", ReplyEvent.first.target_x_id
-    assert_equal 1, DailySession.current.progress
+    assert_equal 1, Outreach::Session.current.progress
   end
 
   test "a verified continuation doesn't count as outreach" do
     person = Person.resolve_profile!(profile)
-    post = person.posts.create!(x_id: "8001", body: "An existing conversation", published_at: 1.hour.ago)
+    post = person.outreach_candidates.create!(x_id: "8001", body: "An existing conversation", published_at: 1.hour.ago)
     ingest(classification: "continuation")
-    assert_equal 0, DailySession.current.progress
-    assert_not_includes Post.opportunities, post
+    assert_equal 0, Outreach::Session.current.progress
+    assert_not_includes Outreach::Candidate.opportunities, post
   end
 
   test "later proof of a continuation corrects outreach while preserving the reply" do
     event = ingest
-    assert_equal 1, DailySession.current.progress
+    assert_equal 1, Outreach::Session.current.progress
     ingest(classification: "continuation")
     assert_equal "continuation", event.reload.classification
-    assert_equal 0, DailySession.current.progress
+    assert_equal 0, Outreach::Session.current.progress
     assert_equal 1, ReplyEvent.count
     assert_equal "You replied only", event.person.reply_state
   end

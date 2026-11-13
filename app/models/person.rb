@@ -3,7 +3,7 @@ class Person < ApplicationRecord
   has_one :pin, dependent: :destroy
   has_one :follow_protection, class_name: "Follow::Protection", dependent: :destroy
   has_many :follower_periods, class_name: "Follow::FollowerPeriod", dependent: :destroy
-  has_many :posts, dependent: :destroy
+  has_many :outreach_candidates, class_name: "Outreach::Candidate", dependent: :destroy
   has_many :reply_events, dependent: :destroy
   has_many :follow_memberships, class_name: "Follow::Membership", dependent: :destroy
   has_many :follow_reviews, class_name: "Follow::Review", dependent: :destroy
@@ -66,7 +66,7 @@ class Person < ApplicationRecord
 
   # Known only from Grok research: no X read has tied this handle to a numeric account yet.
   def grok_only?
-    x_id.nil? && posts.where(source: "grok").exists?
+    x_id.nil? && outreach_candidates.where(source: "grok").exists?
   end
 
   def fill_blank_profile!(facts)
@@ -77,7 +77,7 @@ class Person < ApplicationRecord
   # X says post_x_id was written by author_x_id. If a Grok-only person holds that post, bind them to the real account;
   # if another record already has that X ID, move the post there.
   def self.bind_grok_author!(post_x_id:, author_x_id:)
-    post = Post.find_by(x_id: post_x_id, source: "grok")
+    post = Outreach::Candidate.find_by(x_id: post_x_id, source: "grok")
     return unless post && author_x_id.to_s.match?(/\A\d{1,30}\z/)
     if (existing = find_by(x_id: author_x_id))
       post.update!(person: existing) unless post.person_id == existing.id
