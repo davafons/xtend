@@ -20,15 +20,24 @@ class XContextTest < ActionDispatch::IntegrationTest
     assert_response :success
     people = response.parsed_body["people"]
     assert_equal %w[ada stranger], people.keys
-    assert_equal({ "known" => false }, people["stranger"])
+    assert_equal({ "known" => false }, people["stranger"], "partial follow lists can't say a stranger follows neither way")
     context = people["ada"]
     assert_equal [ "Mutual", "both" ], context.values_at("follow", "meaning")
     assert_equal({ "from_you" => 1, "from_them" => 1 }, context["replies"])
     assert_match(/They replied to you/, context.dig("latest", "label"))
+    assert_equal person_url(ada, show: "conversation"), context.dig("latest", "url")
     assert_equal "Met at RubyKaigi", context["notes"]
     assert_equal "ruby", context.dig("tags", 0, "name")
     assert_equal [ "Ask about the talk", true ], context["reminder"].values_at("reason", "due")
     assert_equal person_url(ada), context["url"]
+  end
+
+  test "with complete follow lists, someone Xtend has no person for follows neither way as of the older check" do
+    snapshot("following", [], observed_at: 3.days.ago)
+    snapshot("followers", [], observed_at: 1.day.ago)
+    read_context("stranger")
+    assert_equal({ "known" => false, "follow" => "Neither", "meaning" => "neutral" }, response.parsed_body.dig("people", "stranger"))
+    assert_in_delta 3.days.ago, Time.zone.parse(response.parsed_body["follow_checked_at"]), 1.minute
   end
 
   test "only the extension's capture link from an extension origin can read it" do

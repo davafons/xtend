@@ -18,6 +18,8 @@ const XTEND_TABS = ["https://xtend.example.com/*", "https://xtend.localhost/*"];
 // What Xtend knows about the people on screen, kept briefly so scrolling a timeline doesn't ask twice.
 const CONTEXT_TTL_MS = 3 * 60 * 1000;
 const CONTEXT_MAX_HANDLES = 100;
+// Long enough for x.com's profile responses to reach the queue.
+const SAVE_NOW_DELAY_MS = 1500;
 const contextCache = new Map();
 let sendTimer = null;
 
@@ -174,7 +176,8 @@ async function context(handles) {
     const chunk = missing.slice(i, i + CONTEXT_MAX_HANDLES);
     const answer = await readContext(chunk);
     if (!answer.ok) return { people, error: answer.error };
-    for (const [handle, person] of Object.entries(answer.body.people || {})) {
+    for (const [handle, answered] of Object.entries(answer.body.people || {})) {
+      const person = { ...answered, follow_checked_at: answer.body.follow_checked_at || null };
       contextCache.set(handle, { person, at: now });
       people[handle] = person;
     }
@@ -317,6 +320,15 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return false;
   }
   // The overlay on x.com asks what Xtend knows about the handles on screen. It gets that answer and nothing else.
+  // A profile Xtend doesn't know yet: send the visit now instead of waiting for the next batch, then forget the
+  // cached "unknown" so the overlay's next question gets the fresh answer.
+  if (message.type === "save-now") {
+    if (sender.id !== chrome.runtime.id || !sender.tab?.url?.startsWith("https://x.com/")) return false;
+    const handle = String(message.handle || "").toLowerCase();
+    new Promise((resolve) => setTimeout(resolve, SAVE_NOW_DELAY_MS)).then(() => flush()).catch(() => {})
+      .then(() => { contextCache.delete(handle); reply({ ok: true }); });
+    return true;
+  }
   if (message.type === "context") {
     if (sender.id !== chrome.runtime.id || !sender.tab?.url?.startsWith("https://x.com/") || !Array.isArray(message.handles)) return false;
     context(message.handles).then(reply, () => reply({ error: "failed" }));

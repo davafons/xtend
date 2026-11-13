@@ -1,5 +1,5 @@
-// Shows what Xtend knows about the people x.com puts on screen: a small badge after their handle on posts and in
-// lists, a line in X's own hover card, and a card at the top of the sidebar on a profile. It reads only the handles
+// Shows what Xtend knows about the people x.com puts on screen: a ring in their follow relationship's color around
+// every avatar, a small badge after their handle on posts and in lists, a line in X's own hover card, and a card at the top of the sidebar on a profile. It reads only the handles
 // already on the page and asks the background worker, which asks Xtend; it never changes what X shows or sends.
 // Everything it adds lives in closed shadow roots, so x.com's styles and scripts can't reach it.
 (() => {
@@ -46,6 +46,7 @@
     .brand img { width: 18px; height: 18px; }
     a { color: ${COLORS.accent}; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
     a:hover { text-decoration: underline; }
+    .facts a { color: inherit; font-size: inherit; }
     .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 12px;
       background: color-mix(in oklab, currentColor 15%, transparent); }
@@ -61,6 +62,8 @@
   `;
 
   const people = new Map();
+  // Profiles asked to be saved right away: "pending", then "done" so a profile X never sends is asked only once.
+  const saving = new Map();
   const asked = new Set();
   let status = { off: false, error: null };
   let scanTimer = null;
@@ -95,6 +98,10 @@
       const handle = handleIn(card);
       const body = card.firstElementChild || card;
       if (handle) found.push({ kind: "hover", handle, element: card, place: (host) => body.append(host) });
+    }
+    for (const avatar of document.querySelectorAll('[data-testid^="UserAvatar-Container-"]')) {
+      const handle = avatar.dataset.testid.slice("UserAvatar-Container-".length).toLowerCase();
+      if (/^\w{1,15}$/.test(handle) && handle !== "unknown" && handle !== ownHandle()) found.push({ kind: "ring", handle, element: avatar });
     }
     const header = document.querySelector('[data-testid="primaryColumn"] [data-testid="UserName"]');
     const profile = header && handleIn(header);
@@ -224,8 +231,9 @@
         el("p", "muted", status.error === "not connected" ? "Connect the extension to Xtend in its options to see what Xtend knows here." : "Xtend isn't reachable right now."));
     }
     if (!person.known) {
-      return el("div", "card", el("div", "head", brand),
-        el("p", "muted", "Not in Xtend yet. Visiting saves this profile; it shows here after the next send."));
+      const text = saving.get(person.handle) === "pending" ? "Saving this profile to Xtend…"
+        : "Not in Xtend yet. X didn't load this profile in a way Xtend saves; it shows here once it does.";
+      return el("div", "card", el("div", "head", brand), el("p", "muted", text));
     }
     const open = el("a", null, "Open in Xtend", svg("open"));
     open.href = person.url;
@@ -239,9 +247,52 @@
     const { from_you: you, from_them: them } = person.replies;
     fact("Replies", el("span", "you", `${you} from you`), ` · ${them} from them`);
     if (person.last_reply_at) fact("Last reply", agoLong(person.last_reply_at));
-    if (person.latest) fact("Latest", person.latest.label.replace(" | ", " · "));
+    if (person.latest) {
+      const latest = el("a", null, person.latest.label.replace(" | ", " · "));
+      latest.href = person.latest.url;
+      latest.target = "_blank";
+      latest.rel = "noopener";
+      latest.title = "Every interaction of this kind, in Xtend";
+      fact("Latest", latest);
+    }
     return el("div", "card", el("div", "head", brand, open), marks, facts, tags(person),
       person.notes ? el("p", "notes", el("span", "muted", "Your notes: "), person.notes) : null, reminderLine(person));
+  }
+
+  // The ring sits on X's own avatar container, following its shape (round for people, rounded square for companies).
+  const RING = { both: COLORS.both, you: COLORS.you, them: COLORS.them };
+  let viewer;
+
+  function ownHandle() {
+    viewer ??= handleIn(document.querySelector('[data-testid="SideNav_AccountSwitcher_Button"]') || document.createElement("div"));
+    return viewer;
+  }
+
+  function ringTitle(person) {
+    if (person.follow === "Neither" && !person.known) {
+      const checked = person.follow_checked_at ? ` (follow lists checked ${day(person.follow_checked_at.slice(0, 10))})` : "";
+      return `Xtend: not following either way${checked}`;
+    }
+    return `Xtend: ${SHORT_FOLLOW[person.follow] || person.follow}`;
+  }
+
+  function ring(avatar, person) {
+    const state = person ? `${person.meaning}:${person.follow}` : "none";
+    avatar.dataset.xtendRing = `${avatar.dataset.testid}|${state}`;
+    const color = person && RING[person.meaning];
+    const neither = person?.follow === "Neither";
+    if (!color && !neither) return unring(avatar, false);
+    const shaped = [...avatar.querySelectorAll("div")].map((div) => getComputedStyle(div).borderRadius).find((radius) => radius && radius !== "0px");
+    avatar.style.borderRadius = shaped || "9999px";
+    avatar.style.outline = color ? `2px solid ${color}` : `1.5px dashed ${COLORS.muted}`;
+    avatar.style.outlineOffset = "2px";
+    avatar.title = ringTitle(person);
+  }
+
+  function unring(avatar, forget = true) {
+    for (const property of ["outline", "outline-offset", "border-radius"]) avatar.style.removeProperty(property);
+    avatar.removeAttribute("title");
+    if (forget) delete avatar.dataset.xtendRing;
   }
 
   function host(kind, handle) {
@@ -260,14 +311,19 @@
   const placed = new WeakMap();
 
   function render(target) {
-    const person = people.get(target.handle);
+    let person = people.get(target.handle);
+    if (target.kind === "ring") return ring(target.element, person);
+    if (target.kind === "card" && person && !person.known) {
+      person = { ...person, handle: target.handle };
+      if (!saving.has(target.handle)) saveNow(target.handle);
+    }
     const content = target.kind === "chip" ? person?.known && chip(person)
       : target.kind === "hover" ? person && hoverSection(person)
       : card(person);
     if (!content) return;
     const { node, root } = host(target.kind, target.handle);
     root.append(content);
-    if (target.kind === "card") node.dataset.state = person ? "data" : "error";
+    if (target.kind === "card") node.dataset.state = person ? `data:${saving.get(target.handle) || ""}` : "error";
     target.place(node);
     if (target.kind !== "card") placed.set(target.element, node);
   }
@@ -275,9 +331,13 @@
   // --- the loop: find what's on screen, ask for what's missing, render what's known ---
 
   function current(target) {
+    if (target.kind === "ring") {
+      const person = people.get(target.handle);
+      return target.element.dataset.xtendRing === `${target.element.dataset.testid}|${person ? `${person.meaning}:${person.follow}` : "none"}`;
+    }
     if (target.kind === "card") {
       const existing = document.querySelector('[data-xtend-host="card"]');
-      const state = people.has(target.handle) ? "data" : "error";
+      const state = people.has(target.handle) ? `data:${saving.get(target.handle) || ""}` : "error";
       if (existing?.dataset.handle === target.handle && existing.dataset.state === state && existing.isConnected) return true;
       existing?.remove();
       return false;
@@ -322,8 +382,20 @@
     schedule();
   }
 
+  async function saveNow(handle) {
+    saving.set(handle, "pending");
+    try {
+      await chrome.runtime.sendMessage({ type: "save-now", handle });
+    } catch {}
+    saving.set(handle, "done");
+    people.delete(handle);
+    asked.delete(handle);
+    schedule();
+  }
+
   function clear() {
     for (const node of document.querySelectorAll("[data-xtend-host]")) node.remove();
+    for (const avatar of document.querySelectorAll("[data-xtend-ring]")) unring(avatar);
   }
 
   const schedule = () => { scanTimer ||= setTimeout(scan, SCAN_DELAY_MS); };

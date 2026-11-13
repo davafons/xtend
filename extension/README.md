@@ -4,9 +4,10 @@ A Brave/Chrome extension that forwards what x.com already loaded while you brows
 
 ## What Xtend knows, on x.com
 
+- **A ring around every avatar.** In the follow relationship's color, as in Xtend: green for mutuals, blue for people you follow, amber for people who follow you, and dashed grey for neither. Someone Xtend has no person for counts as neither only when both follow lists are complete, dated by the older check; otherwise there is no ring. Hover the avatar for the state. Your own avatar has none.
 - **Badges by names.** After the handle on posts and in user lists: whether you're mutuals, you follow them, or they follow you; replies from you and from them; how long since the last reply; a pin; and a bell when a reminder is due. Hover the badge for the latest interaction, tags, and notes. People Xtend has nothing on get no badge.
 - **A line in X's hover card.** The same facts plus tags, a line of your notes, and an open reminder.
-- **A card on profiles.** At the top of the sidebar, under X's search: relationship, pinned and kept marks, replies both ways, last reply, latest interaction, tags, your notes, your reminder, and a link to the person in Xtend. A profile Xtend doesn't know yet says so; visiting it saves it, and the card fills in after the next send.
+- **A card on profiles.** At the top of the sidebar, under X's search: relationship, pinned and kept marks, replies both ways, last reply, latest interaction, tags, your notes, your reminder, and a link to the person in Xtend. A profile Xtend doesn't know yet is sent to Xtend right away and the card fills in a moment later. The latest interaction links to that kind's history on the person's page in Xtend, which lists every reply, like, bookmark, DM, and follow change with the posts themselves.
 
 The extension asks Xtend (`GET /x/captures/context?handles=…`, read-only, with the same link that sends captures) only for handles x.com is already showing, keeps answers for three minutes, and asks again after each batch it sends. Everything it adds sits in closed shadow roots that x.com's scripts can't read, but notes and tags are on screen, so mind screen sharing. Turn it off in the popup with **Show what Xtend knows on x.com**.
 

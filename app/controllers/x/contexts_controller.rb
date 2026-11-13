@@ -1,8 +1,11 @@
 # What Xtend knows about the people x.com is showing, for the extension to place beside their names: where you stand,
 # replies both ways, the last interaction, and your own pins, tags, notes, and reminder. Read-only, with the same
-# extension link that sends captures. A handle Xtend has no person for comes back as unknown, never as "no history".
+# extension link that sends captures. A handle Xtend has no person for comes back as unknown, and as following neither way only when both follow lists are
+# complete.
 class X::ContextsController < ActionController::API
   MAX_HANDLES = 100
+  # The tab of the person's history in Xtend that lists each kind of interaction.
+  HISTORY = { "like" => "engagement", "bookmark" => "engagement", "dm" => "messages", "reply" => "conversation" }.freeze
   rate_limit to: 120, within: 1.minute, store: RATE_LIMIT_STORE, by: -> { request.remote_ip },
     with: -> { render json: { error: "Too many requests. Slow down." }, status: :too_many_requests }
   include ExtensionAuthentication
@@ -14,8 +17,12 @@ class X::ContextsController < ActionController::API
     graph = Follow::Graph.latest
     interactions = Person::Interactions.index(people)
     known = people.to_h { |person| [ person.handle.downcase, summary(person, graph, interactions.fetch(person.id)) ] }
+    # Everyone in your complete follow lists is a person, so a handle without one follows neither way as of the older
+    # check. Partial lists can't establish that.
+    stranger = graph.complete? ? { known: false, follow: "Neither", meaning: "neutral" } : { known: false }
     render json: { follow_data: graph.complete? ? "complete" : "partial",
-      people: handles.to_h { |handle| [ handle, known[handle] || { known: false } ] } }
+      follow_checked_at: (graph.complete? ? [ graph.following.completed_at, graph.followers.completed_at ].min.iso8601 : nil),
+      people: handles.to_h { |handle| [ handle, known[handle] || stranger ] } }
   end
 
   private
@@ -29,7 +36,8 @@ class X::ContextsController < ActionController::API
       follow: state, meaning: ApplicationController.helpers.state_meaning(state),
       replies: { from_you: person.outgoing_count, from_them: person.incoming_count },
       last_reply_at: person.last_interaction_at&.iso8601,
-      latest: latest && { label: ApplicationController.helpers.interaction_label(latest), at: latest.at.iso8601, channel: latest.channel, direction: latest.direction },
+      latest: latest && { label: ApplicationController.helpers.interaction_label(latest), at: latest.at.iso8601, channel: latest.channel,
+        direction: latest.direction, url: person_url(person, show: HISTORY[latest.channel]) },
       pinned: person.pin.present?, kept: person.follow_protection.present?,
       tags: person.tags.map { |tag| { name: tag.name, hue: ApplicationController.helpers.tag_hue(tag.name)[/bg-(\w+)-/, 1] } },
       notes: person.notes.presence,
