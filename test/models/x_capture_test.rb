@@ -259,4 +259,29 @@ class XCaptureTest < ActiveSupport::TestCase
     event = ReplyEvent.find_by!(x_id: "1701")
     assert_equal [ "outgoing", "author" ], [ event.direction, event.person.handle ]
   end
+  test "post text reads as x.com shows it: real links, no media or quote links, no escapes, full long posts, article titles" do
+    author = web_user("181", "writer")
+    quoted = web_tweet("1810", web_user("182", "quoted"))
+    plain = web_tweet("1801", author, text: "Rails &amp; SQLite &gt; everything https://t.co/link1 https://t.co/quote1 https://t.co/media1", quoted: quoted)
+    plain["legacy"]["entities"]["urls"] = [ { "url" => "https://t.co/link1", "expanded_url" => "https://rubyonrails.org" },
+      { "url" => "https://t.co/quote1", "expanded_url" => "https://twitter.com/quoted/status/1810" } ]
+    plain["legacy"]["entities"]["media"] = [ { "url" => "https://t.co/media1", "type" => "photo" } ]
+    long = web_tweet("1802", author, text: "Start of a long post…")
+    friend = web_user("183", "friend")
+    long["note_tweet"] = { "note_tweet_results" => { "result" => { "text" => "Start of a long post, and later thanks @friend https://t.co/late1",
+      "entity_set" => { "user_mentions" => [ { "id_str" => "183", "indices" => [ 39, 46 ] } ],
+        "urls" => [ { "url" => "https://t.co/late1", "expanded_url" => "https://example.com/late" } ] } } } }
+    article = web_tweet("1803", author, text: "https://t.co/article1")
+    article["article"] = { "article_results" => { "result" => { "title" => "How I ship", "preview_text" => "Ten people, one Rails app." } } }
+    photo = web_tweet("1804", author, text: "https://t.co/media2")
+    photo["legacy"]["entities"]["media"] = [ { "url" => "https://t.co/media2", "expanded_url" => "https://x.com/writer/status/1804/photo/1", "type" => "photo" } ]
+
+    capture!(web_response("HomeTimeline", web_timeline([ plain, long, article, photo ])))
+
+    assert_equal [ "Rails & SQLite > everything https://rubyonrails.org",
+      "Start of a long post, and later thanks @friend https://example.com/late", "How I ship\n\nTen people, one Rails app.",
+      "https://x.com/writer/status/1804/photo/1" ], X::SourcePost.where(x_id: %w[1801 1802 1803 1804]).order(:x_id).pluck(:body)
+    assert X::SourcePost.find_by!(x_id: "1802").has_link, "a link past 280 characters still counts"
+    assert X::Interaction.exists?(kind: "mention", source_x_id: "181", target_x_id: "183"), "so does a mention"
+  end
 end

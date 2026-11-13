@@ -157,7 +157,7 @@ class X::WebPayload
       references << { "type" => "retweeted", "id" => original["rest_id"] }
     end
     row = { "id" => node["rest_id"], "author_id" => legacy["user_id_str"] || node.dig("core", "user_results", "result", "rest_id"),
-      "text" => node.dig("note_tweet", "note_tweet_results", "result", "text") || legacy["full_text"],
+      "text" => post_text(node, legacy),
       "created_at" => web_time(legacy["created_at"]), "lang" => legacy["lang"],
       "conversation_id" => legacy["conversation_id_str"], "in_reply_to_user_id" => legacy["in_reply_to_user_id_str"],
       "public_metrics" => ({ "reply_count" => legacy["reply_count"] } if legacy["reply_count"].is_a?(Integer)),
@@ -209,12 +209,43 @@ class X::WebPayload
       quote_count: legacy["quote_count"], bookmark_count: legacy["bookmark_count"], view_count: node.dig("views", "count") }
     counts.transform_values! { |value| self.class.send(:count, value) }
     media = Array(legacy.dig("extended_entities", "media") || legacy.dig("entities", "media")).filter_map { |item| item["type"] if item.is_a?(Hash) }
-    urls = Array(legacy.dig("entities", "urls")).select { |url| url.is_a?(Hash) && url["expanded_url"].is_a?(String) && !url["expanded_url"].match?(%r{\Ahttps://(x|twitter)\.com/\w+/status/}) }
+    entities = post_entities(node, legacy)
+    urls = Array(entities["urls"]).select { |url| url.is_a?(Hash) && url["expanded_url"].is_a?(String) && !url["expanded_url"].match?(%r{\Ahttps://(x|twitter)\.com/\w+/status/}) }
     body_start = Array(legacy["display_text_range"]).first.to_i
-    mentions = Array(legacy.dig("entities", "user_mentions")).filter_map do |mention|
+    mentions = Array(entities["user_mentions"]).filter_map do |mention|
       mention["id_str"] if mention.is_a?(Hash) && mention["id_str"].to_s.match?(/\A\d{1,30}\z/) && Array(mention["indices"]).first.to_i >= body_start
     end
     details.merge(counts).merge(media_kinds: media.uniq.sort.join(",").presence, has_link: urls.any?, mention_ids: mentions.uniq)
+  end
+
+  # The text as x.com shows it: a long post's full text, links pointing where they go instead of t.co, no trailing
+  # link to the post's own media or quoted post (unless the post is only media), and no HTML escapes. An article
+  # shows its title and preview.
+  def post_text(node, legacy)
+    article = node.dig("article", "article_results", "result")
+    if article.is_a?(Hash) && article["title"].is_a?(String)
+      return [ article["title"], article["preview_text"] ].select { |part| part.is_a?(String) && part.present? }.join("\n\n")
+    end
+    note = node.dig("note_tweet", "note_tweet_results", "result", "text")
+    text = (note || legacy["full_text"]).to_s
+    entities = post_entities(node, legacy)
+    quoted = legacy["quoted_status_id_str"]
+    Array(entities["urls"]).each do |url|
+      next unless url.is_a?(Hash) && url["url"].is_a?(String) && url["expanded_url"].is_a?(String)
+      own_quote = quoted && url["expanded_url"].match?(%r{\Ahttps://(x|twitter)\.com/\w+/status/#{quoted}\b})
+      text = text.gsub(url["url"], own_quote ? "" : url["expanded_url"])
+    end
+    media = Array(legacy.dig("entities", "media")).select { |item| item.is_a?(Hash) && item["url"].is_a?(String) }
+    media.each { |item| text = text.gsub(item["url"], "") }
+    text = CGI.unescapeHTML(text).strip
+    # A post that is only media keeps a link to it, since a post needs some text.
+    text.presence || media.first&.then { |item| item["expanded_url"] || item["url"] }.to_s
+  end
+
+  # A long post's links and mentions are in its own entity set; the legacy entities only cover the first 280 characters.
+  def post_entities(node, legacy)
+    note = node.dig("note_tweet", "note_tweet_results", "result", "entity_set")
+    note.is_a?(Hash) ? note : (legacy["entities"].is_a?(Hash) ? legacy["entities"] : {})
   end
 
   def web_time(value)
