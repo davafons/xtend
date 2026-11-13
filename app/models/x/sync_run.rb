@@ -7,7 +7,7 @@ class X::SyncRun < ApplicationRecord
   has_many :x_source_posts, class_name: "X::SourcePost", foreign_key: :x_sync_run_id
   validates :dataset, inclusion: { in: DATASETS }
   validates :mode, inclusion: { in: %w[backfill refresh capture] }
-  validates :request_key, presence: true, uniqueness: true
+  validates :request_key, presence: true, uniqueness: { scope: :workspace_id }
   validates :page_limit, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 1000 }
 
   MAX_PAGE_SIZES = { "followers" => 1000, "following" => 1000, "own_posts" => 100, "mentions" => 100,

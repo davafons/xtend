@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_070000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_071000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -505,9 +505,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_070000) do
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
     t.index ["follow_snapshot_id"], name: "index_x_sync_runs_on_follow_snapshot_id"
-    t.index ["owner_x_id"], name: "one_fetching_run_per_owner", unique: true, where: "status = 'fetching'"
-    t.index ["request_key"], name: "index_x_sync_runs_on_request_key", unique: true
-    t.index ["workspace_id"], name: "index_x_sync_runs_on_workspace_id"
+    t.index ["workspace_id", "request_key"], name: "index_x_sync_runs_on_workspace_id_and_request_key", unique: true
+    t.index ["workspace_id"], name: "one_fetching_run_per_workspace", unique: true, where: "status = 'fetching'"
   end
 
   add_foreign_key "ai_proposals", "people"
