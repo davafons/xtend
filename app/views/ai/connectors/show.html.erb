@@ -1,6 +1,6 @@
 <% content_for :title, "AI" %>
 <h1 class="sr-only">AI assistant</h1>
-<div class="<%= lc_columns_class %>">
+<div class="<%= settings_column_class %>">
   <%= render "tags" %>
   <%= render "connector" %>
   <%= lc_list_section "Assistant context", footnote: "For assistants without the connector: interests, saved people, public reply counts, follow states, tags, and pins. Excludes private notes and DMs; downloading sends it nowhere." do %>

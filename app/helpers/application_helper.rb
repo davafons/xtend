@@ -1,4 +1,10 @@
 module ApplicationHelper
+  # Settings-style pages (Settings, AI, X data, the extension, Spending) read top to bottom in one centered column,
+  # wide enough for the setup tabs and code blocks.
+  def settings_column_class(extra: nil)
+    lc_stack_class(gap: :section, extra: lc_tw("mx-auto w-full max-w-3xl", extra))
+  end
+
   def microdollars(value)
     number_to_currency(value.to_i / 1_000_000.0, precision: 3)
   end

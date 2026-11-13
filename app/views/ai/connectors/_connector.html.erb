@@ -6,6 +6,13 @@
       <%= lc_copy_button value: mcp_url, icon_only: true, variant: :ghost, size: :sm, aria: { label: "Copy endpoint" } %>
     <% end %>
     <%= render "oauth/grants/list", scope: "mcp" %>
+  <% end %>
+<% end %>
+<%= lc_list_section "Connect an assistant", footnote: "Most assistants connect by URL alone and send you here to approve. For one that needs a header, create a pasted token and replace YOUR_TOKEN with it." do %>
+  <%= render "ai/connectors/setup", token: "YOUR_TOKEN" %>
+<% end %>
+<%= lc_list_section "What assistants can see", id: "sharing", class: "scroll-mt-section", footnote: "Applies to every connected assistant. Changing it takes effect on their next request." do %>
+  <%= lc_list_group do %>
     <%= lc_list_row "Always shared", icon: "globe-alt", subtitle: "Interests, people, public profiles, follow and reply states, pins, keeps, collected public posts, likes, and bookmarks" %>
     <% [[:mcp_share_notes, "Private notes", "pencil-square", nil], [:mcp_share_dms, "DM metadata", "envelope", "Who and when, never text"]].each do |field, label, icon, subtitle| %>
       <% shared = workspace.public_send(field) %>
@@ -15,7 +22,4 @@
       <% end %>
     <% end %>
   <% end %>
-<% end %>
-<%= lc_list_section "Connect an assistant", footnote: "Most assistants connect by URL alone and send you here to approve. For one that needs a header, create a pasted token and replace YOUR_TOKEN with it." do %>
-  <%= render "ai/connectors/setup", token: "YOUR_TOKEN" %>
 <% end %>

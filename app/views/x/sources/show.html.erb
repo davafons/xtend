@@ -1,6 +1,6 @@
 <% content_for :title, "X data" %>
 <h1 class="sr-only">X data</h1>
-<div class="<%= lc_columns_class %>">
+<div class="<%= settings_column_class %>">
   <%= lc_list_section "Saved", id: "health", footnote: "Reply history covers only what was collected; an empty direction doesn't mean no replies." do %>
     <%= lc_list_group do %>
       <%= render "follow_list", direction: "followers" %>
@@ -26,7 +26,7 @@
     <ul class="flex list-disc flex-col gap-related ps-inset pt-related text-small text-muted-foreground">
       <li>Follow lists refresh for free when you scroll your own Followers or Following page on x.com to the end with the extension on. Nothing else counts as a complete list.</li>
       <li>The extension forwards what x.com already loaded: timelines, lists, search, profiles, threads, likes, bookmarks, follow lists, and "Liked by" and "Reposted by" lists. It sends no requests to X and only covers what you scrolled past; it never completes a like history.</li>
-      <li>Install the extension by loading this repository's extension folder unpacked from brave://extensions with Developer mode on, then enter <%= request.base_url %> and the token in its options. Batches from a different X account are refused.</li>
+      <li>Install the extension by loading this repository's extension folder unpacked from brave://extensions with Developer mode on, then choose Connect to Xtend in its options (address <%= request.base_url %>). Batches from a different X account are refused.</li>
       <li>The archive must belong to the connected account. Only the manifest, account, and DM files are opened, including encrypted chats the API can't see. Re-importing a newer archive only adds new messages; posts, likes, and follows in it aren't imported.</li>
       <li>X API reads take one bounded page per click. Replies update once their author and parent resolve, and collection ends 15 seconds before each check, so a reply you just sent may need a later refresh. Old history enriches people without adding to today's outreach.</li>
       <li>Likes and bookmarks read from the newest backwards and stop at saved items. X doesn't say when you liked or bookmarked something, so the post date (or the previous check) is the earliest possible time. X serves only the last 30 days of DMs.</li>

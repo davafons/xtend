@@ -2,7 +2,7 @@
 <% workspace = @activity.workspace %>
 <% contact = @activity.last_contact %>
 <h1 class="sr-only">Browser extension</h1>
-<div class="<%= lc_columns_class %>">
+<div class="<%= settings_column_class %>">
   <%= lc_list_section "Connection", footnote: "The extension sends what x.com already loaded while you browse. Quiet just means nothing new was loaded, not that something failed." do %>
     <%= lc_list_group do %>
       <% case @activity.state %>

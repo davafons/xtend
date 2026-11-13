@@ -1,5 +1,5 @@
 <% value = ->(text) { tag.span(text, class: "text-small tabular-nums text-muted-foreground") } %>
-<div id="billing" class="<%= lc_stack_class(gap: :section, extra: "scroll-mt-section") %>">
+<div id="billing" class="<%= settings_column_class(extra: "scroll-mt-section") %>">
   <div class="flex items-end justify-between gap-content px-content sm:px-inset">
     <p class="text-3xl font-semibold tabular-nums"><%= number_to_currency(@workspace.monthly_budget_cents / 100.0) %><span class="text-body font-normal text-muted-foreground"> / billing cycle</span></p>
     <%= lc_button_link_to "X console", "https://console.x.com/", target: "_blank", rel: "noopener noreferrer", variant: :ghost, size: :sm, icon: "arrow-up-right", aria: { label: "Open X billing" } %>
@@ -13,7 +13,7 @@
     <%= lc_alert "No billing cycle recorded yet. X API reads stay locked until you record one below.", tone: :warning %>
   <% end %>
 
-  <div class="<%= lc_columns_class %>">
+  <div class="<%= lc_stack_class(gap: :section) %>">
   <% if @cycle %>
     <%= lc_list_section "This cycle", footnote: "Cycles roll over on their own. Estimates run above actual billing; record the console spend to tighten them." do %>
       <%= lc_list_group do %>
