@@ -11,10 +11,10 @@
       <% when :idle %>
         <%= lc_list_row "Status", icon: "signal", subtitle: "Connected before; browse x.com to send more" do %><%= lc_badge "Quiet", tone: :neutral %><% end %>
       <% else %>
-        <%= lc_list_row "Status", icon: "signal-slash", subtitle: (workspace.capture_token_digest ? "The extension hasn't used its token yet. Paste it in the extension's options." : "Create a token, then paste it in the extension's options.") do %><%= lc_badge "Not connected", tone: :warning %><% end %>
+        <%= lc_list_row "Status", icon: "signal-slash", subtitle: (@activity.connected? ? "No request has used its connection yet. Reconnect from the extension's options if it was set up with an older token." : "Open the extension's options and choose Connect to Xtend.") do %><%= lc_badge "Not connected", tone: :warning %><% end %>
       <% end %>
-      <%= lc_list_row "Token", icon: "key", href: x_sources_path(anchor: "capture"),
-            subtitle: (workspace.capture_token_digest ? "Created #{time_ago_in_words(workspace.capture_token_created_at)} ago" : "None yet") do %>
+      <%= lc_list_row "Connected apps", icon: "link", href: x_sources_path(anchor: "capture"),
+            subtitle: (@activity.connected? ? pluralize(@activity.grants.size, "connection") : "None yet") do %>
         <%= lc_icon "chevron-right", options: { class: "size-4 text-muted-foreground", "aria-hidden": true } %>
       <% end %>
       <%= lc_list_row "Last contact", icon: "arrows-right-left", subtitle: "Any request from the extension, including its connection test" do %>

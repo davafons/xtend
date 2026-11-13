@@ -1,0 +1,11 @@
+<% content_for :title, "Can't connect" %>
+<h1 class="sr-only">Can't connect this app</h1>
+<div class="flex min-h-[80vh] items-center justify-center">
+  <%= lc_card class: "w-full max-w-md" do %>
+    <div class="flex flex-col gap-inset py-content">
+      <p class="text-heading font-bold">This app can't connect</p>
+      <p class="text-small text-muted-foreground">Xtend doesn't know the app, or it asked to return somewhere it didn't register. Nothing was shared. Try adding Xtend to the app again.</p>
+      <div><%= lc_button_link_to "Back to Xtend", root_path, variant: :secondary, size: :sm %></div>
+    </div>
+  <% end %>
+</div>

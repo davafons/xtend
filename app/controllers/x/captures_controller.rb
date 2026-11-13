@@ -1,5 +1,5 @@
 # Receives x.com responses forwarded by the browser extension. Not a browser page: it skips the session and CSRF
-# checks and authenticates each request with the workspace's revocable capture token instead.
+# checks and authenticates each request with the extension's OAuth link, or a pasted capture token, instead.
 class X::CapturesController < ActionController::API
   MAX_BYTES = 16.megabytes
   rate_limit to: 60, within: 1.minute, store: RATE_LIMIT_STORE, by: -> { request.remote_ip },
@@ -25,9 +25,8 @@ class X::CapturesController < ActionController::API
   end
 
   def authenticate
-    token = request.authorization.to_s[/\ABearer (\S+)\z/, 1]
-    workspace = Current.workspace = Workspace.find_by_token(:capture, token)
-    return render(json: { error: "Missing or invalid capture token." }, status: :unauthorized) unless workspace
-    workspace.touch_token_use!(:capture)
+    grant = Oauth::Grant.authenticate(request.authorization.to_s[/\ABearer (\S+)\z/, 1], scope: "capture")
+    return render(json: { error: "Missing or invalid capture token." }, status: :unauthorized) unless grant
+    Current.workspace = grant.workspace
   end
 end

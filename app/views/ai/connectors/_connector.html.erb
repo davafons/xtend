@@ -5,15 +5,7 @@
     <%= lc_list_row "Endpoint", icon: "link", subtitle: tag.span(mcp_url, class: "font-mono") do %>
       <%= lc_copy_button value: mcp_url, icon_only: true, variant: :ghost, size: :sm, aria: { label: "Copy endpoint" } %>
     <% end %>
-    <%= lc_list_row "Token", icon: "key", subtitle: (workspace.mcp_token_digest ? "Created #{time_ago_in_words(workspace.mcp_token_created_at)} ago | #{workspace.mcp_token_used_at ? "last used #{time_ago_in_words(workspace.mcp_token_used_at)} ago" : "not used yet"}" : "None yet") do %>
-      <% if workspace.mcp_token_digest %>
-        <%= lc_badge "Token active", tone: :success %>
-        <%= lc_icon_button_to "Replace token", mcp_token_path, icon: "arrow-path", size: :sm, title: "Replace token", data: { turbo: false } %>
-        <%= lc_icon_button_to "Revoke token", mcp_token_path, method: :delete, icon: "no-symbol", size: :sm, tone: :destructive, title: "Revoke token" %>
-      <% else %>
-        <%= lc_button_to "Create token", mcp_token_path, variant: :secondary, size: :sm, data: { turbo: false }, aria: { label: "Create connector token" } %>
-      <% end %>
-    <% end %>
+    <%= render "oauth/grants/list", scope: "mcp" %>
     <%= lc_list_row "Always shared", icon: "globe-alt", subtitle: "Interests, people, public profiles, follow and reply states, pins, keeps, collected public posts, likes, and bookmarks" %>
     <% [[:mcp_share_notes, "Private notes", "pencil-square", nil], [:mcp_share_dms, "DM metadata", "envelope", "Who and when, never text"]].each do |field, label, icon, subtitle| %>
       <% shared = workspace.public_send(field) %>
@@ -24,6 +16,6 @@
     <% end %>
   <% end %>
 <% end %>
-<%= lc_list_section "Connect an assistant", footnote: "Replace YOUR_TOKEN with the token shown when you create it." do %>
+<%= lc_list_section "Connect an assistant", footnote: "Most assistants connect by URL alone and send you here to approve. For one that needs a header, create a pasted token and replace YOUR_TOKEN with it." do %>
   <%= render "ai/connectors/setup", token: "YOUR_TOKEN" %>
 <% end %>

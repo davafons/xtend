@@ -12,6 +12,11 @@ class ActiveSupport::TestCase
     X::BillingCycle.create!(starts_on: Date.current, ends_on: Date.current + 30, observed_at: Time.current)
   end
 
+  # A pasted token for the MCP endpoint ("mcp") or the capture endpoint ("capture").
+  def paste_token(scope, workspace: Current.workspace)
+    Oauth::Grant.paste!(workspace: workspace, user: nil, scope: scope).last
+  end
+
   def profile(x_id: "101", handle: "builder", name: "A Builder")
     { x_id: x_id, handle: handle, name: name }
   end

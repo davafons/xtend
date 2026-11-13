@@ -1,7 +1,7 @@
 # What the browser extension has delivered lately, to check that it is working. Each batch that saved posts, likes,
 # or bookmarks leaves capture sync runs that share one finished_at; batches that only refreshed accounts, follow
 # states, or interactions leave none, so these counts are a floor. Contact of any kind, including the extension's
-# empty connection test, shows in the token's last use.
+# empty connection test, shows in the capture grant's last use.
 class X::CaptureActivity
   ACTIVE = 15.minutes
   Batch = Struct.new(:at, :counts)
@@ -13,13 +13,16 @@ class X::CaptureActivity
 
   attr_reader :workspace
 
-  # :working, :idle (connected but quiet), or :unconnected (no token, or the extension never used it).
+  # :working, :idle (connected but quiet), or :unconnected (not linked, or the extension never used its link).
   def state
-    return :unconnected unless workspace.capture_token_digest && workspace.capture_token_used_at
+    return :unconnected unless connected? && grants.filter_map(&:last_used_at).any?
     last_contact > @now - ACTIVE ? :working : :idle
   end
 
-  def last_contact = [ workspace.capture_token_used_at, workspace.captured_at ].compact.max
+  def grants = @grants ||= workspace.oauth_grants.active.where(scope: "capture").to_a
+  def connected? = grants.any?
+
+  def last_contact = [ *grants.map(&:last_used_at), workspace.captured_at ].compact.max
 
   def recent_batches(limit = 10)
     runs.where(finished_at: ..@now).order(finished_at: :desc).limit(limit * 5).group_by(&:finished_at).first(limit).map do |at, batch|

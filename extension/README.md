@@ -16,15 +16,17 @@ To study a payload Xtend doesn't parse yet, turn on **Raw debug log** in the pop
 
 ## Install
 
-1. In Xtend, open **X data → Browser capture** and create a capture token.
-2. Open `brave://extensions`, turn on **Developer mode**, choose **Load unpacked**, and select this `extension` folder.
-3. In the extension's options, enter the Xtend address (default `https://xtend.example.com`; use `https://xtend.localhost` for local development) and the token, then **Save and test**. `/x/captures` bypasses Cloudflare Access and is authenticated by the token.
+1. Open `brave://extensions`, turn on **Developer mode**, choose **Load unpacked**, and select this `extension` folder.
+2. In the extension's options, check the Xtend address (default `https://xtend.example.com`; use `https://xtend.localhost` for local development) and choose **Connect to Xtend**. Xtend opens in a window for you to approve, then the extension tests the connection.
+3. To disconnect, use **Disconnect** in the options, or disconnect the extension in Xtend under **X data → Browser extension**.
+
+The extension links with OAuth (authorization code with PKCE through `chrome.identity`), so it holds a capture-only token that renews itself and works nowhere else. A pasted capture token still works for a setup by hand: create one in Xtend and paste it under **Use a pasted token instead**. `/x/captures`, `/oauth/token`, and `/oauth/revoke` bypass Cloudflare Access; the approval page doesn't.
 
 Browse x.com as usual. The toolbar badge counts pages waiting to be sent. The popup has **Send to Xtend**, an automatic one-minute send toggle, and **Pause capture**. Captures queue in extension storage while Xtend is unreachable.
 
 ## How it works
 
-`page.js` runs in x.com's page context and observes XHR and fetch responses for an allowlist of GraphQL operations. `bridge.js` relays them to `background.js`, which queues them and posts batches to `POST /x/captures` with the capture token. Xtend parses them in `X::WebPayload` and saves them through `X::Capture`.
+`page.js` runs in x.com's page context and observes XHR and fetch responses for an allowlist of GraphQL operations. `bridge.js` relays them to `background.js`, which queues them and posts batches to `POST /x/captures` with its access token, renewing it with the refresh token first when it is a day from expiring or was refused. Xtend parses them in `X::WebPayload` and saves them through `X::Capture`.
 
 X changes its web app's GraphQL shapes without notice. When a capture stops adding data, compare a fresh response with `X::WebPayload`.
 

@@ -4,14 +4,16 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
   PUBLIC = { "sessions#new" => :success, "sessions#create" => :not_found, "rails/health#show" => :success,
     "x/connections#create" => :redirect, "x/connections#callback" => :redirect,
     "mcp/endpoints#create" => :unauthorized, "mcp/endpoints#unsupported" => :unauthorized,
-    "x/captures#create" => :unauthorized }.freeze
+    "x/captures#create" => :unauthorized,
+    "oauth/metadata#authorization_server" => :success, "oauth/metadata#protected_resource" => :success,
+    "oauth/registrations#create" => :bad_request, "oauth/tokens#create" => :unauthorized, "oauth/tokens#revoke" => :unauthorized }.freeze
 
   setup { sign_out }
 
-  test "every route except X sign-in, the health check, and the token-protected MCP and capture endpoints requires a session" do
+  test "every route except X sign-in, the health check, OAuth discovery and token exchange, and the token-protected MCP and capture endpoints requires a session" do
     routes = Rails.application.routes.routes.filter_map do |route|
       next if route.verb.blank? || route.defaults[:controller].nil? || route.defaults[:controller].start_with?("turbo/", "action_mailbox/", "active_storage/") || route.defaults[:controller].start_with?("rails/") && route.defaults[:controller] != "rails/health"
-      [ route.verb.split("|").first.downcase, route.path.spec.to_s.sub("(.:format)", "").gsub(/:\w+/, "1"), "#{route.defaults[:controller]}##{route.defaults[:action]}" ]
+      [ route.verb.split("|").first.downcase, route.path.spec.to_s.sub("(.:format)", "").gsub(%r{\(/\*\w+\)}, "").gsub(/:\w+/, "1"), "#{route.defaults[:controller]}##{route.defaults[:action]}" ]
     end
     assert_operator routes.size, :>, 30
     routes.each do |verb, path, action|

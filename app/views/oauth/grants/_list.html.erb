@@ -1,0 +1,11 @@
+<%# The apps linked for one scope, with revoke, and a pasted token for clients that can't do OAuth. %>
+<% grants = Current.workspace.oauth_grants.active.where(scope: scope).includes(:client).newest %>
+<% grants.each do |grant| %>
+  <%= lc_list_row grant.client_name, icon: (grant.pasted? ? "key" : "link"),
+        subtitle: "Connected #{time_ago_in_words(grant.created_at)} ago | #{grant.last_used_at ? "last used #{time_ago_in_words(grant.last_used_at)} ago" : "not used yet"}" do %>
+    <%= lc_icon_button_to "Disconnect #{grant.client_name}", oauth_grant_path(grant), method: :delete, icon: "no-symbol", size: :sm, tone: :destructive, title: "Disconnect" %>
+  <% end %>
+<% end %>
+<%= lc_list_row "New pasted token", icon: "plus", subtitle: (scope == "mcp" ? "For an assistant that can't connect with OAuth" : "For an extension set up by hand") do %>
+  <%= lc_button_to "Create token", oauth_grants_path, params: { scope: scope }, variant: :secondary, size: :sm, data: { turbo: false }, aria: { label: "Create a #{scope == "mcp" ? "connector" : "capture"} token" } %>
+<% end %>

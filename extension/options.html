@@ -10,11 +10,18 @@
   <h1 class="brand"><img src="icons/icon-48.png" alt="" width="32" height="32"><span><span class="wordmark">xtend</span> Capture</span></h1>
   <p class="muted">Copies the responses x.com already loads for timelines, search, profiles, threads, likes, bookmarks, and follow lists, and sends them to Xtend. It never sends requests to X and never reads DMs.</p>
   <label>Xtend address <input id="xtendUrl" type="url" placeholder="https://xtend.localhost" required></label>
-  <label>Capture token <input id="token" type="password" placeholder="xtend_capture_…" autocomplete="off"></label>
-  <p class="muted">Create the token in Xtend under X data → Browser capture.</p>
+  <p id="status" class="muted"></p>
   <div class="row">
-    <button id="save" class="primary">Save and test</button>
+    <button id="connect" class="primary">Connect to Xtend</button>
+    <button id="disconnect" hidden>Disconnect</button>
   </div>
+  <p class="muted">Xtend opens for you to approve. The extension can then only send what x.com loads; it can't read anything back.</p>
+  <details>
+    <summary class="muted">Use a pasted token instead</summary>
+    <label>Capture token <input id="token" type="password" placeholder="xtend_…" autocomplete="off"></label>
+    <p class="muted">Create one in Xtend under X data → Browser extension.</p>
+    <div class="row"><button id="save">Save and test</button></div>
+  </details>
   <p id="message"></p>
   <script src="options.js" type="module"></script>
 </body>

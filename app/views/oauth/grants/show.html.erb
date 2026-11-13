@@ -1,0 +1,22 @@
+<% content_for :title, "New token" %>
+<h1 class="sr-only">Your new token</h1>
+<div class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl mx-auto w-full") %>">
+  <%= lc_alert "Copy it now. It's shown only once. It works until you disconnect it.", tone: :warning %>
+  <% if @grant.scope == "mcp" %>
+    <%= lc_list_section "Connector token", footnote: "Never paste this token anywhere public. Disconnect it on the AI page if it leaks." do %>
+      <%= lc_code_block @token, id: "mcp-token", title: "Token" %>
+    <% end %>
+    <%= lc_list_section "Connect an assistant" do %>
+      <%= render "ai/connectors/setup", token: @token %>
+    <% end %>
+    <div><%= lc_button_link_to "Done", ai_connector_path, variant: :secondary, size: :sm, icon: "arrow-left", aria: { label: "Back to AI" } %></div>
+  <% else %>
+    <%= lc_list_section "Paste both into the extension's options", footnote: "The token can only send captured X data to this workspace. Disconnect it on X data if it leaks." do %>
+      <div class="<%= lc_stack_class(gap: :content) %>">
+        <%= lc_code_block @token, id: "capture-token", title: "Token" %>
+        <%= lc_code_block request.base_url, id: "capture-url", title: "Xtend address" %>
+      </div>
+    <% end %>
+    <div><%= lc_button_link_to "Done", x_sources_path(anchor: "capture"), variant: :secondary, size: :sm, icon: "arrow-left", aria: { label: "Back to X data" } %></div>
+  <% end %>
+</div>

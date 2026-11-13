@@ -1,22 +1,31 @@
-<%# How to connect an MCP client. token is the real token right after creation, or a placeholder. %>
+<%# How to connect an MCP client: by URL with OAuth where the client supports it, otherwise with a pasted token.
+    token is the real token right after creation, or a placeholder. %>
 <% header = "Authorization: Bearer #{token}" %>
 <% config = JSON.pretty_generate(mcpServers: { "xtend" => { type: "http", url: mcp_url, headers: { Authorization: "Bearer #{token}" } } }) %>
 <%= lc_tabs id: "mcp-setup", label: "Assistant" do |tabs| %>
   <% tabs.panel "Grok Bot", value: :grok do %>
     <div class="<%= lc_stack_class(gap: :content, extra: "pt-content") %>">
-      <%= lc_text "Add a custom MCP server by URL on Grok Bot's computer, then send the token as a bearer header. Grok Bot runs in xAI's cloud, so it needs the deployed app's endpoint.", size: :small, tone: :muted %>
+      <%= lc_text "Add a custom MCP server by URL on Grok Bot's computer. If it offers OAuth, that's all; otherwise create a pasted token and send it as this header.", size: :small, tone: :muted %>
       <%= lc_code_block mcp_url, id: "mcp-setup-grok-url", title: "URL" %>
       <%= lc_code_block header, id: "mcp-setup-grok-header", title: "Header" %>
     </div>
   <% end %>
   <% tabs.panel "Claude", value: :claude do %>
     <div class="<%= lc_stack_class(gap: :content, extra: "pt-content") %>">
-      <%= lc_code_block "claude mcp add --transport http xtend #{mcp_url} --header \"#{header}\"", id: "mcp-setup-claude", language: :bash, title: "Claude Code" %>
+      <%= lc_text "In Claude, add a custom connector with this URL. Claude opens Xtend for you to approve; no token needed.", size: :small, tone: :muted %>
+      <%= lc_code_block mcp_url, id: "mcp-setup-claude-url", title: "URL" %>
+      <%= lc_code_block "claude mcp add --transport http xtend #{mcp_url}", id: "mcp-setup-claude", language: :bash, title: "Claude Code" %>
+    </div>
+  <% end %>
+  <% tabs.panel "ChatGPT", value: :chatgpt do %>
+    <div class="<%= lc_stack_class(gap: :content, extra: "pt-content") %>">
+      <%= lc_text "In ChatGPT's connector settings, create a connector with this URL and OAuth authentication. ChatGPT opens Xtend for you to approve.", size: :small, tone: :muted %>
+      <%= lc_code_block mcp_url, id: "mcp-setup-chatgpt-url", title: "URL" %>
     </div>
   <% end %>
   <% tabs.panel "Other", value: :other do %>
     <div class="<%= lc_stack_class(gap: :content, extra: "pt-content") %>">
-      <%= lc_text "Any client that speaks MCP over Streamable HTTP and can send a bearer header.", size: :small, tone: :muted %>
+      <%= lc_text "Any client that speaks MCP over Streamable HTTP. With OAuth, give it the URL alone; otherwise, a pasted token as a bearer header.", size: :small, tone: :muted %>
       <%= lc_code_block config, id: "mcp-setup-json", language: :json, title: "mcp.json", max_lines: nil %>
     </div>
   <% end %>

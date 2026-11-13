@@ -4,7 +4,7 @@ require_relative "../test_helpers/web_capture_helper"
 class XCaptureEndpointTest < ActionDispatch::IntegrationTest
   include WebCaptureHelper
 
-  setup { @token = Current.workspace.issue_token!(:capture) }
+  setup { @token = paste_token("capture") }
 
   def send_batch(token: @token, origin: "chrome-extension://abcdefghijklmnop", viewer: Current.workspace.owner_x_id)
     body = { batch_key: SecureRandom.uuid, viewer_x_id: viewer,
@@ -18,7 +18,7 @@ class XCaptureEndpointTest < ActionDispatch::IntegrationTest
     send_batch
     assert_response :success
     assert_equal [ 1, 1, 0 ], response.parsed_body.values_at("posts", "accounts", "people_added")
-    assert Current.workspace.reload.capture_token_used_at
+    assert Current.workspace.oauth_grants.sole.last_used_at
   end
 
   test "the status page shows whether the extension is reaching Xtend and what it delivered" do
@@ -42,9 +42,9 @@ class XCaptureEndpointTest < ActionDispatch::IntegrationTest
   test "missing, revoked, or MCP tokens are refused" do
     send_batch(token: nil)
     assert_response :unauthorized
-    send_batch(token: Current.workspace.issue_mcp_token!)
+    send_batch(token: paste_token("mcp"))
     assert_response :unauthorized
-    Current.workspace.revoke_token!(:capture)
+    Current.workspace.oauth_grants.where(scope: "capture").each(&:revoke!)
     send_batch
     assert_response :unauthorized
     assert_equal 0, Person.count
@@ -58,11 +58,11 @@ class XCaptureEndpointTest < ActionDispatch::IntegrationTest
     assert_match "different X account", response.parsed_body["error"]
   end
 
-  test "the X data page issues the token once and lists capture separately" do
-    post x_capture_token_path
+  test "the X data page issues a pasted token once and lists it under connected apps" do
+    post oauth_grants_path, params: { scope: "capture" }
     assert_response :success
     assert_select "#capture-token"
     get x_sources_path
-    assert_select "#capture", text: /Token active/
+    assert_select "#capture button[aria-label=?]", "Disconnect Pasted token", count: 2
   end
 end

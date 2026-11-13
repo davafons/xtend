@@ -3,7 +3,7 @@
   "name": "Xtend Capture",
   "version": "0.7.0",
   "description": "Forwards what x.com already loaded while you browse to Xtend. Sends no requests to X.",
-  "permissions": ["storage", "unlimitedStorage", "alarms", "cookies"],
+  "permissions": ["storage", "unlimitedStorage", "alarms", "cookies", "identity"],
   "host_permissions": ["https://x.com/*", "https://xtend.example.com/*", "https://xtend.localhost/*"],
   "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
   "background": { "service_worker": "background.js", "type": "module" },

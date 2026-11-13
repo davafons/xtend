@@ -1,0 +1,29 @@
+<% content_for :title, "Connect #{@client.name}" %>
+<% host = URI.parse(@redirect_uri).host %>
+<% abilities = { "mcp" => "Read your Xtend data and stage tags, reply targets, profile facts, recaps, and post ideas for your review. It can't post, follow, message, or start paid X reads.",
+                 "capture" => "Send what x.com loads in this browser to Xtend. It can't read anything back." } %>
+<h1 class="sr-only">Connect <%= @client.name %></h1>
+<div class="flex min-h-[80vh] items-center justify-center">
+  <%= lc_card class: "w-full max-w-md" do %>
+    <div class="flex flex-col gap-inset py-content">
+      <div class="flex items-center gap-related">
+        <%= image_tag "/icon.png", alt: "", class: "size-10" %>
+        <p class="text-heading font-bold">Connect <%= @client.name %> to Xtend?</p>
+      </div>
+      <%= lc_list_group do %>
+        <%= lc_list_row "Account", icon: "user", subtitle: "@#{Current.user.x_handle}" %>
+        <%= lc_list_row "It can", icon: (@scope == "mcp" ? "sparkles" : "arrow-down-tray"), subtitle: abilities.fetch(@scope) %>
+        <%= lc_list_row "Returns to", icon: "arrow-top-right-on-square", subtitle: tag.span(host, class: "font-mono") %>
+      <% end %>
+      <% if @client.dynamic? %>
+        <%= lc_alert "This app named itself. Approve only if you just added Xtend to it.", tone: :warning %>
+      <% end %>
+      <p class="text-caption text-muted-foreground">You can disconnect it any time under <%= @scope == "mcp" ? "AI" : "X data" %>.</p>
+      <div class="flex gap-related">
+        <% hidden = params.permit(:client_id, :redirect_uri, :response_type, :code_challenge, :code_challenge_method, :scope, :state, :resource).to_h %>
+        <%= lc_button_to "Approve", oauth_authorize_path, params: hidden.merge(decision: "approve"), data: { turbo: false }, form: { class: "grow" }, class: "w-full" %>
+        <%= lc_button_to "Deny", oauth_authorize_path, params: hidden.merge(decision: "deny"), variant: :secondary, data: { turbo: false }, form: { class: "grow" }, class: "w-full" %>
+      </div>
+    </div>
+  <% end %>
+</div>

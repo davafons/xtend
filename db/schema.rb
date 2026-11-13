@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_073000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_081000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -160,6 +160,63 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_073000) do
     t.index ["workspace_id"], name: "index_follower_periods_on_workspace_id"
   end
 
+  create_table "oauth_authorization_codes", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "user_id", null: false
+    t.integer "oauth_client_id", null: false
+    t.string "code_digest", null: false
+    t.string "redirect_uri", null: false
+    t.string "code_challenge", null: false
+    t.string "scope", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code_digest"], name: "index_oauth_authorization_codes_on_code_digest", unique: true
+    t.index ["oauth_client_id"], name: "index_oauth_authorization_codes_on_oauth_client_id"
+    t.index ["user_id"], name: "index_oauth_authorization_codes_on_user_id"
+    t.index ["workspace_id"], name: "index_oauth_authorization_codes_on_workspace_id"
+  end
+
+  create_table "oauth_clients", force: :cascade do |t|
+    t.string "client_id", null: false
+    t.string "name", null: false
+    t.json "redirect_uris", default: [], null: false
+    t.string "redirect_uri_pattern"
+    t.json "scopes", default: [], null: false
+    t.string "registered_via", default: "first_party", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_oauth_clients_on_client_id", unique: true
+  end
+
+  create_table "oauth_grants", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "user_id"
+    t.integer "oauth_client_id", null: false
+    t.string "scope", null: false
+    t.string "user_agent"
+    t.datetime "last_used_at"
+    t.datetime "revoked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["oauth_client_id"], name: "index_oauth_grants_on_oauth_client_id"
+    t.index ["user_id"], name: "index_oauth_grants_on_user_id"
+    t.index ["workspace_id", "scope"], name: "index_oauth_grants_on_workspace_id_and_scope"
+  end
+
+  create_table "oauth_tokens", force: :cascade do |t|
+    t.integer "oauth_grant_id", null: false
+    t.string "kind", null: false
+    t.string "token_digest", null: false
+    t.datetime "expires_at"
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["oauth_grant_id"], name: "index_oauth_tokens_on_oauth_grant_id"
+    t.index ["token_digest"], name: "index_oauth_tokens_on_token_digest", unique: true
+  end
+
   create_table "outreach_candidates", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "x_id", null: false
@@ -304,22 +361,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_073000) do
     t.datetime "updated_at", null: false
     t.string "owner_x_id"
     t.datetime "collection_trial_completed_at"
-    t.string "mcp_token_digest"
-    t.datetime "mcp_token_created_at"
-    t.datetime "mcp_token_used_at"
     t.boolean "mcp_share_notes", default: false, null: false
     t.boolean "mcp_share_dms", default: false, null: false
-    t.string "capture_token_digest"
-    t.datetime "capture_token_created_at"
-    t.datetime "capture_token_used_at"
     t.text "posting_notes", default: "", null: false
     t.integer "owner_followers_count"
     t.integer "owner_following_count"
     t.datetime "owner_counts_seen_at"
     t.datetime "captured_at"
     t.json "last_capture"
-    t.index ["capture_token_digest"], name: "index_workspaces_on_capture_token_digest", unique: true
-    t.index ["mcp_token_digest"], name: "index_workspaces_on_mcp_token_digest", unique: true
   end
 
   create_table "x_accounts", force: :cascade do |t|
@@ -529,6 +578,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_073000) do
   add_foreign_key "follower_periods", "follow_snapshots", column: "first_snapshot_id"
   add_foreign_key "follower_periods", "people"
   add_foreign_key "follower_periods", "workspaces"
+  add_foreign_key "oauth_authorization_codes", "oauth_clients"
+  add_foreign_key "oauth_authorization_codes", "users"
+  add_foreign_key "oauth_authorization_codes", "workspaces"
+  add_foreign_key "oauth_grants", "oauth_clients"
+  add_foreign_key "oauth_grants", "users"
+  add_foreign_key "oauth_grants", "workspaces"
+  add_foreign_key "oauth_tokens", "oauth_grants"
   add_foreign_key "outreach_candidates", "people"
   add_foreign_key "outreach_candidates", "workspaces"
   add_foreign_key "outreach_sessions", "workspaces"

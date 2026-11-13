@@ -1,7 +1,10 @@
 // Queues captured responses in extension storage and sends them to Xtend in batches: a few seconds after you stop
 // scrolling, on demand, or every minute as a fallback. After each batch it tells open Xtend tabs to refresh and shows
 // follow-list progress on x.com.
-const DEFAULT_SETTINGS = { xtendUrl: "https://xtend.example.com", token: "", auto: true, paused: false, rawDebug: false };
+import { needsRenewal, refresh } from "./oauth.js";
+
+// token is an OAuth access token (renewed with refreshToken) or a pasted capture token (no refreshToken).
+const DEFAULT_SETTINGS = { xtendUrl: "https://xtend.example.com", token: "", refreshToken: "", expiresAt: null, auto: true, paused: false, rawDebug: false };
 // The raw debug log stays in extension storage until you download it from the popup; it is never sent anywhere.
 const RAW_PREFIX = "raw:";
 const MAX_RAW_ENTRIES = 5000;
@@ -100,20 +103,51 @@ async function viewerId() {
   return match ? match[1] : null;
 }
 
-async function post(batch) {
-  const { xtendUrl, token } = await settings();
-  const response = await fetch(`${xtendUrl.replace(/\/+$/, "")}/x/captures`, {
+const origin = (xtendUrl) => xtendUrl.replace(/\/+$/, "");
+
+// Renews the OAuth pair. A refused refresh means the link was revoked or expired, so it's dropped and the options
+// page asks to connect again; a network failure keeps the old token for the next try.
+let renewing = null;
+function renew() {
+  renewing ||= (async () => {
+    const current = await settings();
+    try {
+      const fresh = await refresh(origin(current.xtendUrl), current.refreshToken);
+      await chrome.storage.local.set({ settings: { ...current, ...fresh } });
+      return fresh.token;
+    } catch (error) {
+      if (error.code === "invalid_grant" || error.code === "invalid_client") {
+        await chrome.storage.local.set({ settings: { ...current, token: "", refreshToken: "", expiresAt: null } });
+        return "";
+      }
+      return current.token;
+    } finally {
+      renewing = null;
+    }
+  })();
+  return renewing;
+}
+
+async function accessToken() {
+  const current = await settings();
+  return needsRenewal(current) ? renew() : current.token;
+}
+
+async function post(batch, retry = true) {
+  const { xtendUrl, refreshToken } = await settings();
+  const response = await fetch(`${origin(xtendUrl)}/x/captures`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${await accessToken()}` },
     body: JSON.stringify(batch),
   });
+  if (response.status === 401 && refreshToken && retry && (await renew())) return post(batch, false);
   const body = await response.json().catch(() => ({}));
   return { status: response.status, ok: response.ok, body };
 }
 
 async function preflight() {
   const { token } = await settings();
-  if (!token) return { error: "Add your capture token in the extension options." };
+  if (!token) return { error: "Connect to Xtend in the extension options." };
   const viewer = await viewerId();
   if (!viewer) return { error: "Sign in to x.com in this browser." };
   return { viewer };

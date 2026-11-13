@@ -46,7 +46,6 @@ Rails.application.routes.draw do
     resources :billing_cycles, only: [ :index, :create, :update ]
     resources :archive_imports, only: :create
     resources :captures, only: :create
-    resource :capture_token, only: [ :create, :destroy ]
     resource :capture_status, only: :show
     resource :connection, only: [ :create, :update, :destroy ] do
       get :callback
@@ -63,10 +62,20 @@ Rails.application.routes.draw do
     end
   end
 
-  # MCP connector for any AI assistant
-  namespace :mcp do
-    resource :token, only: [ :create, :destroy ]
+  # Linking AI clients and the extension (OAuth 2.1). Discovery, registration, tokens, and revocation are reachable
+  # outside Cloudflare Access; the approval page and connected apps are not.
+  get "/.well-known/oauth-authorization-server", to: "oauth/metadata#authorization_server"
+  get "/.well-known/oauth-protected-resource(/*resource)", to: "oauth/metadata#protected_resource", format: false
+  namespace :oauth do
+    get "authorize", to: "authorizations#new"
+    post "authorize", to: "authorizations#create"
+    post "token", to: "tokens#create"
+    post "revoke", to: "tokens#revoke"
+    post "register", to: "registrations#create"
+    resources :grants, only: [ :create, :destroy ]
   end
+
+  # MCP connector for any AI assistant
   post "/mcp", to: "mcp/endpoints#create", as: :mcp
   match "/mcp", to: "mcp/endpoints#unsupported", via: [ :get, :delete ]
 

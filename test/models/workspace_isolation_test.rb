@@ -39,9 +39,9 @@ class WorkspaceIsolationTest < ActiveSupport::TestCase
   end
 
   test "each workspace's connector token reaches only that workspace" do
-    token = @other.issue_mcp_token!
-    assert_equal @other, Workspace.find_by_mcp_token(token)
-    assert_nil Workspace.find_by_mcp_token("xtend_unknown")
-    assert_nil Workspace.find_by_mcp_token(nil)
+    token = paste_token("mcp", workspace: @other)
+    assert_equal @other, Oauth::Grant.authenticate(token, scope: "mcp").workspace
+    assert_nil Oauth::Grant.authenticate("xtend_unknown", scope: "mcp")
+    assert_nil Oauth::Grant.authenticate(nil, scope: "mcp")
   end
 end

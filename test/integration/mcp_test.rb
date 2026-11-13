@@ -2,7 +2,7 @@ require "test_helper"
 
 class McpTest < ActionDispatch::IntegrationTest
   setup do
-    @token = Current.workspace.issue_mcp_token!
+    @token = paste_token("mcp")
     @person = Person.resolve_profile!(profile(x_id: "555", handle: "builder", name: "A Builder"))
     @person.update!(notes: "Private note")
   end
@@ -29,14 +29,14 @@ class McpTest < ActionDispatch::IntegrationTest
     rpc("ping", headers: { "Origin" => "https://evil.example" })
     assert_response :forbidden
     assert_equal({}, rpc("ping")["result"])
-    Current.workspace.revoke_mcp_token!
+    Current.workspace.oauth_grants.each(&:revoke!)
     rpc("ping")
     assert_response :unauthorized
   end
 
   test "a token reads only its own workspace" do
     other = Workspace.create!(name: "Other", owner_x_id: "888")
-    other_token = other.issue_mcp_token!
+    other_token = paste_token("mcp", workspace: other)
     Current.set(workspace: other) { Person.resolve_profile!(profile(x_id: "777", handle: "theirs", name: "Theirs")) }
     rpc("tools/call", { name: "list_people", arguments: {} }, token: other_token)
     assert_equal [ "theirs" ], JSON.parse(response.body).dig("result", "structuredContent", "people").map { |person| person["handle"] }
@@ -108,14 +108,14 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_select "a[aria-current=page]", text: "AI"
     assert_not_includes response.body, @token
     # The token page renders instead of redirecting, which Turbo Drive ignores, so the form must skip Turbo.
-    assert_select "form[action=?] button[data-turbo=false]", mcp_token_path
-    post mcp_token_path
+    assert_select "form[action=?] button[data-turbo=false]", oauth_grants_path
+    post oauth_grants_path, params: { scope: "mcp" }
     assert_response :success
     new_token = response.body[/xtend_[A-Za-z0-9_-]{20,}/]
     assert new_token
     assert_includes response.body, "Authorization: Bearer #{new_token}"
-    assert_equal Current.workspace, Workspace.find_by_mcp_token(new_token)
-    assert_nil Workspace.find_by_mcp_token(@token)
+    assert_equal Current.workspace, Oauth::Grant.authenticate(new_token, scope: "mcp").workspace
+    assert Oauth::Grant.authenticate(@token, scope: "mcp"), "each pasted token is its own connection"
 
     paste = "Results:\n```json\n" + { format: "xtend-grok-v1", recaps: [{ handle: "builder", summary: "Ships Rails tools." }] }.to_json + "\n```"
     post ai_intakes_path, params: { ai_output: paste }

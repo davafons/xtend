@@ -1,5 +1,6 @@
 # Streamable HTTP endpoint for the MCP connector. Not a browser page, so it skips the browser and CSRF checks
-# and authenticates every request with the workspace's revocable bearer token instead.
+# and authenticates every request with a bearer token from an OAuth link or a pasted token. A request without
+# one is told where to find the authorization server (RFC 9728), which is how an assistant links by URL alone.
 class Mcp::EndpointsController < ActionController::API
   MAX_BYTES = 1.megabyte
   rate_limit to: 120, within: 1.minute, store: RATE_LIMIT_STORE, by: -> { request.remote_ip },
@@ -34,13 +35,12 @@ class Mcp::EndpointsController < ActionController::API
   end
 
   def authenticate
-    token = request.authorization.to_s[/\ABearer (\S+)\z/, 1]
-    workspace = Current.workspace = Workspace.find_by_mcp_token(token)
-    unless workspace
-      response.headers["WWW-Authenticate"] = 'Bearer realm="xtend"'
+    grant = Oauth::Grant.authenticate(request.authorization.to_s[/\ABearer (\S+)\z/, 1], scope: "mcp")
+    unless grant
+      response.headers["WWW-Authenticate"] = %(Bearer resource_metadata="#{Oauth::Resource.new(request).metadata_url("mcp")}", scope="mcp")
       return render(json: rpc_error(-32001, "Missing or invalid connector token."), status: :unauthorized)
     end
-    workspace.touch_token_use!(:mcp)
+    Current.workspace = grant.workspace
   end
 
   def rpc_error(code, message)
