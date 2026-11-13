@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_062000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_063000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -317,6 +317,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_062000) do
     t.datetime "updated_at", null: false
     t.string "x_handle", null: false
     t.string "x_user_id"
+    t.string "theme", default: "aurora", null: false
     t.index ["workspace_id"], name: "index_users_on_workspace_id"
     t.index ["x_handle"], name: "index_users_on_x_handle", unique: true
     t.index ["x_user_id"], name: "index_users_on_x_user_id", unique: true

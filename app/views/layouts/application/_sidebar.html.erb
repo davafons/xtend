@@ -43,6 +43,8 @@
           avatar: (connection ? owner_avatar(size: :sm) : lc_icon("signal-slash", options: { class: "size-4 text-muted-foreground", "aria-hidden": true })), id: "account-menu" do %>
       <% unless demo? %><%= lc_menu_option "Your profile on X", icon: "arrow-up-right", href: "https://x.com/#{handle}", target: "_blank", rel: "noopener noreferrer" %><% end %>
       <%= lc_menu_option "Settings", icon: "cog-6-tooth", href: settings_path %>
+      <% other = (User::THEMES - [ Current.user.theme ]).first %>
+      <%= lc_menu_option "#{other.capitalize} theme", icon: "swatch", href: appearance_path(theme: other), method: :patch %>
       <%= lc_menu_option "Sign out @#{handle}", icon: "arrow-right-start-on-rectangle", href: session_path, method: :delete %>
     <% end %>
   <% end %>

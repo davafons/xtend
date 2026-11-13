@@ -29,6 +29,7 @@ Rails.application.routes.draw do
   resource :insights, only: :show
   resource :search, only: :show
   resource :settings, only: [ :show, :update ]
+  resource :appearance, only: :update
   resource :context_export, only: :show
 
   # Follower snapshots and cleanup

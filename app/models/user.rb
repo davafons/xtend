@@ -4,6 +4,10 @@
 class User < ApplicationRecord
   belongs_to :workspace
   has_many :sessions, dependent: :destroy
+  # Aurora: Borealis colors with a soft glow behind frosted surfaces. Dim: X's blue-grey.
+  THEMES = %w[aurora dim].freeze
+
+  validates :theme, inclusion: { in: THEMES }
 
   normalizes :x_handle, with: ->(handle) { handle.strip.delete_prefix("@").downcase }
   validates :x_handle, presence: true, uniqueness: true, format: { with: /\A\w{1,15}\z/ }
