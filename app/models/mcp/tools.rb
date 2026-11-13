@@ -1,5 +1,6 @@
-# Tools that Grok Bot (or any MCP client) can call. Reads are bounded and scoped by the owner's sharing choices;
-# writes stage research through Grok::Intake or save post drafts. No tool posts, follows, messages, or runs paid X reads.
+# Tools that any MCP client (Grok Bot, Claude, ChatGPT, ...) can call. Reads are bounded and scoped by the owner's sharing
+# choices; writes stage research through Grok::Intake or save post drafts. No tool posts, follows, messages, applies
+# changes without owner review, or runs paid X reads. Grok::* is the internal name for all AI research.
 class Mcp::Tools
   class Invalid < StandardError; end
 
@@ -44,6 +45,12 @@ class Mcp::Tools
     { name: "get_interaction_history", title: "Interaction history",
       description: "Collected replies, likes, bookmarks, and DM metadata (when shared) with one person, newest first, plus coverage limits.",
       inputSchema: { type: "object", properties: PERSON_REF.merge(limit: { type: "integer", minimum: 1, maximum: 50 }) },
+      annotations: { readOnlyHint: true } },
+    { name: "list_pending_proposals", title: "Proposals awaiting review",
+      description: "Tags, recaps, and profile facts staged for the owner that he has not accepted or dismissed yet, plus unverified reply targets still in his Today queue. Check it before proposing so you add to the queue instead of repeating it.",
+      inputSchema: { type: "object", properties: {
+        kind: { type: "string", enum: Grok::Proposal::KINDS + %w[posts], description: "Only one kind. Defaults to all." },
+        limit: { type: "integer", minimum: 1, maximum: 50 } } },
       annotations: { readOnlyHint: true } },
     { name: "list_known_posts", title: "Known post IDs",
       description: "Post IDs already in the CRM within a window, so proposals skip duplicates.",
@@ -138,7 +145,7 @@ class Mcp::Tools
     hidden = PostDisposition.where(kind: "skipped").or(PostDisposition.where("until_at > ?", Time.current))
     { demo: @demo, target: DailySession::TARGET, progress: session.progress,
       remaining: [DailySession::TARGET - session.progress, 0].max,
-      queue: { available: Post.opportunities.count, unverified_from_grok: Post.opportunities.where(source: "grok").count },
+      queue: { available: Post.opportunities.count, unverified_from_ai: Post.opportunities.where(source: "grok").count },
       replied_post_ids: ReplyEvent.where(direction: "outgoing").order(occurred_at: :desc).limit(200).pluck(:target_x_id),
       set_aside_post_ids: Post.where(id: hidden.select(:post_id)).order(updated_at: :desc).limit(200).pluck(:x_id),
       reported_post_ids: Post.where(id: ReplyReport.select(:post_id)).pluck(:x_id) }
@@ -188,7 +195,7 @@ class Mcp::Tools
     context = person_summary(person, graph, person.interactions).merge(
       profile_url: person.profile_url, location: person.location, website_url: person.website_url,
       followers_count: person.followers_count, following_count: person.following_count,
-      profile_source: person.x_id ? "x_api" : "grok_research_unverified",
+      profile_source: person.x_id ? "x_api" : "ai_research_unverified",
       outgoing_replies: person.outgoing_count, incoming_replies: person.incoming_count,
       recent_posts: recent.map { |post| { url: "https://x.com/#{person.handle}/status/#{post.x_id}", text: post.body.first(500), published_at: post.published_at.iso8601 } },
       accepted_recap: recap && { summary: recap.payload["summary"], accepted_at: recap.reviewed_at.iso8601 })
@@ -221,6 +228,30 @@ class Mcp::Tools
     { demo: @demo, person_id: person.id, handle: person.handle,
       events: events.sort_by { |event| -Time.iso8601(event[:at] || event[:at_or_after]).to_f }.first(limit),
       coverage: coverage, note: "Collected evidence only. Missing history is not proof that you never interacted." }
+  end
+
+  def list_pending_proposals(args)
+    kind = args["kind"].presence
+    raise Invalid, "kind must be one of #{(Grok::Proposal::KINDS + %w[posts]).join(", ")}." if kind && !(Grok::Proposal::KINDS + %w[posts]).include?(kind)
+    limit = bounded(args["limit"], 25, 50)
+    result = { demo: @demo, note: "Nothing here has applied yet. The owner accepts or dismisses each item in the app." }
+    unless kind == "posts"
+      proposals = Grok::Proposal.pending.includes(:person).order(created_at: :desc)
+      proposals = proposals.where(kind: kind) if kind
+      result[:total] = proposals.count
+      result[:proposals] = proposals.limit(limit).map do |proposal|
+        { kind: proposal.kind, person: { id: proposal.person.id, handle: proposal.person.handle, name: proposal.person.name },
+          proposed: proposal.payload, proposed_at: proposal.created_at.iso8601, via: proposal.via }
+      end
+    end
+    if kind.nil? || kind == "posts"
+      posts = Post.opportunities.where(source: "grok").order(created_at: :desc)
+      result[:unverified_posts_total] = posts.count
+      result[:unverified_posts] = posts.limit(limit).map do |post|
+        { url: "https://x.com/i/status/#{post.x_id}", text: post.body.to_s.first(280), reason: post.match_reason, proposed_at: post.created_at.iso8601 }
+      end
+    end
+    result
   end
 
   def list_known_posts(args)
@@ -325,9 +356,9 @@ class Mcp::Tools
   end
 
   def draft_summary(draft)
-    { id: draft.id, stage: draft.status, written_by: draft.source == "grok" ? "grok" : "david", topic: draft.topic, notes: draft.notes,
+    { id: draft.id, stage: draft.status, written_by: draft.source == "grok" ? "ai" : "david", topic: draft.topic, notes: draft.notes,
       text: draft.body, posts: draft.parts.size, weighted_lengths: draft.part_lengths, over_limit: draft.over_limit?,
-      alternatives: draft.alternatives.map { |alternative| { text: alternative.body, written_by: alternative.source == "grok" ? "grok" : "david", note: alternative.note } },
+      alternatives: draft.alternatives.map { |alternative| { text: alternative.body, written_by: alternative.source == "grok" ? "ai" : "david", note: alternative.note } },
       updated_at: draft.updated_at.iso8601 }
   end
 

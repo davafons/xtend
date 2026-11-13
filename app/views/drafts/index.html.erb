@@ -14,7 +14,7 @@
       <div class="flex flex-col items-center gap-related px-content py-section text-center">
         <%= lc_icon_badge icon: "light-bulb", shape: :circle, size: :lg %>
         <%= lc_heading(@status ? "Nothing in #{Draft::STATUSES[@status]}" : "No ideas yet", level: 2, size: :subheading) %>
-        <%= lc_text "Write one above, or ask your Grok bot to save an idea with a few versions.", size: :small, tone: :muted %>
+        <%= lc_text "Write one above, or ask your AI assistant to save an idea with a few versions.", size: :small, tone: :muted %>
       </div>
     <% else %>
       <ol class="flex flex-col divide-y divide-border">

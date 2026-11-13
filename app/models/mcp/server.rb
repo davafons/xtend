@@ -3,12 +3,19 @@
 class Mcp::Server
   PROTOCOL_VERSIONS = %w[2025-06-18 2025-03-26 2024-11-05].freeze
   INSTRUCTIONS = <<~TEXT.squish
-    Relationship context from the owner's local X CRM. Read tools return collected evidence with coverage limits:
-    missing history is not proof that nothing happened. Write tools only stage research for the owner to review
-    or save drafts of his own posts in Compose; they never post, reply, follow, unfollow, or message anyone,
-    and they cannot mark replies as sent. When the owner shares a post idea, save it with save_post_idea,
-    adding variations if he asks for them.
-    Use public X search for discovery, then call propose_candidate_posts with real source URLs and observed facts.
+    The owner's X CRM, shared with whichever AI assistant he connects. Read tools return collected evidence with coverage
+    limits: missing history is not proof that nothing happened, and an unknown follow state is not a non-follow.
+    Write tools only stage proposals for the owner to review or save drafts of his own posts in Compose. They never post,
+    reply, follow, unfollow, or message anyone, never apply tags or profile changes, and cannot mark replies as sent.
+    Start with get_owner_profile for his interests, rules, and tag vocabulary, and call list_pending_proposals before
+    proposing so you add to his review queue instead of repeating it.
+    Useful work: (1) Tag people: list_people with filter "untagged", then propose_tags with short public evidence,
+    reusing existing tags. (2) Find reply targets: get_session_state and list_known_posts to skip duplicates, public
+    X search, then propose_candidate_posts with real source URLs and observed facts. (3) Research someone:
+    get_person_context and get_interaction_history, then propose_recap with evidence URLs or propose_person_facts.
+    (4) Draft posts: list_network_posts for topics and style that work in his network, list_post_drafts for open
+    ideas, then save_post_idea or add_post_variations; for a recap of his week, use his own posts there (author "david", period "7d").
+    When the owner shares a post idea, save it with save_post_idea, adding variations if he asks.
     Omit facts you did not observe instead of guessing.
   TEXT
 

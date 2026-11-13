@@ -1,7 +1,7 @@
 require "test_helper"
 
 class FollowListsAndInboxTest < ActionDispatch::IntegrationTest
-  test "follow review shows progress, inline posts, tag suggestions, and the Grok relevance prompt" do
+  test "follow review shows progress, inline posts, tag suggestions, and the AI relevance prompt" do
     a = Person.resolve_profile!(profile(x_id: "51", handle: "alpha"))
     b = Person.resolve_profile!(profile(x_id: "52", handle: "bravo"))
     snapshot("following", [ a, b ], observed_at: 2.days.ago)
@@ -11,9 +11,9 @@ class FollowListsAndInboxTest < ActionDispatch::IntegrationTest
 
     get follow_reviews_path(mutuals: "1", reason: "strangers")
     assert_response :success
-    assert_includes response.body, "Grok suggests"
-    assert_select "button[aria-label=?]", "Accept Grok's tags for A Builder"
-    assert_includes response.body, "Ask Grok which of these 1 fit your interests"
+    assert_includes response.body, "AI suggests"
+    assert_select "button[aria-label=?]", "Accept suggested tags for A Builder"
+    assert_includes response.body, "Ask AI which of these 1 fit your interests"
     assert_includes response.body, "2 → 1 since"
     assert_select "[data-controller=chart]", 2
 

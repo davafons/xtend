@@ -69,13 +69,13 @@
 
     <% prompt = Grok::Classification.relevance_prompt(@candidates) %>
     <%= lc_collapsible card: true, indicator: :chevron do |collapsible| %>
-      <% collapsible.summary do %><span class="me-auto flex items-center gap-related"><%= lc_icon "sparkles", options: { class: "size-4 text-grok", "aria-hidden": true } %>Ask Grok which of these <%= @candidates.size %> fit your interests</span><% end %>
+      <% collapsible.summary do %><span class="me-auto flex items-center gap-related"><%= lc_icon "sparkles", options: { class: "size-4 text-grok", "aria-hidden": true } %>Ask AI which of these <%= @candidates.size %> fit your interests</span><% end %>
       <div class="flex flex-col gap-content">
-        <%= lc_text "Grok tags each account, adding ##{Grok::Classification::OFF_TOPIC} when nothing matches your interests. Accept suggestions in the rows, then sort by \"Off-topic first\".", size: :small, tone: :muted %>
+        <%= lc_text "Paste this into Grok or any AI. It tags each account, adding ##{Grok::Classification::OFF_TOPIC} when nothing matches your interests. Accept suggestions in the rows, then sort by \"Off-topic first\".", size: :small, tone: :muted %>
         <div><%= lc_copy_button "Copy prompt for this batch", value: prompt, variant: :secondary, size: :sm %></div>
         <%= form_with url: grok_intakes_path, class: "flex flex-col gap-content" do %>
           <%= hidden_field_tag :return_to, "follow_reviews" %>
-          <%= lc_field label: "Grok results", id: "grok-relevance-output", hint: "Paste Grok's whole answer; only its JSON block is read." do |field| %><%= lc_textarea "", name: "grok_output", rows: 4, maxlength: 100_000, required: true, **field %><% end %>
+          <%= lc_field label: "AI results", id: "grok-relevance-output", hint: "Paste the whole answer; only its JSON block is read." do |field| %><%= lc_textarea "", name: "grok_output", rows: 4, maxlength: 100_000, required: true, **field %><% end %>
           <div><%= lc_button "Import suggestions", type: :submit, size: :sm, icon: "arrow-down-tray" %></div>
         <% end %>
       </div>

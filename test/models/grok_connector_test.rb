@@ -27,7 +27,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
     post = Post.find_by!(x_id: "8101")
     assert_equal "grok", post.source
     assert_includes Post.opportunities, post
-    assert_equal "Grok: Asks a concrete Rails testing question", post.match_reason
+    assert_equal "AI: Asks a concrete Rails testing question", post.match_reason
     person = post.person
     assert_nil person.x_id
     assert person.grok_only?
@@ -100,7 +100,7 @@ class GrokConnectorTest < ActiveSupport::TestCase
     X::SourcePost.reconcile_all!
     post = Post.find_by!(x_id: "8101")
     assert_equal ["x_api", "555", "How do you test Rails jobs on SQLite?", 5], [post.source, post.person.x_id, post.body, post.reply_count]
-    assert_equal "Grok: Asks a concrete Rails testing question", post.match_reason
+    assert_equal "AI: Asks a concrete Rails testing question", post.match_reason
   end
 
   test "verification that names a different known author moves the post" do

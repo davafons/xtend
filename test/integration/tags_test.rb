@@ -22,7 +22,7 @@ class TagsTest < ActionDispatch::IntegrationTest
     assert_equal ["ios dev"], @person.reload.tags.map(&:name)
   end
 
-  test "pasted Grok tags return to the Grok page and can be accepted in bulk" do
+  test "pasted AI tags return to the AI page and can be accepted in bulk" do
     get grok_connector_path
     assert_includes response.body, "Copy tagging prompt"
     paste = { format: Grok::Intake::FORMAT, tags: [{ handle: "builder", tags: ["tokyo"] }, { handle: "plain", tags: ["designer"] }] }.to_json

@@ -23,7 +23,7 @@ class Grok::Intake
 
   # Extracts the versioned document from pasted Grok output, which may wrap it in prose or a code fence.
   def self.parse_paste(text)
-    raise Invalid, "Paste up to 100 KB of Grok output." unless text.is_a?(String) && text.bytesize <= MAX_BYTES
+    raise Invalid, "Paste up to 100 KB of AI output." unless text.is_a?(String) && text.bytesize <= MAX_BYTES
     start = text.index(/\{\s*"format"\s*:/)
     raise Invalid, "No #{FORMAT} JSON block was found." unless start
     finish = text.length
@@ -32,7 +32,7 @@ class Grok::Intake
       raise Invalid, "Use a #{FORMAT} document." unless document.is_a?(Hash) && document["format"] == FORMAT
       return document
     end
-    raise Invalid, "The Grok JSON block could not be read. Ask Grok to repeat it without changes."
+    raise Invalid, "The JSON block could not be read. Ask the assistant to repeat it without changes."
   end
 
   def initialize(via:, run_id: nil)
@@ -78,8 +78,8 @@ class Grok::Intake
       reason = row["match_reason"].to_s.strip.first(500).presence
       record = existing || Post.new(x_id: link[:x_id])
       record.assign_attributes(person: person, body: text.first(1000), language: row["language"].to_s.presence&.first(8) || "en",
-        published_at: [published_at, Time.current].min, reply_count: integer(row["reply_count"]), topic: "Grok research",
-        match_reason: assessment[:rank].negative? ? assessment[:reason] : (reason ? "Grok: #{reason}" : "Grok suggested this post; no reason given."),
+        published_at: [published_at, Time.current].min, reply_count: integer(row["reply_count"]), topic: "AI research",
+        match_reason: assessment[:rank].negative? ? assessment[:reason] : (reason ? "AI: #{reason}" : "AI suggested this post; no reason given."),
         rank: assessment[:rank], source: "grok", grok_run_id: run_id)
       record.save!
       result(existing ? "updated" : "created", link[:x_id], assessment[:rank].negative? ? assessment[:reason] : nil)

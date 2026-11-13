@@ -7,7 +7,7 @@
     <div class="flex items-center gap-related border-b border-border px-related py-related">
       <%= lc_icon_button_link_to "Back to drafts", drafts_path, icon: "arrow-left", title: "Back to drafts" %>
       <span class="ms-auto flex items-center gap-related text-small text-muted-foreground">
-        <% if @draft.source == "grok" %><%= grok_badge "Written by Grok" %><% end %>
+        <% if @draft.source == "grok" %><%= grok_badge "Written by AI" %><% end %>
         <span>Edited <%= time_ago_in_words(@draft.updated_at) %> ago</span>
       </span>
       <%= lc_icon_button_to "Delete draft", draft_path(@draft), method: :delete, icon: "trash", tone: :destructive, title: "Delete draft", form: { data: { turbo_confirm: "Delete this draft, its alternatives, and its history?" } } %>
@@ -29,7 +29,7 @@
           <% end %>
           <%= render layout: "drafts/post", locals: {
                 avatar: (grok ? lc_icon_badge(icon: "sparkles", shape: :circle, size: 11, class: "bg-grok/15 text-grok") : owner_avatar(size: 11)),
-                name: (grok ? "Grok" : name), handle: (handle unless grok), time: alternative.note.presence, extra: count } do %>
+                name: (grok ? "AI" : name), handle: (handle unless grok), time: alternative.note.presence, extra: count } do %>
             <div class="flex flex-col gap-heading">
               <% alternative.parts.each do |part| %><p class="whitespace-pre-line break-words"><%= part %></p><% end %>
             </div>
@@ -59,7 +59,7 @@
             <% revisions.each_with_index do |revision, index| %>
               <li class="flex flex-col gap-tight py-heading first:pt-0 last:pb-0">
                 <div class="flex h-7 items-center gap-related text-caption text-muted-foreground">
-                  <span><%= revision.source == "grok" ? "Grok" : "You" %></span>
+                  <span><%= revision.source == "grok" ? "AI" : "You" %></span>
                   <span aria-hidden="true">·</span>
                   <%= lc_time(revision.updated_at) %>
                   <% if index.zero? %>

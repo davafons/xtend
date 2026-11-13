@@ -29,7 +29,7 @@
     <% end %>
   <% end %>
 
-  <%= lc_list_section "Tag people with Grok", footnote: "Grok suggests tags such as a city, role, or topic. They apply only when you accept them; your own tags never change." do %>
+  <%= lc_list_section "Tag people with AI", footnote: "Your assistant suggests tags such as a city, role, or topic. Paste the prompt into Grok or any AI, or let a connected assistant tag people directly. Tags apply only when you accept them; your own tags never change." do %>
     <%= lc_list_group do %>
       <% if batch.any? %>
         <%= lc_list_row "Tagging prompt", icon: "clipboard-document", subtitle: "#{pluralize(batch.size, "untagged person", plural: "untagged people")}, followers first · copy again after each import" do %>
@@ -47,12 +47,12 @@
     <% end %>
   <% end %>
 
-  <%= lc_list_section "Grok results", footnote: "Paste Grok's whole answer. Only its #{Grok::Intake::FORMAT} JSON block is read, up to #{Grok::Intake::MAX_TAG_ITEMS} people." do %>
+  <%= lc_list_section "AI results", footnote: "Paste the assistant's whole answer. Only its #{Grok::Intake::FORMAT} JSON block is read, up to #{Grok::Intake::MAX_TAG_ITEMS} people." do %>
     <%= form_with url: grok_intakes_path do %>
       <%= hidden_field_tag :return_to, "grok" %>
       <%= lc_list_group do %>
         <%= lc_list_row do %>
-          <%= lc_textarea "", name: "grok_output", rows: 4, maxlength: 100_000, required: true, id: "grok-tags-output", placeholder: "Paste Grok's answer", aria: { label: "Grok results" } %>
+          <%= lc_textarea "", name: "grok_output", rows: 4, maxlength: 100_000, required: true, id: "grok-tags-output", placeholder: "Paste the answer", aria: { label: "AI results" } %>
           <div class="mt-related flex justify-end"><%= lc_button "Import", type: :submit, variant: :secondary, size: :sm, aria: { label: "Import tag suggestions" } %></div>
         <% end %>
       <% end %>

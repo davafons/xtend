@@ -6,7 +6,7 @@ class X::SyncRunsController < ApplicationController
     when "posts"
       discovery = params[:purpose] == "discovery"
       ids = if params[:post_x_id].present?
-        Post.where(x_id: params[:post_x_id], source: "grok").pluck(:x_id).presence || raise(ArgumentError, "Only unverified Grok posts can be verified one at a time.")
+        Post.where(x_id: params[:post_x_id], source: "grok").pluck(:x_id).presence || raise(ArgumentError, "Only unverified AI-suggested posts can be verified one at a time.")
       elsif discovery
         Discovery::Suggestion.unresolved.limit(20).pluck(:post_x_id)
       else

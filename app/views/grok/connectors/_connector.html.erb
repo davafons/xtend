@@ -1,6 +1,6 @@
 <% workspace = Current.workspace %>
 <% value = ->(text) { tag.span(text, class: "text-small text-muted-foreground") } %>
-<%= lc_list_section "Grok Bot connector (MCP)", id: "connector", class: "scroll-mt-section", footnote: "Lets an AI client read your CRM and stage replies, profile facts, and recaps for your review. It can't post, follow, message, or start paid X reads. Grok Bot runs in xAI's cloud and can't reach this local app yet; until then paste results above or test with a local MCP client." do %>
+<%= lc_list_section "Assistant connector (MCP)", id: "connector", class: "scroll-mt-section", footnote: "Lets your AI assistant (Grok, Claude, ChatGPT, or any MCP client) read your CRM and stage tags, reply targets, profile facts, recaps, and post ideas for your review. It can't post, follow, message, or start paid X reads." do %>
   <%= lc_list_group do %>
     <%= lc_list_row "Endpoint", icon: "link", subtitle: tag.span(mcp_url, class: "font-mono") do %>
       <%= lc_copy_button value: mcp_url, icon_only: true, variant: :ghost, size: :sm, aria: { label: "Copy endpoint" } %>
@@ -23,4 +23,7 @@
       <% end %>
     <% end %>
   <% end %>
+<% end %>
+<%= lc_list_section "Connect an assistant", footnote: "Replace YOUR_TOKEN with the token shown when you create it." do %>
+  <%= render "grok/connectors/setup", token: "YOUR_TOKEN" %>
 <% end %>

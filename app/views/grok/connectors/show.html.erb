@@ -1,9 +1,9 @@
-<% content_for :title, "Grok" %>
-<h1 class="sr-only">Grok</h1>
+<% content_for :title, "AI" %>
+<h1 class="sr-only">AI assistant</h1>
 <div class="<%= lc_columns_class %>">
   <%= render "tags" %>
   <%= render "connector" %>
-  <%= lc_list_section "Grok Bot context", footnote: "Interests, saved people, public reply counts, follow states, tags, and pins. Excludes private notes and DMs; downloading sends it nowhere." do %>
+  <%= lc_list_section "Assistant context", footnote: "For assistants without the connector: interests, saved people, public reply counts, follow states, tags, and pins. Excludes private notes and DMs; downloading sends it nowhere." do %>
     <%= lc_list_group do %>
       <%= lc_list_row "Public context file", icon: "document-arrow-down" do %>
         <%= lc_button_link_to "Export", context_export_path, variant: :secondary, size: :sm, data: { turbo: false }, aria: { label: "Export public context" } %>

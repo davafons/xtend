@@ -25,7 +25,7 @@
     <p class="whitespace-pre-line text-[15px] leading-5"><%= person.description %></p>
   <% end %>
   <% if person.x_id.nil? && person.posts.where(source: "grok").exists? %>
-    <%= lc_alert "Known only from Grok research; no X read has confirmed this account yet.", tone: :warning %>
+    <%= lc_alert "Known only from AI research; no X read has confirmed this account yet.", tone: :warning %>
   <% end %>
   <% facts = [
     ([ "map-pin", person.location ] if person.location.present?),

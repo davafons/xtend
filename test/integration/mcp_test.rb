@@ -60,6 +60,8 @@ class McpTest < ActionDispatch::IntegrationTest
     names = rpc("tools/list")["result"]["tools"].map { |definition| definition["name"] }
     assert_equal Mcp::Tools.names, names
     assert names.none? { |name| name.match?(/post_reply|follow|unfollow|send|message|delete/) }
+    instructions = rpc("initialize", { protocolVersion: "2025-06-18" })["result"]["instructions"]
+    assert_no_match(/grok/i, instructions + Mcp::Tools.definitions.to_json.gsub(/Grok::\w+/, ""))
   end
 
   test "read tools respect sharing choices and limits" do
@@ -95,13 +97,15 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_not result["isError"]
     assert_equal "created", result["structuredContent"]["posts"].first["status"]
     assert_includes tool("list_known_posts")["structuredContent"]["post_ids"], "8101"
-    assert_equal 1, tool("get_session_state")["structuredContent"]["queue"]["unverified_from_grok"]
+    assert_equal 1, tool("get_session_state")["structuredContent"]["queue"]["unverified_from_ai"]
     assert_equal 0, X::Read.count
   end
 
   test "settings shows the token once, paste intake works, and proposals are reviewed on the person page" do
     get grok_connector_path
-    assert_includes response.body, "Grok Bot connector (MCP)"
+    assert_includes response.body, "Assistant connector (MCP)"
+    assert_includes response.body, "claude mcp add --transport http twitter-crm"
+    assert_select "a[aria-current=page]", text: "AI"
     assert_not_includes response.body, @token
     # The token page renders instead of redirecting, which Turbo Drive ignores, so the form must skip Turbo.
     assert_select "form[action=?] button[data-turbo=false]", mcp_token_path
@@ -109,6 +113,7 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_response :success
     new_token = response.body[/crm_[A-Za-z0-9_-]{20,}/]
     assert new_token
+    assert_includes response.body, "Authorization: Bearer #{new_token}"
     assert_equal Current.workspace, Workspace.find_by_mcp_token(new_token)
     assert_nil Workspace.find_by_mcp_token(@token)
 
@@ -123,7 +128,7 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Ships Rails tools."
   end
 
-  test "Grok can read tags, list untagged people, and propose tags for review" do
+  test "an assistant can read tags, list untagged people, and propose tags for review" do
     @person.add_tags!("tokyo")
     Person.resolve_profile!(profile(x_id: "556", handle: "other", name: "Other"))
     assert_equal [{ "name" => "tokyo", "people" => 1 }], tool("get_owner_profile")["structuredContent"]["tags"]
@@ -135,12 +140,33 @@ class McpTest < ActionDispatch::IntegrationTest
     assert tool("propose_tags", { "assignments" => [] })["isError"]
   end
 
-  test "Grok saves post ideas with variations and adds more without posting anything" do
+  test "an assistant sees what still awaits review, and nothing applies until the owner accepts" do
+    tool("propose_tags", { "assignments" => [{ "handle" => "builder", "tags" => ["rails"], "reason" => "Bio" }] })
+    tool("propose_recap", { "handle" => "builder", "summary" => "Ships Rails tools." })
+    tool("propose_candidate_posts", { "posts" => [{ "url" => "https://x.com/builder/status/8101", "text" => "How do you test Rails jobs?",
+      "published_at" => 1.hour.ago.iso8601, "match_reason" => "Rails testing question" }] })
+    pending = tool("list_pending_proposals")["structuredContent"]
+    assert_equal [ [ "recap", "builder" ], [ "tags", "builder" ] ], pending["proposals"].map { |item| [ item["kind"], item.dig("person", "handle") ] }.sort
+    assert_equal [ "rails" ], pending["proposals"].find { |item| item["kind"] == "tags" }.dig("proposed", "tags")
+    assert_equal [ "https://x.com/i/status/8101" ], pending["unverified_posts"].map { |post| post["url"] }
+    tags_only = tool("list_pending_proposals", { "kind" => "tags" })["structuredContent"]
+    assert_equal [ "tags" ], tags_only["proposals"].map { |item| item["kind"] }
+    assert_not tags_only.key?("unverified_posts")
+    assert_equal 1, tool("list_pending_proposals", { "kind" => "posts" })["structuredContent"]["unverified_posts_total"]
+    assert tool("list_pending_proposals", { "kind" => "follows" })["isError"]
+    assert_empty @person.reload.tags
+
+    Grok::Proposal.pending.find_by!(kind: "tags").accept!
+    assert_equal [ "recap" ], tool("list_pending_proposals")["structuredContent"]["proposals"].map { |item| item["kind"] }
+  end
+
+  test "an assistant saves post ideas with variations and adds more without posting anything" do
     result = tool("save_post_idea", { "texts" => [ "SQLite is enough for most side projects.", "Your side project doesn't need Postgres." ], "topic" => "Rails", "variation_note" => "contrarian hook" })
     saved = result.fetch("structuredContent").fetch("draft")
     draft = Draft.find(saved["id"])
     assert_equal [ "grok", "idea", "SQLite is enough for most side projects." ], [ draft.source, draft.status, draft.body ]
     assert_equal [ "contrarian hook" ], draft.alternatives.map(&:note)
+    assert_equal "ai", saved["written_by"]
 
     tool("add_post_variations", { "draft_id" => draft.id, "texts" => [ "Hot take: SQLite.", "Thread version\n---\nPart two" ] })
     assert_equal 3, draft.alternatives.count
@@ -153,7 +179,7 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_equal 0, X::Read.count
   end
 
-  test "Grok reads network posts with counts and the network around a person" do
+  test "an assistant reads network posts with counts and the network around a person" do
     alice = Person.resolve_profile!(profile(x_id: "401", handle: "alice"))
     Person.resolve_profile!(profile(x_id: "402", handle: "bob"))
     run = X::SyncRun.create!(dataset: "posts", owner_x_id: Current.workspace.owner_x_id, request_key: SecureRandom.uuid, mode: "capture", status: "completed", page_limit: 1, upper_bound: Time.current)

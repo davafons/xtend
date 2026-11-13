@@ -60,6 +60,7 @@ class Draft::Ideas
       #{drafts.presence&.join("\n") || "- None yet"}
 
       For each suggestion give: a one-line angle, why people in these areas would care right now, and a link to a recent public post or discussion that shows the interest. Prefer concrete experiences, lessons, numbers, and questions over hot takes. Don't write the post for me.
+      If the twitter-crm MCP connector is available, save each suggestion with save_post_idea instead of answering in text.
     PROMPT
   end
 
