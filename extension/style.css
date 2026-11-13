@@ -1,20 +1,19 @@
-/* Xtend's Aurora palette (app/assets/tailwind/tokens.css): meaning colors on near-black, a soft glow at the top,
-   frosted tiles, and the AI mint for actions. The extension can't load the app's stylesheet, so the values are
-   repeated here; keep them in step. */
+/* Xtend's Dim palette (app/assets/tailwind/tokens.css): X's blue-grey, with your blue for actions. The extension
+   can't load the app's stylesheet, so the values are repeated here; keep them in step. */
 :root {
   color-scheme: dark;
-  --background: #07090d;
-  --foreground: #f2f4f8;
-  --muted-foreground: color-mix(in oklab, var(--foreground) 76%, var(--background));
-  --muted: #12161d;
-  --accent: #1b2029;
-  --border: rgb(255 255 255 / 0.09);
-  --frost: rgb(18 22 29 / 0.7);
-  --you: #7c8cff;
-  --ai: #46e3a0;
-  --like: #c86bff;
-  --primary: var(--ai);
-  --primary-foreground: #04140d;
+  --background: #15202b;
+  --foreground: #f7f9f9;
+  --muted-foreground: #8b98a5;
+  --muted: #1e2a36;
+  --accent: #273340;
+  --border: #38444d;
+  --tile: var(--muted);
+  --you: oklch(72% 0.14 245deg);
+  --ai: oklch(78% 0.11 185deg);
+  --like: oklch(72% 0.17 0deg);
+  --primary: var(--you);
+  --primary-foreground: #0d1620;
   --success: oklch(78% 0.089 144.3deg);
   --warning: oklch(80% 0.11 86deg);
   --radius: 0.5rem;
@@ -23,12 +22,7 @@
 body {
   margin: 0;
   color: var(--foreground);
-  background:
-    radial-gradient(26rem 15rem at 22% -10%, color-mix(in oklab, var(--you) 24%, transparent), transparent 70%),
-    radial-gradient(23rem 14rem at 62% -14%, color-mix(in oklab, var(--ai) 15%, transparent), transparent 70%),
-    radial-gradient(22rem 15rem at 100% 0%, color-mix(in oklab, var(--like) 17%, transparent), transparent 70%),
-    var(--background);
-  background-attachment: fixed;
+  background: var(--background);
 }
 body.popup { width: 300px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 body.options { max-width: 520px; margin: 0 auto; padding: 40px 16px; min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; }
@@ -49,13 +43,13 @@ ul { padding-left: 18px; }
 .muted { color: var(--muted-foreground); font-size: 13px; }
 .error { color: var(--warning); font-size: 13px; }
 .success { color: var(--success); font-size: 13px; }
-.pill { background: var(--frost); border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--muted-foreground); }
+.pill { background: var(--tile); border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--muted-foreground); }
 .row { display: flex; gap: 8px; }
 .toggle { display: flex; gap: 8px; align-items: center; font-size: 13px; }
 input[type="checkbox"] { accent-color: var(--primary); }
 label:not(.toggle) { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
 input[type="url"], input[type="password"] {
-  background: var(--frost); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--tile); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 9px 10px; font: inherit;
 }
 input:focus-visible, button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
@@ -69,14 +63,9 @@ button.primary:hover:not(:disabled) { background: color-mix(in oklab, var(--prim
 button:disabled { opacity: 0.5; cursor: default; }
 a { color: var(--primary); font-size: 13px; }
 
-/* A frosted tile, as the app's cards: the glow shows through, blurred, behind a fill opaque enough to read. */
+/* A tile, as the app's cards. */
 .debug {
   display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: calc(var(--radius) * 1.5);
-  background: var(--frost); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
-  -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
+  background: var(--tile);
 }
 .debug button { background: var(--background); }
-@media (prefers-reduced-transparency: reduce) {
-  :root { --frost: var(--muted); }
-  .debug { -webkit-backdrop-filter: none; backdrop-filter: none; }
-}

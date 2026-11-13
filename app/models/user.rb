@@ -4,8 +4,8 @@
 class User < ApplicationRecord
   belongs_to :workspace
   has_many :sessions, dependent: :destroy
-  # Aurora: Borealis colors with a soft glow behind frosted surfaces. Dim: X's blue-grey.
-  THEMES = %w[aurora dim].freeze
+  # Dim: X's blue-grey.
+  THEMES = %w[dim].freeze
 
   validates :theme, inclusion: { in: THEMES }
 

@@ -8,8 +8,8 @@
   <%= lc_search label: "Search and commands", src: search_path, trigger: "Search", placeholder: "Search people, tags, drafts, posts, or pages…", empty: "Nothing matches %{query}", class: "w-full lc-rail:hidden" do %>
     <%= render "searches/results", search: Search.new(nil) %>
   <% end %>
-  <%= sidebar.body do %>
-    <%= lc_nav_list label: "Main", indicator: true do |nav| %>
+  <%= sidebar.body class: "overflow-y-auto" do %>
+    <%= lc_nav_list label: "Main" do |nav| %>
       <% navigation_sections.each do |heading, items| %>
         <%= nav.group heading do %>
           <% items.each do |label, path, icon| %>
@@ -44,7 +44,7 @@
       <% unless demo? %><%= lc_menu_option "Your profile on X", icon: "arrow-up-right", href: "https://x.com/#{handle}", target: "_blank", rel: "noopener noreferrer" %><% end %>
       <%= lc_menu_option "Settings", icon: "cog-6-tooth", href: settings_path %>
       <% other = (User::THEMES - [ Current.user.theme ]).first %>
-      <%= lc_menu_option "#{other.capitalize} theme", icon: "swatch", href: appearance_path(theme: other), method: :patch %>
+      <% if other %><%= lc_menu_option "#{other.capitalize} theme", icon: "swatch", href: appearance_path(theme: other), method: :patch %><% end %>
       <%= lc_menu_option "Sign out @#{handle}", icon: "arrow-right-start-on-rectangle", href: session_path, method: :delete %>
     <% end %>
   <% end %>
