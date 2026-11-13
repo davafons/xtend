@@ -57,7 +57,7 @@ $("send").addEventListener("click", async () => {
   $("send").disabled = true;
   $("send").textContent = "Sending…";
   await send("flush");
-  $("send").textContent = "Send to CRM";
+  $("send").textContent = "Send to Xtend";
   refresh();
 });
 $("clear").addEventListener("click", async () => { await send("clear"); refresh(); });
@@ -75,7 +75,7 @@ $("rawDownload").addEventListener("click", async () => {
   }
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "application/x-ndjson" }));
-  link.download = `twitter-crm-raw-${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`;
+  link.download = `xtend-raw-${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 60000);
 });

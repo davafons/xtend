@@ -5,7 +5,7 @@ class Mcp::Tools
   class Invalid < StandardError; end
 
   PERSON_REF = {
-    person_id: { type: "integer", description: "CRM person ID from list_people." },
+    person_id: { type: "integer", description: "Xtend person ID from list_people." },
     handle: { type: "string", description: "X handle without @. Used when person_id is absent." }
   }.freeze
   CANDIDATE = {
@@ -32,7 +32,7 @@ class Mcp::Tools
       description: "Progress toward 20 distinct new reply targets, plus post IDs already replied to. Use it to avoid duplicates.",
       inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
     { name: "list_people", title: "List people",
-      description: "Bounded list of people in the CRM with follow state, reply state, tags, pins, keeps, and last observed interaction.",
+      description: "Bounded list of people in Xtend with follow state, reply state, tags, pins, keeps, and last observed interaction.",
       inputSchema: { type: "object", properties: {
         filter: { type: "string", enum: %w[all pinned kept mutual you_follow follows_you replied untagged] },
         tag: { type: "string", description: "Only people with this tag." },
@@ -53,7 +53,7 @@ class Mcp::Tools
         limit: { type: "integer", minimum: 1, maximum: 50 } } },
       annotations: { readOnlyHint: true } },
     { name: "list_known_posts", title: "Known post IDs",
-      description: "Post IDs already in the CRM within a window, so proposals skip duplicates.",
+      description: "Post IDs already in Xtend within a window, so proposals skip duplicates.",
       inputSchema: { type: "object", properties: { days: { type: "integer", minimum: 1, maximum: 30 } } },
       annotations: { readOnlyHint: true } },
     { name: "propose_candidate_posts", title: "Propose reply targets",
@@ -62,7 +62,7 @@ class Mcp::Tools
         run_id: { type: "string" }, posts: { type: "array", maxItems: 20, items: CANDIDATE } } },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } },
     { name: "propose_person_facts", title: "Propose profile facts",
-      description: "Stage public profile facts for an existing person. Accepted facts only fill fields the CRM does not have.",
+      description: "Stage public profile facts for an existing person. Accepted facts only fill fields Xtend does not have.",
       inputSchema: { type: "object", properties: PERSON_REF.merge(
         name: { type: "string" }, description: { type: "string" }, location: { type: "string" },
         website_url: { type: "string" }, followers_count: { type: "integer" }, following_count: { type: "integer" },

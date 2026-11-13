@@ -134,7 +134,7 @@ class AIConnectorTest < ActiveSupport::TestCase
   end
 
   test "pasted AI answers are read from the JSON block inside prose" do
-    text = "Here are posts {not json}.\n```json\n{\"format\": \"twitter-crm-grok-v1\", \"posts\": [#{candidate.to_json}]}\n```\nHope this helps {really}."
+    text = "Here are posts {not json}.\n```json\n{\"format\": \"xtend-grok-v1\", \"posts\": [#{candidate.to_json}]}\n```\nHope this helps {really}."
     document = AI::Intake.parse_paste(text)
     assert_equal 1, AI::Intake.new(via: "paste").call(document)[:posts].count { |item| item[:status] == "created" }
     assert_raises(AI::Intake::Invalid) { AI::Intake.parse_paste("no block here") }

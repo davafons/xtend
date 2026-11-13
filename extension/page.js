@@ -3,7 +3,7 @@
 // follow and unfollow clicks. It never starts a request, changes a request, or reads DMs.
 //
 // With the raw debug log turned on (popup), it also copies every other JSON response from X's API, so new
-// payloads can be studied before the CRM parses them. DMs, sign-in, and telemetry are never copied.
+// payloads can be studied before Xtend parses them. DMs, sign-in, and telemetry are never copied.
 (() => {
   const OPERATIONS = new Set([
     "HomeTimeline", "HomeLatestTimeline", "SearchTimeline", "UserTweets", "UserOriginalsTimeline", "UserTweetsAndReplies",
@@ -30,7 +30,7 @@
 
   window.addEventListener("message", (event) => {
     if (event.source !== window || event.origin !== location.origin) return;
-    if (event.data?.source !== "twitter-crm-config") return;
+    if (event.data?.source !== "xtend-config") return;
     raw = event.data.raw === true;
     const queued = rawQueue;
     rawQueue = [];
@@ -85,7 +85,7 @@
   const forward = (operation, url, requestBody, text) => {
     if (typeof text !== "string" || text.length === 0) return;
     window.postMessage(
-      { source: "twitter-crm-capture", operation, variables: variablesOf(url, requestBody), body: text, at: Date.now() },
+      { source: "xtend-capture", operation, variables: variablesOf(url, requestBody), body: text, at: Date.now() },
       location.origin,
     );
   };
@@ -93,7 +93,7 @@
   function forwardRaw(entry, text) {
     if (typeof text !== "string" || text.length === 0) return;
     window.postMessage({
-      source: "twitter-crm-raw", method: entry.method, url: rawUrl(entry.url), status: entry.status,
+      source: "xtend-raw", method: entry.method, url: rawUrl(entry.url), status: entry.status,
       operation: GRAPHQL.exec(entry.url)?.[1] || null, variables: variablesOf(entry.url, entry.body),
       contentType: entry.contentType, body: text, at: entry.at,
     }, location.origin);

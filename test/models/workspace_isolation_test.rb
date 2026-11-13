@@ -41,7 +41,7 @@ class WorkspaceIsolationTest < ActiveSupport::TestCase
   test "each workspace's connector token reaches only that workspace" do
     token = @other.issue_mcp_token!
     assert_equal @other, Workspace.find_by_mcp_token(token)
-    assert_nil Workspace.find_by_mcp_token("crm_unknown")
+    assert_nil Workspace.find_by_mcp_token("xtend_unknown")
     assert_nil Workspace.find_by_mcp_token(nil)
   end
 end

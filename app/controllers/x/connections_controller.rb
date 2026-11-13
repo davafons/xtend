@@ -52,7 +52,7 @@ class X::ConnectionsController < ApplicationController
   def destroy
     session.delete(:x_oauth)
     X::Connection.delete_all
-    redirect_to settings_path, notice: "X credentials removed. Your CRM data remains. Sign in with X again to reconnect, or revoke the app in X settings to remove X's authorization."
+    redirect_to settings_path, notice: "X credentials removed. Your Xtend data remains. Sign in with X again to reconnect, or revoke the app in X settings to remove X's authorization."
   end
 
   private

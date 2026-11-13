@@ -1,6 +1,6 @@
 class DemoWorkspace
   def self.seed!
-    raise "Demo data requires CRM_DEMO=1 and its separate database." unless Rails.configuration.x.demo
+    raise "Demo data requires XTEND_DEMO=1 and its separate database." unless Rails.configuration.x.demo
     return if Outreach::Candidate.exists?
 
     ApplicationRecord.transaction do

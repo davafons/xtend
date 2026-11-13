@@ -6,9 +6,9 @@ The app runs on the server at `https://xtend.example.com` and deploys with Kamal
 
 | Piece | Where |
 | --- | --- |
-| Container | Kamal runs `twitter-crm` on the server (`config/deploy.yml`). kamal-proxy listens on `127.0.0.1:23010` only, because Caddy owns ports 80 and 443. |
+| Container | Kamal runs `xtend` on the server (`config/deploy.yml`). kamal-proxy listens on `127.0.0.1:23010` only, because Caddy owns ports 80 and 443. |
 | Image | Built for amd64 from the working copy on this Mac and pushed to Kamal's local registry (`localhost:5555`). the server pulls it through the SSH tunnel. No public registry is involved. |
-| Edge | In `../infra`, the `twitter-crm` entry in `terraform/cloudflare-service-access.tf` defines the DNS record, the server tunnel route, and Cloudflare Access with the owner's GitHub login. |
+| Edge | In `../infra`, the `xtend` entry in `terraform/cloudflare-service-access.tf` defines the DNS record, the server tunnel route, and Cloudflare Access with the owner's GitHub login. |
 | `/mcp` | Bypasses Access and skips the browser integrity check, so Grok Bot can reach it. The app authenticates it with the workspace's connector token. |
 | Data | `xtend_data` on the server, mounted at `/data`. It holds `production.sqlite3`, `production_queue.sqlite3`, and `x-token.key`, which encrypts saved X tokens. The appdata restic backup covers it. A database backup without the key can't decrypt X tokens. |
 | Secrets | `SECRET_KEY_BASE`, `X_CLIENT_ID`, and `X_CLIENT_SECRET` live in SSM under `/xtend/`, and `.kamal/secrets` reads them. Keep `SECRET_KEY_BASE` stable: changing it signs everyone out and invalidates connector tokens. |

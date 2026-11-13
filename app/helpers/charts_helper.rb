@@ -2,7 +2,7 @@
 # so a chart uses the same colors as badges and avatar rings. The legend and a screen-reader table come from
 # the server; the canvas, hover tooltip, and legend interactions come from the controller.
 module ChartsHelper
-  CHART_COLORS = { you: "--crm-you", like: "--crm-like", message: "--crm-message", ai: "--crm-ai",
+  CHART_COLORS = { you: "--xtend-you", like: "--xtend-like", message: "--xtend-message", ai: "--xtend-ai",
     both: "--success", them: "--warning", neutral: "--muted-foreground" }.freeze
   CHART_KEYS = { you: "bg-you", like: "bg-like", message: "bg-message", ai: "bg-ai",
     both: "bg-success", them: "bg-warning", neutral: "bg-muted-foreground" }.freeze

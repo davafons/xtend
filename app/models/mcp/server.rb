@@ -3,7 +3,7 @@
 class Mcp::Server
   PROTOCOL_VERSIONS = %w[2025-06-18 2025-03-26 2024-11-05].freeze
   INSTRUCTIONS = <<~TEXT.squish
-    The owner's X CRM, shared with whichever AI assistant he connects. Read tools return collected evidence with coverage
+    Xtend, the owner's X relationship app, shared with whichever AI assistant he connects. Read tools return collected evidence with coverage
     limits: missing history is not proof that nothing happened, and an unknown follow state is not a non-follow.
     Write tools only stage proposals for the owner to review or save drafts of his own posts in Compose. They never post,
     reply, follow, unfollow, or message anyone, never apply tags or profile changes, and cannot mark replies as sent.
@@ -45,7 +45,7 @@ class Mcp::Server
       requested = params["protocolVersion"]
       { protocolVersion: PROTOCOL_VERSIONS.include?(requested) ? requested : PROTOCOL_VERSIONS.first,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "twitter-crm", title: "Xtend", version: "0.1.0" },
+        serverInfo: { name: "xtend", title: "Xtend", version: "0.1.0" },
         instructions: INSTRUCTIONS }
     when "ping" then {}
     when "tools/list" then { tools: Mcp::Tools.definitions }

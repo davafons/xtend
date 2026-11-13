@@ -1,4 +1,4 @@
-# One person's place in the network: who else in your CRM they interact with, and which of your people follow
+# One person's place in the network: who else in Xtend they interact with, and which of your people follow
 # them or are followed by them on lists the capture saw. The owner is left out; the relationship card covers that.
 class Network::Neighborhood
   LIMIT = 8

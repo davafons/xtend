@@ -1,5 +1,5 @@
 module OutreachHelper
-  # A CRM person links to their page and carries a follow ring; an account seen only in captures has neither.
+  # A person in Xtend links to their page and carries a follow ring; an account seen only in captures has neither.
   def outreach_avatar(author, graph)
     if author.is_a?(Person)
       link_to(person_avatar(author, ring: author.follow_state(graph)), author, tabindex: -1, aria: { hidden: true })

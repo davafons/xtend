@@ -20,7 +20,7 @@ class Workspace < ApplicationRecord
 
   # A token is shown once; issuing another replaces it.
   def issue_token!(kind)
-    token = "#{kind == :mcp ? "crm" : "crm_#{kind}"}_#{SecureRandom.urlsafe_base64(32)}"
+    token = "#{kind == :mcp ? "xtend" : "xtend_#{kind}"}_#{SecureRandom.urlsafe_base64(32)}"
     update!("#{kind}_token_digest": self.class.token_digest(token), "#{kind}_token_created_at": Time.current, "#{kind}_token_used_at": nil)
     token
   end
@@ -44,7 +44,7 @@ class Workspace < ApplicationRecord
   def ai_context
     graph = Follow::Graph.latest
     {
-      format: "twitter-crm-context-v1", exported_at: Time.current.iso8601,
+      format: "xtend-context-v1", exported_at: Time.current.iso8601,
       demo: Rails.configuration.x.demo, interests: interests,
       coverage: "Only imported or directly recorded evidence; not a complete X history.",
       people: Person.order(:name).includes(:pin, :follow_protection, :reply_events, :tags).map { |person|

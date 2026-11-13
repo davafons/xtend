@@ -27,7 +27,7 @@ class X::Payload
     {"data" => rows, "meta" => meta.slice("next_token", "newest_id", "oldest_id", "result_count"),
       "partial_errors" => document["errors"].present?}
   rescue KeyError, ArgumentError, TypeError, NoMethodError
-    raise X::Client::Error, "X returned incomplete source data. Existing CRM data is preserved."
+    raise X::Client::Error, "X returned incomplete source data. Existing Xtend data is preserved."
   end
 
   def self.profile(row)

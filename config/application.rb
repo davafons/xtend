@@ -18,12 +18,12 @@ require "rails/test_unit/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
-module TwitterCrm
+module Xtend
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.1
     config.time_zone = "Tokyo"
-    config.x.demo = ENV["CRM_DEMO"] == "1"
+    config.x.demo = ENV["XTEND_DEMO"] == "1"
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.

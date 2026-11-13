@@ -7,7 +7,7 @@
 # - People: added only when the owner showed interest (a visited profile, a liked or bookmarked post, or a reply
 #   exchange with the owner). Other profiles only refresh existing people.
 # - Posts: what the owner was shown (timeline, search, profile, list, thread entries), plus anything written by,
-#   replying to, or quoting the owner's network (the owner and people in the CRM). Counts are saved per sighting.
+#   replying to, or quoting the owner's network (the owner and people in Xtend). Counts are saved per sighting.
 # - The graph: replies, quotes, reposts, and body mentions between accounts; likes and reposts from engagement
 #   lists; and follow edges from follow lists.
 # - Your relationships: every account x.com shows says whether you follow it and whether it follows you. The
@@ -37,7 +37,7 @@ class X::Capture
     raise Rejected, "Capture is disabled in the demo workspace." if Rails.configuration.x.demo
     raise Rejected, "Invalid batch key." unless batch_key.is_a?(String) && batch_key.match?(/\A[\w-]{16,64}\z/)
     @owner = Current.workspace.owner_x_id
-    raise Rejected, "Connect your X account in the CRM first." if @owner.blank?
+    raise Rejected, "Connect your X account in Xtend first." if @owner.blank?
     raise Rejected, "The browser is signed in to a different X account than this workspace." unless viewer_x_id.to_s == @owner
     # An empty batch is the extension's connection test: it checks the token and the signed-in X account.
     raise Rejected, "Send at most #{MAX_RESPONSES} responses per batch." unless responses.is_a?(Array) && responses.size <= MAX_RESPONSES
@@ -79,7 +79,7 @@ class X::Capture
     result
   end
 
-  # Open CRM pages poll this to refresh themselves when a batch changed something.
+  # Open Xtend pages poll this to refresh themselves when a batch changed something.
   def announce(result)
     return if @parsed.empty?
     summary = result.slice(*RESULT_KEYS).select { |_, count| count.positive? }.merge(lists: result[:lists])

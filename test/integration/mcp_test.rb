@@ -24,7 +24,7 @@ class McpTest < ActionDispatch::IntegrationTest
   test "the endpoint requires the current token and rejects foreign browser origins" do
     rpc("ping", token: nil)
     assert_response :unauthorized
-    rpc("ping", token: "crm_wrong")
+    rpc("ping", token: "xtend_wrong")
     assert_response :unauthorized
     rpc("ping", headers: { "Origin" => "https://evil.example" })
     assert_response :forbidden
@@ -104,20 +104,20 @@ class McpTest < ActionDispatch::IntegrationTest
   test "settings shows the token once, paste intake works, and proposals are reviewed on the person page" do
     get ai_connector_path
     assert_includes response.body, "Assistant connector (MCP)"
-    assert_includes response.body, "claude mcp add --transport http twitter-crm"
+    assert_includes response.body, "claude mcp add --transport http xtend"
     assert_select "a[aria-current=page]", text: "AI"
     assert_not_includes response.body, @token
     # The token page renders instead of redirecting, which Turbo Drive ignores, so the form must skip Turbo.
     assert_select "form[action=?] button[data-turbo=false]", mcp_token_path
     post mcp_token_path
     assert_response :success
-    new_token = response.body[/crm_[A-Za-z0-9_-]{20,}/]
+    new_token = response.body[/xtend_[A-Za-z0-9_-]{20,}/]
     assert new_token
     assert_includes response.body, "Authorization: Bearer #{new_token}"
     assert_equal Current.workspace, Workspace.find_by_mcp_token(new_token)
     assert_nil Workspace.find_by_mcp_token(@token)
 
-    paste = "Results:\n```json\n" + { format: "twitter-crm-grok-v1", recaps: [{ handle: "builder", summary: "Ships Rails tools." }] }.to_json + "\n```"
+    paste = "Results:\n```json\n" + { format: "xtend-grok-v1", recaps: [{ handle: "builder", summary: "Ships Rails tools." }] }.to_json + "\n```"
     post ai_intakes_path, params: { ai_output: paste }
     assert_redirected_to ai_connector_path
     assert_match "1 staged", flash[:notice]

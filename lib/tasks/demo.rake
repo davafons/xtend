@@ -1,5 +1,5 @@
 namespace :demo do
-  desc "Seed fictional data into the isolated CRM_DEMO=1 database"
+  desc "Seed fictional data into the isolated XTEND_DEMO=1 database"
   task seed: :environment do
     Current.set(workspace: Workspace.first || Workspace.create!) do
       DemoWorkspace.seed!

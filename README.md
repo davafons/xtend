@@ -12,7 +12,7 @@ bin/dev --detach
 parcela url web
 ```
 
-The review URL is `https://twitter-crm.localhost`. `parcela status` shows Rails and the CSS watcher. `parcela logs web` shows application logs. `parcela down` stops this environment.
+The review URL is `https://xtend.localhost`. `parcela status` shows Rails and the CSS watcher. `parcela logs web` shows application logs. `parcela down` stops this environment.
 
 Every page requires signing in with X. The X app comes from `X_CLIENT_ID`, `X_CLIENT_SECRET`, and `X_REDIRECT_URI`, or from `x.client_id`, `x.client_secret`, and `x.redirect_uri` in Rails credentials. Locally that's `config/credentials/development.yml.enc`, and its key is gitignored. Allow your X account once per database:
 
@@ -43,7 +43,7 @@ The existing Birdclaw checkout was considered as a data foundation. Its document
 
 ## Candidate import
 
-Upload JSON on Discover. The format is `twitter-crm-discovery-v1`, with up to 200 posts and a 1 MB limit. Each post has `x_id`, `body`, `published_at` in ISO-8601, optional `language`, `topic`, `match_reason`, and a `person` object containing numeric-string `x_id`, `handle`, `name`, and optional `description`.
+Upload JSON on Discover. The format is `xtend-discovery-v1`, with up to 200 posts and a 1 MB limit. Each post has `x_id`, `body`, `published_at` in ISO-8601, optional `language`, `topic`, `match_reason`, and a `person` object containing numeric-string `x_id`, `handle`, `name`, and optional `description`.
 
 Imports are transactional and idempotent by stable IDs. They cannot submit verified replies or follow memberships. Existing private notes, pins, and keep choices survive profile enrichment. Invalid data rolls back the entire file.
 
@@ -52,10 +52,10 @@ Imports are transactional and idempotent by stable IDs. They cannot submit verif
 The demo is opt-in and uses a different SQLite file. It contains fictional people, tweets, source evidence, and follow snapshots, and displays a persistent demo banner. Links to X are disabled for fictional content.
 
 ```bash
-CRM_DEMO=1 bin/rails db:prepare demo:seed
+XTEND_DEMO=1 bin/rails db:prepare demo:seed
 ```
 
-With a Parcela data directory, pass the same `PARCELA_DATA_DIR` to that command. Serving the demo requires starting the web process with `CRM_DEMO=1`; the running real workspace does not change. `demo:seed` refuses to run in real mode. It does not overwrite an existing demo or contact X. The demo sign-in page opens the demo workspace directly, without X.
+With a Parcela data directory, pass the same `PARCELA_DATA_DIR` to that command. Serving the demo requires starting the web process with `XTEND_DEMO=1`; the running real workspace does not change. `demo:seed` refuses to run in real mode. It does not overwrite an existing demo or contact X. The demo sign-in page opens the demo workspace directly, without X.
 
 ## Verify
 
@@ -81,7 +81,7 @@ Environment configuration remains supported through `X_CLIENT_ID`, optional `X_C
 
 Disconnect an active X connection locally before changing saved client configuration. Saving configuration invalidates pending OAuth attempts, and a configuration fingerprint prevents an in-flight old callback from saving mismatched credentials.
 
-The callback route is `/x/connection/callback`. The personal development app has successfully authorized with `https://twitter-crm.localhost/x/connection/callback` and completed its identity check. For another developer app, register exactly its configured full URL in the X console, and open the local app at that same origin before pressing **Connect X**. The URI remains configurable; no public tunnel is created.
+The callback route is `/x/connection/callback`. The personal development app has successfully authorized with `https://xtend.localhost/x/connection/callback` and completed its identity check. For another developer app, register exactly its configured full URL in the X console, and open the local app at that same origin before pressing **Connect X**. The URI remains configurable; no public tunnel is created.
 
 Restart the app after changing process environment. Settings displays the exact configured callback and keeps **Connect X** disabled until configuration is present and valid. The callback verifies state, expiry, one-time use and account identity. Once bound, a different X account cannot replace the owner or its data.
 

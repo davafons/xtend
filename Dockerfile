@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build: docker build -t twitter-crm .
+# Build: docker build -t xtend .
 ARG RUBY_VERSION=4.0.2
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 WORKDIR /rails

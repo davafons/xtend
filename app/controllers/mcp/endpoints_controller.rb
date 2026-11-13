@@ -37,7 +37,7 @@ class Mcp::EndpointsController < ActionController::API
     token = request.authorization.to_s[/\ABearer (\S+)\z/, 1]
     workspace = Current.workspace = Workspace.find_by_mcp_token(token)
     unless workspace
-      response.headers["WWW-Authenticate"] = 'Bearer realm="twitter-crm"'
+      response.headers["WWW-Authenticate"] = 'Bearer realm="xtend"'
       return render(json: rpc_error(-32001, "Missing or invalid connector token."), status: :unauthorized)
     end
     workspace.touch_token_use!(:mcp)

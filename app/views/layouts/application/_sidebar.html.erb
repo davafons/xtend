@@ -1,9 +1,9 @@
 <%# Collapses to icons below 1280px and wherever you collapsed it; the choice is kept in a cookie. %>
 <% connection = X::Connection.current unless demo? %>
 <% handle = Current.user&.x_handle %>
-<%= lc_sidebar cookie: "sidebar", class: "crm-sidebar" do |sidebar| %>
+<%= lc_sidebar cookie: "sidebar", class: "xtend-sidebar" do |sidebar| %>
   <%= sidebar.header do %>
-    <%= link_to root_path, class: "crm-signature-text text-subheading font-bold", aria: { label: "Xtend" } do %><span class="lc-rail:hidden">Xtend</span><span class="hidden lc-rail:inline" aria-hidden="true">X</span><% end %>
+    <%= link_to root_path, class: "xtend-signature-text text-subheading font-bold", aria: { label: "Xtend" } do %><span class="lc-rail:hidden">Xtend</span><span class="hidden lc-rail:inline" aria-hidden="true">X</span><% end %>
   <% end %>
   <%= lc_search label: "Search and commands", src: search_path, trigger: "Search", placeholder: "Search people, tags, drafts, posts, or pages…", empty: "Nothing matches %{query}", class: "w-full lc-rail:hidden" do %>
     <%= render "searches/results", search: Search.new(nil) %>

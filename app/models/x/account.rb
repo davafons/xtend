@@ -1,4 +1,4 @@
-# Every X account the browser capture has seen, whether or not it is a person in the CRM. People stay the owner's
+# Every X account the browser capture has seen, whether or not it is a person in Xtend. People stay the owner's
 # curated records; accounts are the directory behind the network view.
 class X::Account < ApplicationRecord
   include WorkspaceScoped

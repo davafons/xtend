@@ -208,7 +208,7 @@ class Person::Timeline
           "unfollowed" => "Seen by the browser capture." }[review.decision])
     end
     [
-      Entry.new(at: person.created_at, category: "decisions", icon: "user", title: "Added to your CRM"),
+      Entry.new(at: person.created_at, category: "decisions", icon: "user", title: "Added to Xtend"),
       (Entry.new(at: person.pin.created_at, category: "decisions", icon: "bookmark", tone: :you, title: "You pinned them") if person.pin),
       (Entry.new(at: person.follow_protection.created_at, category: "decisions", icon: "shield-check", tone: :both, title: "Protected from cleanup") if person.follow_protection),
       *reviews

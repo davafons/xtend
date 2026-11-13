@@ -33,7 +33,7 @@ class XConnectionTest < ActionDispatch::IntegrationTest
     https!
     host! "www.example.com"
     http = MockHTTP.new(responses)
-    Dir.mktmpdir("crm-test-key") do |directory|
+    Dir.mktmpdir("xtend-test-key") do |directory|
       X::TokenVault.stub(:key_path, Pathname.new(directory).join("x-token.key")) do
         X::Config.stub(:client_id, "test-client") do
           X::Config.stub(:client_secret, client_secret) do

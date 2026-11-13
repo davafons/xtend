@@ -2,7 +2,7 @@ Rails.application.routes.draw do
   resource :session, only: [ :new, :create, :destroy ]
   root "people#index"
 
-  # Core CRM
+  # Core
   resources :people, only: [ :index, :show, :new, :create, :update ] do
     resource :pin, only: [ :create, :destroy ]
     resource :follow_protection, only: [ :create, :destroy ], controller: "follow/protections"

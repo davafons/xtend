@@ -1,10 +1,10 @@
 # Who interacts with whom among the owner's people, built only from saved data. Nodes are the owner, people in
-# the CRM, and optionally outside accounts that several people talk to. Links aggregate interactions (and
+# Xtend, and optionally outside accounts that several people talk to. Links aggregate interactions (and
 # optionally captured follow edges) per direction. Coverage is whatever was collected: a missing link is not proof
 # that two accounts never interacted.
 class Network::Graph
   PERIODS = { "30d" => 30.days, "90d" => 90.days, "1y" => 1.year, "all" => nil }.freeze
-  SCOPES = { "all" => "Everyone in the CRM", "mutual" => "Mutuals", "following" => "People you follow", "followers" => "Your followers" }.freeze
+  SCOPES = { "all" => "Everyone in Xtend", "mutual" => "Mutuals", "following" => "People you follow", "followers" => "Your followers" }.freeze
   KINDS = (X::Interaction::KINDS + %w[follow]).freeze
   OUTSIDE_MIN_PEOPLE = 2
   OUTSIDE_LIMIT = 150
@@ -103,7 +103,7 @@ class Network::Graph
     counts
   end
 
-  # Accounts outside the CRM that at least two people in scope interacted with, busiest first.
+  # Accounts outside Xtend that at least two people in scope interacted with, busiest first.
   def outside_accounts_for(ids)
     scope = X::Interaction.where(kind: kinds & X::Interaction::KINDS, source_x_id: ids.to_a).where.not(target_x_id: Person.where.not(x_id: nil).select(:x_id)).where.not(target_x_id: @owner)
     scope = scope.where("COALESCE(occurred_at, observed_at) >= ?", since) if since

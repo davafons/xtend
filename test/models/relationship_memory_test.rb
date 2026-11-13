@@ -123,7 +123,7 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     person = Person.resolve_profile!(profile)
     person.update!(notes: "Private material")
     context = Current.workspace.ai_context
-    assert_equal "twitter-crm-context-v1", context[:format]
+    assert_equal "xtend-context-v1", context[:format]
     assert_not_includes context.to_json, "Private material"
     assert_includes context[:coverage], "not a complete"
   end

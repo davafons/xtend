@@ -64,7 +64,7 @@ export default class extends Controller {
     if (!this.selection || !this.configValue.zoom) return
     const { left, right } = this.chart.chartArea
     this.selection.end = Math.min(Math.max(this.pointerX(event), left), right)
-    this.chart.crmSelection = this.selection
+    this.chart.xtendSelection = this.selection
     this.tooltipTarget.hidden = true
     this.chart.draw()
   }
@@ -79,7 +79,7 @@ export default class extends Controller {
 
   cancel() {
     if (!this.selection) return
-    this.selection = this.chart.crmSelection = null
+    this.selection = this.chart.xtendSelection = null
     this.chart.draw()
   }
 
@@ -132,7 +132,7 @@ export default class extends Controller {
       text: rgba(resolve("--muted-foreground")), grid: rgba(resolve("--border"), 0.35),
       surface: rgba(resolve("--card")), band: rgba(resolve("--foreground"), 0.05),
       rule: rgba(resolve("--muted-foreground"), 0.5), font: getComputedStyle(this.element).fontFamily,
-      selection: rgba(resolve("--crm-you"), 0.12), selectionEdge: rgba(resolve("--crm-you"), 0.6),
+      selection: rgba(resolve("--xtend-you"), 0.12), selectionEdge: rgba(resolve("--xtend-you"), 0.6),
       series: this.configValue.series.map((series) => resolve(series.color)),
     }
     probe.remove()
@@ -203,7 +203,7 @@ export default class extends Controller {
         plugins: {
           legend: { display: false },
           tooltip: { enabled: false, external: (context) => this.renderTooltip(context) },
-          crmHover: { band: this.theme.band, rule: this.theme.rule, line: this.line, selection: this.theme.selection, edge: this.theme.selectionEdge },
+          xtendHover: { band: this.theme.band, rule: this.theme.rule, line: this.line, selection: this.theme.selection, edge: this.theme.selectionEdge },
         },
       },
     }
@@ -242,7 +242,7 @@ export default class extends Controller {
 // A soft column behind the hovered bars, or a hairline through the hovered point on a line; while dragging, the
 // selected span.
 const hoverPlugin = {
-  id: "crmHover",
+  id: "xtendHover",
   beforeDatasetsDraw(chart, _args, options) {
     const [active] = chart.getActiveElements()
     if (!active) return
@@ -265,7 +265,7 @@ const hoverPlugin = {
     ctx.restore()
   },
   afterDatasetsDraw(chart, _args, options) {
-    const selection = chart.crmSelection
+    const selection = chart.xtendSelection
     if (!selection || Math.abs(selection.end - selection.start) < 5) return
     const { ctx, chartArea: { top, bottom } } = chart
     const [left, right] = [selection.start, selection.end].sort((a, b) => a - b).map((x) => Math.round(x) + 0.5)

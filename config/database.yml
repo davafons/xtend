@@ -12,10 +12,10 @@ default: &default
 development:
   primary:
     <<: *default
-    database: <%= File.join(ENV.fetch("PARCELA_DATA_DIR", Rails.root.join("storage").to_s), ENV["CRM_DEMO"] == "1" ? "demo.sqlite3" : "development.sqlite3").to_json %>
+    database: <%= File.join(ENV.fetch("PARCELA_DATA_DIR", Rails.root.join("storage").to_s), ENV["XTEND_DEMO"] == "1" ? "demo.sqlite3" : "development.sqlite3").to_json %>
   queue:
     <<: *default
-    database: <%= File.join(ENV.fetch("PARCELA_DATA_DIR", Rails.root.join("storage").to_s), ENV["CRM_DEMO"] == "1" ? "demo_queue.sqlite3" : "development_queue.sqlite3").to_json %>
+    database: <%= File.join(ENV.fetch("PARCELA_DATA_DIR", Rails.root.join("storage").to_s), ENV["XTEND_DEMO"] == "1" ? "demo_queue.sqlite3" : "development_queue.sqlite3").to_json %>
     migrations_paths: db/queue_migrate
 
 # Warning: The database defined as "test" will be erased and

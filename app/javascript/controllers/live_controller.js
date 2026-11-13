@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Keeps open pages in step with the browser extension. The extension tells CRM tabs the moment a batch lands
-// (a "crm:captured" window event); otherwise the page checks every 20 seconds while visible. New data refreshes
+// Keeps open pages in step with the browser extension. The extension tells Xtend tabs the moment a batch lands
+// (a "xtend:captured" window event); otherwise the page checks every 20 seconds while visible. New data refreshes
 // the page in place (Turbo morph, scroll kept). While you are typing, have something expanded, or are on a page
 // that marks itself data-live="manual", it offers a Refresh button instead of pulling the page from under you.
 const POLL = 20_000
@@ -13,7 +13,7 @@ export default class extends Controller {
   connect() {
     this.check = this.check.bind(this)
     this.onVisible = () => { if (document.visibilityState === "visible") this.check() }
-    window.addEventListener("crm:captured", this.check)
+    window.addEventListener("xtend:captured", this.check)
     document.addEventListener("visibilitychange", this.onVisible)
     this.timer = setInterval(() => { if (document.visibilityState === "visible") this.check() }, POLL)
     this.clock = setInterval(() => this.tick(), 15_000)
@@ -21,7 +21,7 @@ export default class extends Controller {
   }
 
   disconnect() {
-    window.removeEventListener("crm:captured", this.check)
+    window.removeEventListener("xtend:captured", this.check)
     document.removeEventListener("visibilitychange", this.onVisible)
     clearInterval(this.timer)
     clearInterval(this.clock)

@@ -33,8 +33,8 @@ export default class extends Controller {
     const style = getComputedStyle(document.documentElement)
     const read = (name) => style.getPropertyValue(name).trim()
     return {
-      both: read("--success"), you: read("--crm-you"), them: read("--warning"), owner: read("--crm-you"),
-      none: read("--border"), outside: read("--muted-foreground"), like: read("--crm-like"),
+      both: read("--success"), you: read("--xtend-you"), them: read("--warning"), owner: read("--xtend-you"),
+      none: read("--border"), outside: read("--muted-foreground"), like: read("--xtend-like"),
       line: read("--foreground"), muted: read("--muted-foreground"), card: read("--card"), text: read("--foreground"),
     }
   }
@@ -214,7 +214,7 @@ export default class extends Controller {
     heading.textContent = node.owner ? "You" : node.name
     const meta = document.createElement("p")
     meta.className = "text-small text-muted-foreground"
-    meta.textContent = node.owner ? `@${node.handle}` : [`@${node.handle}`, node.follow_state, node.outside ? "Outside your CRM" : null].filter(Boolean).join(" | ")
+    meta.textContent = node.owner ? `@${node.handle}` : [`@${node.handle}`, node.follow_state, node.outside ? "Outside Xtend" : null].filter(Boolean).join(" | ")
     panel.append(heading, meta)
     if (node.person_id || node.outside) {
       const link = document.createElement("a")

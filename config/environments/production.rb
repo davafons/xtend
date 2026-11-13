@@ -28,7 +28,7 @@ Rails.application.configure do
   config.force_ssl = true
   config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
-  # Only answer for the configured public hostnames, e.g. APP_HOSTS=crm.example.com. An empty list would
+  # Only answer for the configured public hostnames, e.g. APP_HOSTS=xtend.example.com. An empty list would
   # disable host checks, so the server refuses to boot without one (asset builds set SECRET_KEY_BASE_DUMMY).
   config.hosts = ENV.fetch("APP_HOSTS", "").split(",").map(&:strip).reject(&:empty?)
   if config.hosts.empty? && ENV["SECRET_KEY_BASE_DUMMY"].blank?

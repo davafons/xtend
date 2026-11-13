@@ -1,6 +1,6 @@
 <%# How to connect an MCP client. token is the real token right after creation, or a placeholder. %>
 <% header = "Authorization: Bearer #{token}" %>
-<% config = JSON.pretty_generate(mcpServers: { "twitter-crm" => { type: "http", url: mcp_url, headers: { Authorization: "Bearer #{token}" } } }) %>
+<% config = JSON.pretty_generate(mcpServers: { "xtend" => { type: "http", url: mcp_url, headers: { Authorization: "Bearer #{token}" } } }) %>
 <%= lc_tabs id: "mcp-setup", label: "Assistant" do |tabs| %>
   <% tabs.panel "Grok Bot", value: :grok do %>
     <div class="<%= lc_stack_class(gap: :content, extra: "pt-content") %>">
@@ -11,7 +11,7 @@
   <% end %>
   <% tabs.panel "Claude", value: :claude do %>
     <div class="<%= lc_stack_class(gap: :content, extra: "pt-content") %>">
-      <%= lc_code_block "claude mcp add --transport http twitter-crm #{mcp_url} --header \"#{header}\"", id: "mcp-setup-claude", language: :bash, title: "Claude Code" %>
+      <%= lc_code_block "claude mcp add --transport http xtend #{mcp_url} --header \"#{header}\"", id: "mcp-setup-claude", language: :bash, title: "Claude Code" %>
     </div>
   <% end %>
   <% tabs.panel "Other", value: :other do %>

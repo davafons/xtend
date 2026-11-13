@@ -1,5 +1,5 @@
 version: 1
-project: twitter-crm
+project: xtend
 
 services:
   web:

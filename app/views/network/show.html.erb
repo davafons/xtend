@@ -17,7 +17,7 @@
   </fieldset>
   <div class="flex items-center gap-tight">
     <%= hidden_field_tag "me", "0", id: nil %><%= lc_toggle "You", name: "me", value: "1", active: @graph.include_owner, size: :sm, title: "Include your own interactions", input: { type: "checkbox", data: { action: "auto-submit#submit" } } %>
-    <%= hidden_field_tag "outside", "0", id: nil %><%= lc_toggle "Outside your CRM", name: "outside", value: "1", active: @graph.outside, size: :sm, title: "Accounts not in your CRM that at least two of your people interact with", input: { type: "checkbox", data: { action: "auto-submit#submit" } } %>
+    <%= hidden_field_tag "outside", "0", id: nil %><%= lc_toggle "Outside Xtend", name: "outside", value: "1", active: @graph.outside, size: :sm, title: "Accounts not in Xtend that at least two of your people interact with", input: { type: "checkbox", data: { action: "auto-submit#submit" } } %>
   </div>
 <% end %>
 
@@ -47,7 +47,7 @@
               <li class="flex items-center gap-related"><span class="size-3 shrink-0 rounded-full ring-2 ring-success"></span>Mutual</li>
               <li class="flex items-center gap-related"><span class="size-3 shrink-0 rounded-full ring-2 ring-you"></span>You follow</li>
               <li class="flex items-center gap-related"><span class="size-3 shrink-0 rounded-full ring-2 ring-warning"></span>Follows you</li>
-              <li class="flex items-center gap-related"><span class="size-3 shrink-0 rounded-full ring-2 ring-muted-foreground"></span>Outside CRM</li>
+              <li class="flex items-center gap-related"><span class="size-3 shrink-0 rounded-full ring-2 ring-muted-foreground"></span>Outside Xtend</li>
               <li class="flex items-center gap-related"><span class="h-0.5 w-4 shrink-0 bg-you"></span>Yours</li>
               <li class="flex items-center gap-related"><span class="h-0.5 w-4 shrink-0 bg-like"></span>Likes</li>
               <li class="flex items-center gap-related" title="Replies, quotes, reposts, mentions"><span class="h-0.5 w-4 shrink-0 bg-foreground/40"></span>Other</li>
@@ -82,7 +82,7 @@
               <% if node[:avatar] && !demo? %><%= lc_avatar src: node[:avatar], alt: "", size: :md, referrerpolicy: "no-referrer", loading: "lazy" %><% else %><%= lc_avatar node[:name].to_s.first(2).upcase %><% end %>
               <span class="min-w-0 grow">
                 <% if node[:person_id] %><%= link_to node[:name], person_path(node[:person_id]), class: "block truncate font-semibold hover:underline" %><% else %><span class="block truncate font-semibold"><%= node[:name] %></span><% end %>
-                <span class="block truncate text-caption text-muted-foreground">@<%= node[:handle] %><%= " | outside your CRM" if node[:outside] %></span>
+                <span class="block truncate text-caption text-muted-foreground">@<%= node[:handle] %><%= " | outside Xtend" if node[:outside] %></span>
               </span>
               <span class="text-small tabular-nums text-muted-foreground" title="Interactions in this view"><%= node[:weight] %></span>
             </li>

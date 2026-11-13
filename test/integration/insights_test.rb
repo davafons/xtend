@@ -16,7 +16,7 @@ class InsightsPageTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller=chart]", 2
     assert_select "button[aria-pressed=true]", text: /Your replies/
     config = JSON.parse(css_select("[data-controller=chart]").first["data-chart-config-value"])
-    assert_equal %w[--crm-you --warning --crm-message], config["series"].map { |series| series["color"] }
+    assert_equal %w[--xtend-you --warning --xtend-message], config["series"].map { |series| series["color"] }
     assert_equal 1, config["series"].first["values"].sum
     assert_select "table.sr-only th", text: "Followers"
     assert_not_includes response.body, "Gained and lost", "a single check is only a baseline"

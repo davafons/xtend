@@ -8,7 +8,7 @@ class WorkflowTest < ActionDispatch::IntegrationTest
     end
     get context_export_path
     assert_response :success
-    assert_equal "twitter-crm-context-v1", JSON.parse(response.body).fetch("format")
+    assert_equal "xtend-context-v1", JSON.parse(response.body).fetch("format")
   end
 
   test "saving a person pin notes and keep uses real persistence" do
@@ -68,10 +68,10 @@ class WorkflowTest < ActionDispatch::IntegrationTest
 
   test "the sidebar remembers being collapsed and keeps labels for screen readers" do
     get people_path
-    assert_select "aside.crm-sidebar:not([data-collapsed]) button[aria-label='Collapse sidebar']"
+    assert_select "aside.xtend-sidebar:not([data-collapsed]) button[aria-label='Collapse sidebar']"
     cookies[:sidebar] = "collapsed"
     get people_path
-    assert_select "aside.crm-sidebar[data-collapsed] button[aria-label='Expand sidebar']"
+    assert_select "aside.xtend-sidebar[data-collapsed] button[aria-label='Expand sidebar']"
     assert_select "aside[data-collapsed] a[title=People][aria-current=page] span", text: "People"
     assert_select "h1", text: "People"
   end

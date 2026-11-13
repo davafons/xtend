@@ -1,17 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "Twitter CRM Capture",
-  "version": "0.5.0",
-  "description": "Forwards what x.com already loaded while you browse to your Twitter CRM. Sends no requests to X.",
+  "name": "Xtend Capture",
+  "version": "0.6.0",
+  "description": "Forwards what x.com already loaded while you browse to Xtend. Sends no requests to X.",
   "permissions": ["storage", "unlimitedStorage", "alarms", "cookies"],
-  "host_permissions": ["https://x.com/*", "https://xtend.example.com/*", "https://twitter-crm.localhost/*"],
+  "host_permissions": ["https://x.com/*", "https://xtend.example.com/*", "https://xtend.localhost/*"],
   "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
   "background": { "service_worker": "background.js", "type": "module" },
   "content_scripts": [
     { "matches": ["https://x.com/*"], "js": ["page.js"], "world": "MAIN", "run_at": "document_start" },
     { "matches": ["https://x.com/*"], "js": ["bridge.js"], "run_at": "document_start" },
-    { "matches": ["https://xtend.example.com/*", "https://twitter-crm.localhost/*"], "js": ["crm.js"], "run_at": "document_idle" }
+    { "matches": ["https://xtend.example.com/*", "https://xtend.localhost/*"], "js": ["xtend.js"], "run_at": "document_idle" }
   ],
-  "action": { "default_popup": "popup.html", "default_title": "Twitter CRM" },
+  "action": { "default_popup": "popup.html", "default_title": "Xtend" },
   "options_ui": { "page": "options.html", "open_in_tab": true }
 }

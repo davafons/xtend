@@ -3,7 +3,7 @@
 # and it never overwrites X-sourced fields or the owner's edits.
 class AI::Intake
   class Invalid < StandardError; end
-  FORMAT = "twitter-crm-grok-v1"
+  FORMAT = "xtend-grok-v1"
   MAX_ITEMS = 20
   MAX_TAG_ITEMS = 50
   MAX_TAGS_PER_PERSON = 8
@@ -91,7 +91,7 @@ class AI::Intake
   def profile(row)
     return rejected("Each profile must be an object.") unless row.is_a?(Hash)
     person = find_person(row)
-    return rejected("Unknown person. Use a person_id or handle the CRM already has.", row["handle"]) unless person
+    return rejected("Unknown person. Use a person_id or handle Xtend already has.", row["handle"]) unless person
     facts = profile_facts(row)
     return rejected("No supported profile fields were given.", person.handle) if facts.empty?
     observed_at = time(row["observed_at"]) || Time.current
@@ -106,7 +106,7 @@ class AI::Intake
   def recap(row)
     return rejected("Each recap must be an object.") unless row.is_a?(Hash)
     person = find_person(row)
-    return rejected("Unknown person. Use a person_id or handle the CRM already has.", row["handle"]) unless person
+    return rejected("Unknown person. Use a person_id or handle Xtend already has.", row["handle"]) unless person
     summary = row["summary"].to_s.strip
     return rejected("summary must be 1 to 1,500 characters.", person.handle) unless summary.length.between?(1, 1500)
     urls = Array.wrap(row["evidence_urls"]).first(10).map(&:to_s)
@@ -120,7 +120,7 @@ class AI::Intake
   def tags(row)
     return rejected("Each tag assignment must be an object.") unless row.is_a?(Hash)
     person = find_person(row)
-    return rejected("Unknown person. Use a person_id or handle the CRM already has.", row["handle"]) unless person
+    return rejected("Unknown person. Use a person_id or handle Xtend already has.", row["handle"]) unless person
     names = Tag.names_from(row["tags"]).first(MAX_TAGS_PER_PERSON) - person.tags.map(&:name)
     return result("unchanged", person.handle, "They already have these tags.") if names.empty? && Tag.names_from(row["tags"]).any?
     return rejected("tags must list 1 to #{MAX_TAGS_PER_PERSON} short labels.", person.handle) if names.empty?

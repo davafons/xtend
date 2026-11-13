@@ -1,6 +1,6 @@
 # Deploy to the server with `bin/kamal deploy`. See docs/deploy.md.
-service: twitter-crm
-image: twitter-crm
+service: xtend
+image: xtend
 
 servers:
   web:

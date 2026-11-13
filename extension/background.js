@@ -1,7 +1,7 @@
-// Queues captured responses in extension storage and sends them to the CRM in batches: a few seconds after you stop
-// scrolling, on demand, or every minute as a fallback. After each batch it tells open CRM tabs to refresh and shows
+// Queues captured responses in extension storage and sends them to Xtend in batches: a few seconds after you stop
+// scrolling, on demand, or every minute as a fallback. After each batch it tells open Xtend tabs to refresh and shows
 // follow-list progress on x.com.
-const DEFAULT_SETTINGS = { crmUrl: "https://xtend.example.com", token: "", auto: true, paused: false, rawDebug: false };
+const DEFAULT_SETTINGS = { xtendUrl: "https://xtend.example.com", token: "", auto: true, paused: false, rawDebug: false };
 // The raw debug log stays in extension storage until you download it from the popup; it is never sent anywhere.
 const RAW_PREFIX = "raw:";
 const MAX_RAW_ENTRIES = 5000;
@@ -11,7 +11,7 @@ const MAX_BATCH_RESPONSES = 50;
 const MAX_BATCH_BYTES = 6 * 1024 * 1024;
 const ITEM_PREFIX = "q:";
 const SEND_DELAY_MS = 4000;
-const CRM_TABS = ["https://xtend.example.com/*", "https://twitter-crm.localhost/*"];
+const XTEND_TABS = ["https://xtend.example.com/*", "https://xtend.localhost/*"];
 let sendTimer = null;
 
 // Storage updates run one at a time so concurrent captures can't overwrite each other's counters.
@@ -73,17 +73,17 @@ function listMessages(result) {
   return (result.lists || []).map((list) => {
     const name = list.direction === "followers" ? "Followers" : "Following";
     const of = list.expected ? ` of ${list.expected}` : "";
-    if (list.state === "completed") return `${name} list saved to the CRM: ${list.seen} accounts.`;
+    if (list.state === "completed") return `${name} list saved to Xtend: ${list.seen} accounts.`;
     if (list.state === "short") return `${name} list ended at ${list.seen}${of}. Some pages were missed; scroll it again from the top.`;
     return `${name} list: ${list.seen}${of} saved. Keep scrolling to the end.`;
   });
 }
 
 async function announce(result) {
-  const crmTabs = await chrome.tabs.query({ url: CRM_TABS }).catch(() => []);
-  for (const tab of crmTabs) chrome.tabs.sendMessage(tab.id, { type: "captured" }).catch(() => {});
+  const xtendTabs = await chrome.tabs.query({ url: XTEND_TABS }).catch(() => []);
+  for (const tab of xtendTabs) chrome.tabs.sendMessage(tab.id, { type: "captured" }).catch(() => {});
   const messages = listMessages(result);
-  if (result.unfollows) messages.push(`Unfollow recorded in the CRM.`);
+  if (result.unfollows) messages.push(`Unfollow recorded in Xtend.`);
   if (!messages.length) return;
   const xTabs = await chrome.tabs.query({ url: "https://x.com/*", active: true }).catch(() => []);
   for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "toast", text: messages.join(" ") }).catch(() => {});
@@ -91,7 +91,7 @@ async function announce(result) {
 
 async function toastError(text) {
   const xTabs = await chrome.tabs.query({ url: "https://x.com/*", active: true }).catch(() => []);
-  for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "toast", text: `CRM: ${text}`, tone: "error" }).catch(() => {});
+  for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "toast", text: `Xtend: ${text}`, tone: "error" }).catch(() => {});
 }
 
 async function viewerId() {
@@ -101,8 +101,8 @@ async function viewerId() {
 }
 
 async function post(batch) {
-  const { crmUrl, token } = await settings();
-  const response = await fetch(`${crmUrl.replace(/\/+$/, "")}/x/captures`, {
+  const { xtendUrl, token } = await settings();
+  const response = await fetch(`${xtendUrl.replace(/\/+$/, "")}/x/captures`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(batch),
@@ -142,13 +142,13 @@ function flush() {
         result = await post({ batch_key: crypto.randomUUID(), viewer_x_id: ready.viewer, responses });
       } catch {
         toastError("not reachable. Captures stay queued.");
-        return setState({ lastError: "The CRM isn't reachable. Captures stay queued." });
+        return setState({ lastError: "Xtend isn't reachable. Captures stay queued." });
       }
-      // A single response the CRM refuses as too large would otherwise block the queue forever.
+      // A single response Xtend refuses as too large would otherwise block the queue forever.
       const tooLarge = result.status === 413 && batchKeys.length === 1;
       if (!result.ok && !tooLarge) {
         toastError(result.body.error || `answered ${result.status}. Captures stay queued.`);
-        return setState({ lastError: result.body.error || `The CRM answered ${result.status}. Captures stay queued.` });
+        return setState({ lastError: result.body.error || `Xtend answered ${result.status}. Captures stay queued.` });
       }
       await chrome.storage.local.remove(batchKeys);
       const current = await state();
@@ -172,9 +172,9 @@ async function testConnection() {
   try {
     const result = await post({ batch_key: crypto.randomUUID(), viewer_x_id: ready.viewer, responses: [] });
     return result.ok ? { ok: true, message: `Connected. Captures from X account ${ready.viewer} will be accepted.` }
-      : { ok: false, message: result.body.error || `The CRM answered ${result.status}.` };
+      : { ok: false, message: result.body.error || `Xtend answered ${result.status}.` };
   } catch {
-    return { ok: false, message: "The CRM isn't reachable at that address." };
+    return { ok: false, message: "Xtend isn't reachable at that address." };
   }
 }
 
