@@ -178,6 +178,16 @@ class OauthTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
+  test "an app registered before its host left the list can no longer be approved" do
+    client_id = register.fetch("client_id")
+    hosts = Rails.configuration.x.oauth_redirect_hosts
+    Rails.configuration.x.oauth_redirect_hosts = %w[chatgpt.com]
+    get oauth_authorize_path, params: authorize_params(client_id)
+    assert_response :bad_request
+  ensure
+    Rails.configuration.x.oauth_redirect_hosts = hosts
+  end
+
   test "requests that can't be trusted stop before approval" do
     client_id = register.fetch("client_id")
     get oauth_authorize_path, params: authorize_params(client_id, redirect_uri: "https://evil.example/callback")
@@ -202,6 +212,10 @@ class OauthTest < ActionDispatch::IntegrationTest
     assert_equal "invalid_redirect_uri", register(redirect_uris: [])["error"]
     assert_equal "invalid_client_metadata", register(token_endpoint_auth_method: "client_secret_basic")["error"]
     assert register(redirect_uris: [ "http://localhost:6274/callback" ])["client_id"]
+    assert register(redirect_uris: [ "https://www.cursor.com/agents/mcp/oauth/callback", "http://localhost:8787/callback" ])["client_id"]
+    refused = register(redirect_uris: [ "https://claude.ai.evil.example/callback" ])
+    assert_equal "invalid_redirect_uri", refused["error"]
+    assert_match "claude.ai.evil.example", refused["error_description"]
 
     travel Oauth::Client::UNUSED_REGISTRATION_LIFETIME + 1.hour do
       link_claude

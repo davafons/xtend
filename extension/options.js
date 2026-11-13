@@ -42,7 +42,7 @@ async function save(changes) {
   await load();
   show("Saved. Testing…", true);
   const result = await chrome.runtime.sendMessage({ type: "test" });
-  show(result.message, result.ok);
+  show(result?.message || "The extension didn't answer the connection test. Reload it and try again.", Boolean(result?.ok));
 }
 
 $("connect").addEventListener("click", async () => {

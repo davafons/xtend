@@ -24,6 +24,11 @@ module Xtend
     config.load_defaults 8.1
     config.time_zone = "Tokyo"
     config.x.demo = ENV["XTEND_DEMO"] == "1"
+    # AI apps may register for OAuth only with callbacks on these hosts (or their subdomains), or on loopback.
+    # Anyone can register, so this keeps an app on a stranger's site from asking you to approve it.
+    # Add a host with XTEND_OAUTH_REDIRECT_HOSTS="example.com other.example".
+    config.x.oauth_redirect_hosts = %w[claude.ai claude.com chatgpt.com openai.com cursor.com x.ai grok.com] +
+      ENV.fetch("XTEND_OAUTH_REDIRECT_HOSTS", "").split
 
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.

@@ -268,7 +268,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   }
   // Everything else comes from the popup and options page. Content scripts run in x.com's renderer, so they get
   // nothing here, and the tokens never leave this worker.
-  if (sender.id !== chrome.runtime.id || sender.tab || !sender.url?.startsWith(chrome.runtime.getURL(""))) return false;
+  // The options page opens in a tab, so the check is the sender's URL: only the extension's own pages have one here.
+  if (sender.id !== chrome.runtime.id || !sender.url?.startsWith(chrome.runtime.getURL(""))) return false;
   const actions = {
     status: async () => {
       const { token, refreshToken, ...visible } = await settings();

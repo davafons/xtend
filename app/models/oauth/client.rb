@@ -15,6 +15,7 @@ class Oauth::Client < ApplicationRecord
     PASTED => { name: "Pasted token", redirect_uris: [], scopes: %w[mcp capture], redirect_uri_pattern: nil }
   }.freeze
   MAX_REDIRECT_URIS = 5
+  LOOPBACK = %w[localhost 127.0.0.1 [::1]].freeze
   UNUSED_REGISTRATION_LIFETIME = 1.day
 
   has_many :grants, class_name: "Oauth::Grant", foreign_key: :oauth_client_id, dependent: :destroy
@@ -53,9 +54,16 @@ class Oauth::Client < ApplicationRecord
 
   def dynamic? = registered_via == "dynamic"
 
+  # Loopback, or a host on the configured list of AI apps (config.x.oauth_redirect_hosts) or one of its subdomains.
+  def self.trusted_redirect_host?(host)
+    host = host.to_s.downcase
+    LOOPBACK.include?(host) || Rails.configuration.x.oauth_redirect_hosts.any? { |trusted| host == trusted || host.end_with?(".#{trusted}") }
+  end
+
   def allows_redirect?(uri)
     parsed = parse(uri)
     return false unless parsed && safe?(parsed)
+    return false if dynamic? && !self.class.trusted_redirect_host?(parsed.host)
     redirect_uris.include?(uri.to_s) || (redirect_uri_pattern.present? && parsed.host.to_s.match?(/\A(?:#{redirect_uri_pattern})\z/))
   end
 
@@ -73,7 +81,7 @@ class Oauth::Client < ApplicationRecord
   # HTTPS, or http on loopback for a client running on the owner's own machine (RFC 8252). No fragments.
   def safe?(parsed)
     return false if parsed.fragment || parsed.userinfo || parsed.host.blank?
-    parsed.is_a?(URI::HTTPS) || (parsed.is_a?(URI::HTTP) && %w[localhost 127.0.0.1 [::1]].include?(parsed.host))
+    parsed.is_a?(URI::HTTPS) || (parsed.is_a?(URI::HTTP) && LOOPBACK.include?(parsed.host))
   end
 
   def parse(uri)
@@ -85,6 +93,12 @@ class Oauth::Client < ApplicationRecord
   def redirect_uris_are_safe
     return unless dynamic?
     errors.add(:redirect_uris, "must list 1 to #{MAX_REDIRECT_URIS} URIs") unless redirect_uris.size.between?(1, MAX_REDIRECT_URIS)
-    errors.add(:redirect_uris, "must be HTTPS, or http on localhost, without a fragment") unless redirect_uris.all? { |uri| (parsed = parse(uri)) && safe?(parsed) }
+    parsed = redirect_uris.map { |uri| parse(uri) }
+    if parsed.all? { |uri| uri && safe?(uri) }
+      untrusted = parsed.map(&:host).uniq.reject { |host| self.class.trusted_redirect_host?(host) }
+      errors.add(:redirect_uris, "use hosts Xtend doesn't accept AI apps from: #{untrusted.join(", ")}. Add them to XTEND_OAUTH_REDIRECT_HOSTS to allow them") if untrusted.any?
+    else
+      errors.add(:redirect_uris, "must be HTTPS, or http on localhost, without a fragment")
+    end
   end
 end
