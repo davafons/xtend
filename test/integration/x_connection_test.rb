@@ -279,7 +279,7 @@ class XConnectionTest < ActionDispatch::IntegrationTest
 
   test "favicon resolves to the local icon" do
     get "/favicon.ico"
-    assert_redirected_to "/icon.svg"
+    assert_redirected_to "/icon.png"
   end
 
 end

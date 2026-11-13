@@ -5,7 +5,7 @@
 <% questions = @ideas.questions %>
 
 <div class="<%= lc_split_class %>">
-  <div class="flex flex-col">
+  <%= lc_card padding: :none, class: "flex min-w-0 flex-col overflow-hidden" do %>
     <%= compose_tabs counts: Draft.group(:status).count, inspiration: true %>
 
     <section aria-labelledby="replies-heading" class="border-b border-border">
@@ -63,7 +63,7 @@
         <% end %>
       </ol>
     </section>
-  </div>
+  <% end %>
 
   <%= render "drafts/sidebar", ideas: @ideas %>
 </div>

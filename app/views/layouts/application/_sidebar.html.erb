@@ -3,7 +3,10 @@
 <% handle = Current.user&.x_handle %>
 <%= lc_sidebar cookie: "sidebar", class: "xtend-sidebar" do |sidebar| %>
   <%= sidebar.header do %>
-    <%= link_to root_path, class: "xtend-signature-text text-subheading font-bold", aria: { label: "Xtend" } do %><span class="lc-rail:hidden">Xtend</span><span class="hidden lc-rail:inline" aria-hidden="true">X</span><% end %>
+    <%= link_to root_path, class: "flex items-center gap-related", aria: { label: "xtend" } do %>
+      <%= image_tag "/icon.png", alt: "", class: "size-8 shrink-0" %>
+      <span class="xtend-signature-text text-subheading font-bold lc-rail:hidden" aria-hidden="true">xtend</span>
+    <% end %>
   <% end %>
   <%= lc_search label: "Search and commands", src: search_path, trigger: "Search", placeholder: "Search people, tags, drafts, posts, or pages…", empty: "Nothing matches %{query}", class: "w-full lc-rail:hidden" do %>
     <%= render "searches/results", search: Search.new(nil) %>
@@ -19,15 +22,17 @@
       <% end %>
     <% end %>
   <% end %>
-  <%= sidebar.footer do %>
+  <%= sidebar.footer class: "border-t border-border pt-related" do %>
     <% unless demo? %>
       <% workspace = Current.workspace %>
       <div data-controller="live" data-live-url-value="<%= x_capture_status_path %>" data-live-captured-at-value="<%= workspace.captured_at&.iso8601(3) %>">
       <div class="flex items-center gap-related px-heading lc-rail:justify-center lc-rail:px-0"
         title="<%= capture_summary(workspace.last_capture) || "Nothing from the extension yet" %>" data-live-target="status">
-        <span class="relative flex size-2 shrink-0" aria-hidden="true">
-          <span class="absolute inline-flex size-full rounded-full bg-ai opacity-0" data-live-target="ping"></span>
-          <span class="relative inline-flex size-2 rounded-full <%= workspace.captured_at && workspace.captured_at > 10.minutes.ago ? "bg-ai" : "bg-muted-foreground" %>" data-live-target="dot"></span>
+        <span class="flex w-6.5 shrink-0 justify-center" aria-hidden="true">
+          <span class="relative flex size-2">
+            <span class="absolute inline-flex size-full rounded-full bg-ai opacity-0" data-live-target="ping"></span>
+            <span class="relative inline-flex size-2 rounded-full <%= workspace.captured_at && workspace.captured_at > 10.minutes.ago ? "bg-ai" : "bg-muted-foreground" %>" data-live-target="dot"></span>
+          </span>
         </span>
         <span class="min-w-0 grow lc-rail:sr-only" role="status">
           <span class="block truncate text-caption text-muted-foreground">Extension | <time data-live-target="time" datetime="<%= workspace.captured_at&.iso8601 %>"><%= workspace.captured_at ? "#{time_ago_in_words(workspace.captured_at)} ago" : "nothing yet" %></time></span>

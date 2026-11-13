@@ -1,13 +1,13 @@
 <% content_for :title, "Replies to you" %>
 <h1 class="sr-only">Replies to you</h1>
-<div class="flex w-full flex-col">
-  <div class="flex items-center justify-between gap-heading pb-content">
+<div class="flex w-full flex-col gap-content">
+  <div class="flex flex-wrap items-end gap-x-heading gap-y-related">
+    <%= lc_tab_bar label: "Replies", fill: true, class: "flex-1" do |bar| %>
+      <%= bar.link "Waiting", inbox_path(days: @days), current: !@follow_ups, count: @inbox.waiting_count, title: "Answered means you replied to it directly, or replied to them later in the same thread." %>
+      <%= bar.link "Follow-ups", inbox_path(days: @days, show: "follow_ups"), current: @follow_ups, count: @inbox.follow_up_count, title: "They replied to your answer. Fine to leave these as the end of the exchange." %>
+    <% end %>
     <%= view_tabs "Period", InboxController::PERIODS.map { |days| [ "#{days} days", inbox_path(days: days, show: (@follow_ups ? "follow_ups" : nil)), @days == days ] } %>
   </div>
-  <%= lc_tab_bar label: "Replies", fill: true do |bar| %>
-    <%= bar.link "Waiting", inbox_path(days: @days), current: !@follow_ups, count: @inbox.waiting_count, title: "Answered means you replied to it directly, or replied to them later in the same thread." %>
-    <%= bar.link "Follow-ups", inbox_path(days: @days, show: "follow_ups"), current: @follow_ups, count: @inbox.follow_up_count, title: "They replied to your answer. Fine to leave these as the end of the exchange." %>
-  <% end %>
 
   <% if @inbox.items.empty? %>
     <% if @follow_ups %>

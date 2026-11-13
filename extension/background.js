@@ -91,7 +91,7 @@ async function announce(result) {
 
 async function toastError(text) {
   const xTabs = await chrome.tabs.query({ url: "https://x.com/*", active: true }).catch(() => []);
-  for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "toast", text: `Xtend: ${text}`, tone: "error" }).catch(() => {});
+  for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "toast", text, tone: "error" }).catch(() => {});
 }
 
 async function viewerId() {

@@ -70,6 +70,6 @@ Rails.application.routes.draw do
   post "/mcp", to: "mcp/endpoints#create", as: :mcp
   match "/mcp", to: "mcp/endpoints#unsupported", via: [ :get, :delete ]
 
-  get "/favicon.ico", to: redirect("/icon.svg")
+  get "/favicon.ico", to: redirect("/icon.png")
   get "up" => "rails/health#show", as: :rails_health_check
 end

@@ -3,20 +3,37 @@ module PostsHelper
 
   # One count in a post's action row, drawn as X does: an icon, then the number when above zero. Your own like or
   # bookmark fills the icon in its color. With counted: false only your marks show; a count the capture didn't
-  # collect shows a faint icon that says so on hover.
-  def x_post_stat(icon, count, label, counted: true, mine: false, tone: nil, note: nil)
+  # collect shows a faint icon that says so on hover. With href: the action opens on X, where you take it yourself.
+  def x_post_stat(icon, count, label, counted: true, mine: false, tone: nil, note: nil, href: nil, hover: "you")
     return if !mine && !counted
     title = if mine then "You #{label.delete_suffix('s').sub(/e?\z/, 'ed')} this"
     elsif count.nil? then "#{label.capitalize} not collected"
     else [ "#{number_with_delimiter(count)} #{label}", note ].compact.join(" | ")
     end
-    tag.span(class: [ "inline-flex items-center", (tone if mine), ("opacity-40" if count.nil? && !mine) ], title: title) do
-      safe_join([
-        tag.span(lc_icon(icon, variant: (mine ? :solid : :outline), options: { class: "size-[1.15rem]", "aria-hidden": true }), class: ICON_BOX),
-        tag.span(title, class: "sr-only"),
-        (compact_count(count) if count.to_i.positive?)
-      ].compact)
+    content = safe_join([
+      tag.span(lc_icon(icon, variant: (mine ? :solid : :outline), options: { class: "size-[1.15rem]", "aria-hidden": true }),
+        class: [ ICON_BOX, (STAT_HOVER.fetch(hover)[:icon] if href) ]),
+      tag.span(title, class: "sr-only"),
+      (compact_count(count) if count.to_i.positive?)
+    ].compact)
+    classes = [ "inline-flex items-center", (tone if mine), ("opacity-40" if count.nil? && !mine) ]
+    if href
+      link_to(content, href, target: "_blank", rel: "noopener noreferrer", title: title, class: [ *classes, "group", STAT_HOVER.fetch(hover)[:text] ])
+    else
+      tag.span(content, class: classes, title: title)
     end
+  end
+
+  # Hover tints for actions that open on X, spelled out so Tailwind sees each class.
+  STAT_HOVER = {
+    "you" => { text: "hover:text-you", icon: "group-hover:bg-you/15" },
+    "like" => { text: "hover:text-like", icon: "group-hover:bg-like/15" }
+  }.freeze
+
+  # x.com's intent links for one post, so like and repost open ready to confirm there.
+  def x_intent_url(action, post_url)
+    id = post_url.to_s[%r{/status(?:es)?/(\d+)}, 1]
+    id ? "https://x.com/intent/#{action}?tweet_id=#{id}" : post_url
   end
 
   # Post text with line breaks kept and links, @mentions and #hashtags in the link color, as X shows them.

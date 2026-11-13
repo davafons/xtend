@@ -39,10 +39,11 @@
         <p class="mt-0.5 line-clamp-4 whitespace-pre-line break-words"><%= x_post_body quote[:body] %></p>
       </div>
     <% end %>
-    <% stat = ->(key, icon, label, mark: nil, tone: nil) { x_post_stat(icon, counts[key], label, counted: counted, mine: mark && marks.include?(mark), tone: tone, note: counts_note) } %>
+    <% live = url && !demo? %>
+    <% stat = ->(key, icon, label, mark: nil, tone: nil, href: nil, hover: "you") { x_post_stat(icon, counts[key], label, counted: counted, mine: mark && marks.include?(mark), tone: tone, note: counts_note, href: (href if live), hover: hover) } %>
     <div class="-ms-2 mt-1 grid grid-cols-[repeat(4,minmax(0,1fr))_auto] items-center text-[0.8125rem] tabular-nums text-muted-foreground">
       <div class="flex items-center">
-        <% if url && !demo? %>
+        <% if live %>
           <%= link_to url, target: "_blank", rel: "noopener noreferrer", aria: { label: "Reply on X" }, title: "Reply on X", class: "group inline-flex items-center hover:text-you" do %>
             <span class="<%= PostsHelper::ICON_BOX %> group-hover:bg-you/15"><%= lc_icon "chat-bubble-oval-left", options: { class: "size-[1.15rem]", "aria-hidden": true } %></span><%= compact_count(counts[:reply]) if counts[:reply].to_i.positive? %>
           <% end %>
@@ -50,13 +51,13 @@
           <%= stat.(:reply, "chat-bubble-oval-left", "replies") %>
         <% end %>
       </div>
-      <div class="flex items-center"><%= stat.(:repost, "arrow-path-rounded-square", "reposts") %></div>
-      <div class="flex items-center"><%= stat.(:like, "heart", "likes", mark: "like", tone: "text-like") %></div>
-      <div class="flex items-center"><%= stat.(:view, "chart-bar", "views") %></div>
+      <div class="flex items-center"><%= stat.(:repost, "arrow-path-rounded-square", "reposts", href: x_intent_url("retweet", url)) %></div>
+      <div class="flex items-center"><%= stat.(:like, "heart", "likes", mark: "like", tone: "text-like", href: x_intent_url("like", url), hover: "like") %></div>
+      <div class="flex items-center"><%= stat.(:view, "chart-bar", "views", href: url) %></div>
       <div class="flex items-center gap-1">
-        <%= stat.(:bookmark, "bookmark", "bookmarks", mark: "bookmark", tone: "text-you") %>
+        <%= stat.(:bookmark, "bookmark", "bookmarks", mark: "bookmark", tone: "text-you", href: url) %>
         <%= extra %>
-        <% if url && !demo? %><%= lc_icon_button_link_to "Open on X", url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open on X" %><% end %>
+        <% if live %><%= lc_icon_button_link_to "Open on X", url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open on X" %><% end %>
       </div>
     </div>
   </div>

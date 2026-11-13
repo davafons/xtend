@@ -34,13 +34,19 @@ chrome.runtime.onMessage.addListener((message) => {
     const root = host.attachShadow({ mode: "closed" });
     toast = document.createElement("div");
     toast.setAttribute("role", "status");
-    toast.style.cssText = "max-width:340px;padding:10px 14px;border-radius:14px;font:500 13px/1.4 system-ui,sans-serif;" +
+    toast.style.cssText = "display:flex;align-items:center;gap:10px;max-width:340px;padding:10px 14px;border-radius:14px;font:500 13px/1.4 system-ui,sans-serif;" +
       "color:#f2f4f8;background:rgba(18,22,29,.82);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);" +
       "box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 8px 24px rgba(0,0,0,.45);transition:opacity .2s;opacity:0";
+    const icon = document.createElement("img");
+    icon.src = chrome.runtime.getURL("icons/icon-32.png");
+    icon.alt = "";
+    icon.style.cssText = "width:20px;height:20px;flex-shrink:0";
+    toast.text = document.createElement("span");
+    toast.append(icon, toast.text);
     root.append(toast);
     document.documentElement.append(host);
   }
-  toast.textContent = message.text;
+  toast.text.textContent = message.text;
   toast.style.borderLeft = `3px solid ${message.tone === "error" ? "oklch(80% 0.11 86deg)" : "#46e3a0"}`;
   toast.style.opacity = "1";
   clearTimeout(toast.hideTimer);

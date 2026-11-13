@@ -3,7 +3,7 @@
 <% name, handle = owner_identity %>
 
 <div class="<%= lc_split_class %>">
-  <div class="flex flex-col">
+  <%= lc_card padding: :none, class: "flex min-w-0 flex-col overflow-hidden" do %>
     <%= compose_tabs counts: @counts, status: @status %>
 
     <%= form_with model: @draft, class: "border-b border-border px-content pt-content pb-heading" do %>
@@ -53,7 +53,7 @@
         <% end %>
       </ol>
     <% end %>
-  </div>
+  <% end %>
 
   <%= render "drafts/sidebar", ideas: Draft::Ideas.new %>
 </div>

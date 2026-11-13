@@ -35,24 +35,36 @@
     <% end %>
   </section>
 
-  <aside class="sticky top-6" aria-label="Filters">
-    <%= form_with url: timeline_path, method: :get, class: "flex flex-col gap-related", data: { controller: "auto-submit", turbo_action: "replace" } do %>
-      <%= lc_input name: "q", value: @timeline.query, type: :search, size: :sm, placeholder: "Search posts", aria: { label: "Search posts" } %>
-      <% if @timeline.person %>
-        <%= hidden_field_tag :person_id, @timeline.person.id %>
-      <% else %>
-        <%= hidden_field_tag :who, @timeline.who %>
-        <% if @tags.any? %>
-          <%= lc_select [ [ "Any tag", "" ], *@tags.map { |tag| [ "##{tag.name}", tag.name ] } ], name: "tag", selected: @timeline.tag, size: :sm, aria: { label: "Tag" }, data: { action: "auto-submit#submit" } %>
-        <% end %>
+  <aside class="self-start lg:sticky lg:top-6" aria-label="Filters">
+    <%= lc_card do %>
+      <%= form_with url: timeline_path, method: :get, class: "flex flex-col gap-content", data: { controller: "auto-submit", turbo_action: "replace" } do %>
+        <%= lc_input name: "q", value: @timeline.query, type: :search, placeholder: "Search posts", aria: { label: "Search posts" } %>
+        <div class="grid grid-cols-2 gap-x-related gap-y-content">
+          <% if @timeline.person %>
+            <%= hidden_field_tag :person_id, @timeline.person.id %>
+          <% else %>
+            <%= hidden_field_tag :who, @timeline.who %>
+            <% if @tags.any? %>
+              <%= lc_field label: "Tag", id: "timeline-tag", size: :sm, class: "col-span-2" do |field| %>
+                <%= lc_select [ [ "Any tag", "" ], *@tags.map { |tag| [ "##{tag.name}", tag.name ] } ], name: "tag", selected: @timeline.tag, size: :sm, data: { action: "auto-submit#submit" }, **field %>
+              <% end %>
+            <% end %>
+          <% end %>
+          <%= lc_field label: "Show", id: "timeline-kind", size: :sm do |field| %>
+            <%= lc_select Network::Timeline::KINDS.map { |key, label| [ label, key ] }, name: "kind", selected: @timeline.kind, size: :sm, data: { action: "auto-submit#submit" }, **field %>
+          <% end %>
+          <%= lc_field label: "Period", id: "timeline-period", size: :sm do |field| %>
+            <%= lc_select [ [ "7 days", "7d" ], [ "30 days", "30d" ], [ "90 days", "90d" ], [ "All time", "all" ] ], name: "period", selected: @timeline.period, size: :sm, data: { action: "auto-submit#submit" }, **field %>
+          <% end %>
+          <%= lc_field label: "Sort", id: "timeline-sort", size: :sm, class: "col-span-2" do |field| %>
+            <%= lc_select [ [ "Latest", "latest" ], [ "Most liked", "likes" ], [ "Most viewed", "views" ], [ "Most replied", "replies" ] ], name: "sort", selected: @timeline.sort, size: :sm, data: { action: "auto-submit#submit" }, **field %>
+          <% end %>
+        </div>
+        <div class="flex items-center justify-between gap-related">
+          <%= lc_switch "With media", name: "media", checked: @timeline.media, data: { action: "auto-submit#submit" } %>
+          <span class="text-small tabular-nums text-muted-foreground"><%= pluralize(number_with_delimiter(@timeline.count), "post") %></span>
+        </div>
       <% end %>
-      <%= lc_select Network::Timeline::KINDS.map { |key, label| [ label, key ] }, name: "kind", selected: @timeline.kind, size: :sm, aria: { label: "Posts or replies" }, data: { action: "auto-submit#submit" } %>
-      <%= lc_select [ [ "Last 7 days", "7d" ], [ "Last 30 days", "30d" ], [ "Last 90 days", "90d" ], [ "All time", "all" ] ], name: "period", selected: @timeline.period, size: :sm, aria: { label: "Period" }, data: { action: "auto-submit#submit" } %>
-      <%= lc_select [ [ "Latest", "latest" ], [ "Most liked", "likes" ], [ "Most viewed", "views" ], [ "Most replied", "replies" ] ], name: "sort", selected: @timeline.sort, size: :sm, aria: { label: "Sort" }, data: { action: "auto-submit#submit" } %>
-      <div class="flex items-center justify-between gap-related pt-tight">
-        <%= lc_switch "With media", name: "media", checked: @timeline.media, data: { action: "auto-submit#submit" } %>
-        <span class="text-small tabular-nums text-muted-foreground"><%= pluralize(number_with_delimiter(@timeline.count), "post") %></span>
-      </div>
     <% end %>
   </aside>
 </div>
