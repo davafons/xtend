@@ -1,8 +1,9 @@
 <%# One post in a person's timeline. Locals: author (:you or :them), person, owner_handle, body, at, url,
-    marks (["like", "bookmark"]), detail, thread (draws the line down to the next post in the thread). %>
+    marks (["like", "bookmark"]), detail, thread (draws the line down to the next post in the thread), and counts with
+    counts_note when X's counts were seen. %>
 <% you = author == :you %>
 <%= render "shared/x_post",
   avatar: you ? owner_avatar : link_to(person_avatar(person), person, tabindex: -1, aria: { hidden: true }),
   name: you ? "You" : person.name, name_url: (person unless you), handle: you ? (owner_handle || "you") : person.handle,
   body: body, at: at, detail: local_assigns[:detail], url: url, marks: local_assigns[:marks],
-  thread: local_assigns.fetch(:thread, false) %>
+  thread: local_assigns.fetch(:thread, false), counts: local_assigns[:counts], counts_note: local_assigns[:counts_note] %>

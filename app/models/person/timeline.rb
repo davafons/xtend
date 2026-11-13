@@ -37,6 +37,14 @@ class Person::Timeline
     end
   end
 
+  # The counts X last showed for a post on this page, with when they were seen; nothing for a post never counted.
+  def counts_for(x_id)
+    source = counted_sources[x_id]
+    return {} unless source&.metrics_observed_at
+    { counts: { reply: source.reply_count, repost: source.repost_count, like: source.like_count, view: source.view_count, bookmark: source.bookmark_count },
+      counts_note: "As seen on X #{source.metrics_observed_at.strftime(source.metrics_observed_at.year == Date.current.year ? '%-d %b, %H:%M' : '%-d %b %Y')}" }
+  end
+
   def filter(category)
     return entries unless category
     entries.select { |entry| entry.category == category || (category == "engagement" && marked?(entry)) }
@@ -123,6 +131,11 @@ class Person::Timeline
       Entry.new(at: last.occurred_at, category: "messages", icon: "envelope", tone: :message,
         title: "Direct messages | #{counts}", detail: "Last from #{last.direction == 'outgoing' ? 'you' : 'them'}. Message text is not stored.")
     end
+  end
+
+  def counted_sources
+    @counted_sources ||= X::SourcePost.where(x_id: entries.select(&:post?).flat_map { |entry| [ entry.x_id, entry.parent&.x_id ] }.compact)
+      .where.not(metrics_observed_at: nil).index_by(&:x_id)
   end
 
   def engagement_entries
