@@ -35,12 +35,7 @@
         </span>
       </div>
       <template data-live-target="notice">
-        <div class="fixed end-inset bottom-inset z-50 flex items-center gap-related rounded-2xl bg-popover px-content py-related text-small shadow-lg" role="status" data-live-notice>
-          <%= lc_icon "arrow-down-tray", options: { class: "size-4 text-grok", "aria-hidden": true } %>
-          <span>New data from x.com</span>
-          <%= lc_button "Refresh", size: :sm, variant: :secondary, data: { action: "live#refreshNow" } %>
-          <%= lc_icon_button "Dismiss", icon: "x-mark", size: :sm, data: { action: "live#dismiss" } %>
-        </div>
+        <%= lc_toast tone: :primary, timeout: 0, data: { live_notice: true } do %>New data from x.com <%= lc_button_link_to "Refresh", request.fullpath, size: :sm, variant: :secondary, data: { turbo_action: "replace" } %><% end %>
       </template>
       </div>
     <% end %>

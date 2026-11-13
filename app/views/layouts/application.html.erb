@@ -17,14 +17,15 @@
       <div class="min-w-0 flex-1">
         <%= lc_container class: "px-8 xl:px-12" do %>
           <main id="main" class="<%= lc_stack_class(gap: :section) %> py-10">
-            <% flash.each do |kind, message| %><%= lc_alert message, tone: (kind == "alert" ? :destructive : :success) %><% end %>
             <%= yield %>
           </main>
         <% end %>
-        <% if Current.workspace && X::SyncRun.active.exists? %>
-          <div class="fixed end-inset bottom-inset z-40 flex items-center gap-related rounded-full bg-popover px-content py-related text-small shadow-lg" data-controller="refresh" data-refresh-at-value="<%= Time.current.to_f %>" role="status">
-            <span class="size-2 animate-pulse rounded-full bg-grok" aria-hidden="true"></span>Reading from X
-          </div>
+        <%= lc_toast_region id: "toasts" do %>
+          <% flash.each do |kind, message| %><%= lc_toast message, tone: (kind == "alert" ? :destructive : :success), timeout: (kind == "alert" ? 0 : 4000) %><% end %>
+          <% if Current.workspace && X::SyncRun.active.exists? %>
+            <div hidden data-controller="refresh" data-refresh-at-value="<%= Time.current.to_f %>"></div>
+            <%= lc_toast "Reading from X", tone: :neutral, timeout: 0 %>
+          <% end %>
         <% end %>
       </div>
     </div>

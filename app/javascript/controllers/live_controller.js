@@ -79,7 +79,7 @@ export default class extends Controller {
 
   offer() {
     if (document.querySelector("[data-live-notice]")) return
-    this.element.append(this.noticeTarget.content.cloneNode(true))
+    (document.getElementById("toasts") || this.element).append(this.noticeTarget.content.cloneNode(true))
   }
 
   refreshNow() {
