@@ -140,19 +140,4 @@ class Person < ApplicationRecord
   def initials
     name.split.first(2).map { |part| part.first }.join.upcase
   end
-
-  CLEANUP_QUIET_PERIOD = 60.days
-
-  # Accounts you follow that cleanup may suggest: never someone you chose to keep, or decided on today.
-  # Mutuals are left out unless asked for, and leaving them out needs a fresh follower list, because a
-  # stale one can't show that someone stopped following you.
-  def self.cleanup_pool(mutuals: false)
-    graph = Follow::Graph.latest
-    return none unless Follow::Snapshot.latest_complete("following") && (mutuals || graph.followers&.fresh?)
-
-    pool = where(id: graph.following_ids_query)
-      .where.not(id: Follow::Protection.select(:person_id))
-      .where.not(id: Follow::Review.where(reviewed_on: Date.current).select(:person_id))
-    mutuals ? pool : pool.where.not(id: graph.follower_ids_query)
-  end
 end

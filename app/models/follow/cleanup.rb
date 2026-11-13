@@ -9,6 +9,7 @@ class Follow::Cleanup
     "quiet" => "Quiet lately"
   }.freeze
   INACTIVE_PERIODS = [ 90, 180, 365 ].freeze
+  QUIET_DAYS = 60
   QUIET_PERIODS = [ 30, 60, 90, 180 ].freeze
   SORTS = {
     "reason" => "Best match first",
@@ -23,7 +24,7 @@ class Follow::Cleanup
   def initialize(reason: nil, inactive_days: nil, quiet_days: nil, mutuals: nil, sort: nil, tag: nil)
     @reason = REASONS.key?(reason) ? reason : "inactive"
     @inactive_days = INACTIVE_PERIODS.include?(inactive_days.to_i) ? inactive_days.to_i : 180
-    @quiet_days = QUIET_PERIODS.include?(quiet_days.to_i) ? quiet_days.to_i : Person::CLEANUP_QUIET_PERIOD.in_days.to_i
+    @quiet_days = QUIET_PERIODS.include?(quiet_days.to_i) ? quiet_days.to_i : QUIET_DAYS
     @mutuals = mutuals.to_s != "0"
     @sort = SORTS.key?(sort) ? sort : "reason"
     @tag = Tag.normalize(tag).presence
@@ -42,7 +43,7 @@ class Follow::Cleanup
   # With a tag, only people carrying it; "untagged" means people with no tags at all.
   def pool
     @pool ||= begin
-      people = Person.cleanup_pool(mutuals: mutuals?)
+      people = eligible
       people = tag == "untagged" ? people.untagged : people.tagged(tag) if tag
       people.includes(:pin, :tags).to_a
     end
@@ -50,8 +51,21 @@ class Follow::Cleanup
 
   # Tags carried by anyone in the unfiltered pool, most used first, for the filter menu.
   def tag_options
-    Tag.joins(:person_tags).where(person_tags: { person_id: Person.cleanup_pool(mutuals: mutuals?).select(:id) })
+    Tag.joins(:person_tags).where(person_tags: { person_id: eligible.select(:id) })
       .group(:id).order(Arel.sql("COUNT(*) DESC"), :name).limit(40).pluck(:name)
+  end
+
+  # Accounts you follow that cleanup may suggest: never someone you chose to keep, or decided on today.
+  # Mutuals are left out unless asked for, and leaving them out needs a fresh follower list, because a
+  # stale one can't show that someone stopped following you.
+  def eligible
+    graph = Follow::Graph.latest
+    return Person.none unless following && (mutuals? || graph.followers&.fresh?)
+
+    people = Person.where(id: graph.following_ids_query)
+      .where.not(id: Follow::Protection.select(:person_id))
+      .where.not(id: Follow::Review.where(reviewed_on: Date.current).select(:person_id))
+    mutuals? ? people : people.where.not(id: graph.follower_ids_query)
   end
 
   def interactions

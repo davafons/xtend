@@ -224,7 +224,7 @@ class XCaptureTest < ActiveSupport::TestCase
     assert_equal 1, result[:unfollows]
     assert_not graph.following?(target), "the answer's stale following field doesn't count"
     assert_equal "unfollowed", Follow::Review.find_by!(person: target).decision
-    assert_not_includes Person.cleanup_pool(mutuals: true), target
+    assert_not_includes Follow::Cleanup.new.eligible, target
     newbie = Person.find_by!(x_id: "152")
     assert graph.following?(newbie)
     assert X::FollowEdge.exists?(follower_x_id: Current.workspace.owner_x_id, followed_x_id: "152")
