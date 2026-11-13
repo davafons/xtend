@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_13_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_060000) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -49,18 +49,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_140000) do
     t.index ["workspace_id", "x_id"], name: "index_direct_messages_on_workspace_id_and_x_id", unique: true
     t.index ["workspace_id"], name: "index_direct_messages_on_workspace_id"
     t.index ["x_sync_run_id"], name: "index_direct_messages_on_x_sync_run_id"
-  end
-
-  create_table "discovery_suggestions", force: :cascade do |t|
-    t.string "post_x_id", null: false
-    t.string "source_url", null: false
-    t.text "match_reason"
-    t.datetime "dismissed_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "workspace_id", null: false
-    t.index ["workspace_id", "post_x_id"], name: "index_discovery_suggestions_on_workspace_id_and_post_x_id", unique: true
-    t.index ["workspace_id"], name: "index_discovery_suggestions_on_workspace_id"
   end
 
   create_table "draft_alternatives", force: :cascade do |t|
@@ -267,17 +255,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_140000) do
     t.index ["workspace_id"], name: "index_pins_on_workspace_id"
   end
 
-  create_table "post_dispositions", force: :cascade do |t|
-    t.integer "post_id", null: false
-    t.string "kind", null: false
-    t.datetime "until_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "workspace_id", null: false
-    t.index ["post_id"], name: "index_post_dispositions_on_post_id", unique: true
-    t.index ["workspace_id"], name: "index_post_dispositions_on_workspace_id"
-  end
-
   create_table "posts", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "x_id", null: false
@@ -315,16 +292,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_140000) do
     t.index ["person_id"], name: "index_reply_events_on_person_id"
     t.index ["workspace_id", "x_id"], name: "index_reply_events_on_workspace_id_and_x_id", unique: true
     t.index ["workspace_id"], name: "index_reply_events_on_workspace_id"
-  end
-
-  create_table "reply_reports", force: :cascade do |t|
-    t.integer "post_id", null: false
-    t.string "reply_url"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "workspace_id", null: false
-    t.index ["post_id"], name: "index_reply_reports_on_post_id", unique: true
-    t.index ["workspace_id"], name: "index_reply_reports_on_workspace_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -564,7 +531,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_140000) do
   add_foreign_key "daily_sessions", "workspaces"
   add_foreign_key "direct_messages", "workspaces"
   add_foreign_key "direct_messages", "x_sync_runs"
-  add_foreign_key "discovery_suggestions", "workspaces"
   add_foreign_key "draft_alternatives", "drafts"
   add_foreign_key "draft_alternatives", "workspaces"
   add_foreign_key "draft_revisions", "drafts"
@@ -596,14 +562,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_13_140000) do
   add_foreign_key "person_tags", "workspaces"
   add_foreign_key "pins", "people"
   add_foreign_key "pins", "workspaces"
-  add_foreign_key "post_dispositions", "posts"
-  add_foreign_key "post_dispositions", "workspaces"
   add_foreign_key "posts", "people"
   add_foreign_key "posts", "workspaces"
   add_foreign_key "reply_events", "people"
   add_foreign_key "reply_events", "workspaces"
-  add_foreign_key "reply_reports", "posts"
-  add_foreign_key "reply_reports", "workspaces"
   add_foreign_key "sessions", "users"
   add_foreign_key "tags", "workspaces"
   add_foreign_key "users", "workspaces"

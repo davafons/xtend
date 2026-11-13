@@ -18,6 +18,11 @@ class ActiveSupport::TestCase
     ReplyEvent.ingest_verified!(profile: person_profile, x_id: x_id, target_x_id: target_x_id, direction: direction, classification: classification, source: "x_api", occurred_at: occurred_at, confirmed_at: Time.current)
   end
 
+  # People cleanup would suggest for a reason, non-mutuals only: the quiet ones by default.
+  def cleanup_ids(reason = "quiet", quiet_days: 60)
+    Follow::Cleanup.new(reason: reason, quiet_days: quiet_days, mutuals: "0").matches.map(&:id)
+  end
+
   def snapshot(direction, people, complete: true, observed_at: Time.current)
     record = Follow::Snapshot.create!(direction: direction, source: "x_api", observed_at: observed_at, completed_at: (observed_at if complete))
     people.each { |person| record.follow_memberships.create!(person: person) }

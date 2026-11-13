@@ -94,19 +94,19 @@ class GrokConnectorTest < ActiveSupport::TestCase
 
   test "verifying a Grok post on X replaces reported facts and keeps Grok's reason" do
     intake([candidate])
-    lookup = sync_run("posts", mode: "discovery", parameters: { "ids" => ["8101"], "purpose" => "discovery" })
+    lookup = sync_run("posts", mode: "capture", parameters: { "ids" => ["8101"], "purpose" => "discovery" })
     X::SourcePost.capture!({ "id" => "8101", "author_id" => "555", "text" => "How do you test Rails jobs on SQLite?", "created_at" => 3.hours.ago.iso8601,
       "lang" => "en", "referenced_posts" => [], "reply_count" => 5 }, run: lookup)
     X::SourcePost.reconcile_all!
     post = Post.find_by!(x_id: "8101")
-    assert_equal ["x_api", "555", "How do you test Rails jobs on SQLite?", 5], [post.source, post.person.x_id, post.body, post.reply_count]
+    assert_equal ["x_capture", "555", "How do you test Rails jobs on SQLite?", 5], [post.source, post.person.x_id, post.body, post.reply_count]
     assert_equal "AI: Asks a concrete Rails testing question", post.match_reason
   end
 
   test "verification that names a different known author moves the post" do
     real = Person.resolve_profile!(profile(x_id: "777", handle: "realauthor", name: "Real Author"))
     intake([candidate])
-    lookup = sync_run("posts", mode: "discovery", parameters: { "ids" => ["8101"], "purpose" => "discovery" })
+    lookup = sync_run("posts", mode: "capture", parameters: { "ids" => ["8101"], "purpose" => "discovery" })
     X::SourcePost.capture!({ "id" => "8101", "author_id" => "777", "text" => "Rails jobs question", "created_at" => 3.hours.ago.iso8601,
       "lang" => "en", "referenced_posts" => [] }, run: lookup)
     X::SourcePost.reconcile_all!

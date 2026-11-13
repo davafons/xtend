@@ -1,12 +1,12 @@
 class X::SyncRun < ApplicationRecord
   include WorkspaceScoped
-  DATASETS = %w[followers following own_posts mentions users posts search liked_posts bookmarks dm_events].freeze
+  DATASETS = %w[followers following own_posts mentions users posts liked_posts bookmarks dm_events].freeze
   INTERACTION_DATASETS = %w[liked_posts bookmarks dm_events].freeze
   belongs_to :follow_snapshot, class_name: "Follow::Snapshot", optional: true
   has_many :x_reads, class_name: "X::Read", foreign_key: :x_sync_run_id
   has_many :x_source_posts, class_name: "X::SourcePost", foreign_key: :x_sync_run_id
   validates :dataset, inclusion: { in: DATASETS }
-  validates :mode, inclusion: { in: %w[backfill refresh discovery capture] }
+  validates :mode, inclusion: { in: %w[backfill refresh capture] }
   validates :request_key, presence: true, uniqueness: true
   validates :page_limit, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 1000 }
 
@@ -23,7 +23,7 @@ class X::SyncRun < ApplicationRecord
     end
     existing = find_by(request_key: request_key)
     return existing if existing
-    raise ArgumentError, "Invalid collection request." unless request_key.is_a?(String) && request_key.match?(/\A[\w-]{16,100}\z/) && %w[backfill refresh discovery].include?(mode)
+    raise ArgumentError, "Invalid collection request." unless request_key.is_a?(String) && request_key.match?(/\A[\w-]{16,100}\z/) && %w[backfill refresh].include?(mode)
     limit = %w[followers following].include?(dataset) ? 100 : 10
     limit = 200 if dataset == "followers" && mode == "refresh"
     limit = following_refresh_limit if dataset == "following" && mode == "refresh"
@@ -35,13 +35,8 @@ class X::SyncRun < ApplicationRecord
     if %w[users posts].include?(dataset)
       ids = parameters.fetch("ids")
       raise ArgumentError, "Choose 1 to 20 numeric X IDs." unless ids.is_a?(Array) && ids.size.between?(1, 20) && ids.all? { |id| id.is_a?(String) && id.match?(/\A\d{1,30}\z/) }
-      parameters = { "ids" => ids.uniq, "purpose" => parameters["purpose"] == "discovery" ? "discovery" : "parents" }
+      parameters = { "ids" => ids.uniq, "purpose" => "parents" }
       limit = parameters["ids"].size
-    elsif dataset == "search"
-      query = parameters.fetch("query")
-      raise ArgumentError, "Enter a search between 3 and 256 characters." unless query.is_a?(String) && query.size.between?(3, 256)
-      parameters = { "query" => "(#{query}) lang:en -is:retweet -from:grok" }
-      mode = "discovery"
     else
       parameters = {}
     end

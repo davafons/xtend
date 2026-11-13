@@ -63,16 +63,10 @@ class X::Client
     when "posts"
       path = "/2/tweets"
       query = { ids: parameters.fetch("ids").join(","), "tweet.fields" => "author_id,created_at,lang,conversation_id,in_reply_to_user_id,referenced_tweets,public_metrics" }
-    when "search"
-      path = "/2/tweets/search/recent"
-      query = { query: parameters.fetch("query"), max_results: limit,
-        "tweet.fields" => "author_id,created_at,lang,conversation_id,in_reply_to_user_id,referenced_tweets,public_metrics" }
-      query[:end_time] = upper_bound.utc.iso8601 if upper_bound
     else
       raise ArgumentError, "Unsupported X dataset"
     end
-    query[:pagination_token] = cursor if cursor && dataset != "search"
-    query[:next_token] = cursor if cursor && dataset == "search"
+    query[:pagination_token] = cursor if cursor
     X::Payload.page(get(path, access_token, query), dataset: dataset)
   end
 

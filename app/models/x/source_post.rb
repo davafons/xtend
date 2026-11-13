@@ -45,11 +45,11 @@ class X::SourcePost < ApplicationRecord
     return if repost || published_at > Time.current
     grok = Post.exists?(x_id: x_id, source: "grok")
     person = Person.find_by(x_id: author_x_id) || (Person.bind_grok_author!(post_x_id: x_id, author_x_id: author_x_id) if grok) unless author_x_id == owner
-    discovery = grok || x_sync_run.dataset == "search" || x_sync_run.discovery_posts? || Discovery::Suggestion.exists?(post_x_id: x_id)
+    discovery = grok || x_sync_run.discovery_posts?
     if person && discovery
       post = Post.find_or_initialize_by(x_id: x_id)
       assessment = Discovery::Assessment.call(body: body, description: person.description,
-        interests: Current.workspace.interests, handle: person.handle, selected: grok || Discovery::Suggestion.exists?(post_x_id: x_id))
+        interests: Current.workspace.interests, handle: person.handle, selected: grok)
       keep_reason = grok && post.rank >= 0 && assessment[:rank] >= 0
       post.assign_attributes(person: person, body: body, language: language.presence || "und", published_at: published_at,
         topic: post.topic.presence || "Builder conversations", rank: assessment[:rank], reply_count: reply_count,

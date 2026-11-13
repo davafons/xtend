@@ -44,7 +44,7 @@ class PeopleAndReviewTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_select "li[id^=review_person]", 6
     assert_includes response.body, "Deferred"
-    assert_equal 6, Person.cleanup_candidates.count
+    assert_equal 6, cleanup_ids.size
     people.last.update!(followers_count: 50_000)
     get follow_reviews_path(reason: "quiet", sort: "largest")
     assert_select "li[id^=review_person]:first-child", text: /Candidate 6/

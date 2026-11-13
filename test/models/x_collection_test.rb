@@ -34,7 +34,7 @@ class XCollectionTest < ActiveSupport::TestCase
     connected do
       assert_equal 1000, start("following", page_size: 5000).page_limit
       assert_equal 100, start("own_posts", page_size: 500).page_limit
-      assert_raises(ArgumentError) { start("search", page_size: 100, parameters: { "query" => "rails" }) }
+      assert_raises(ArgumentError) { start("search", page_size: 100) }
     end
   end
 
@@ -87,7 +87,7 @@ class XCollectionTest < ActiveSupport::TestCase
       assert_equal "partial", run.reload.status
       assert_nil run.follow_snapshot.completed_at
       assert_equal 10_000, X::BillingCycle.current.pending_micros
-      assert_empty Person.cleanup_candidates
+      assert_empty cleanup_ids
       second = page([raw_profile("102", "other")])
       client.define_singleton_method(:page) { |*args, **kwargs| second }
       X::Client.stub(:new, client) { assert run.fetch_page!(expected_page: 1) }
@@ -210,11 +210,5 @@ class XCollectionTest < ActiveSupport::TestCase
     end
   end
 
-  test "the final twenty percent is preserved for relationship updates" do
-    cycle = X::BillingCycle.current
-    cycle.update!(provider_spend_micros: 8_000_000)
-    assert_raises(X::BillingCycle::LimitExceeded) { cycle.reserve!(dataset: "search", limit: 10) }
-    assert_equal 50_000, cycle.reserve!(dataset: "own_posts", limit: 10).reserved_micros
-  end
 
 end

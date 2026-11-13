@@ -109,7 +109,7 @@ class InteractionsTest < ActiveSupport::TestCase
       mention_run = X::SyncRun.create!(dataset: "mentions", owner_x_id: "999", request_key: SecureRandom.uuid, page_limit: 10, upper_bound: Time.current)
       X::SourcePost.create!(x_id: "70", author_x_id: "3", body: "@owner hi", published_at: 1.day.ago, x_sync_run: mention_run)
 
-      assert_equal [quiet.id], Person.cleanup_candidates.pluck(:id)
+      assert_equal [quiet.id], cleanup_ids
       assert_equal "like", Person::Interactions.for(quiet).latest.channel
       assert_equal "mention", Person::Interactions.for(mentioner).latest.channel
     end

@@ -3,18 +3,7 @@ class X::SyncRunsController < ApplicationController
     dataset = params.require(:dataset)
     parameters = case dataset
     when "users" then { "ids" => X::SyncRun.unresolved_user_ids.first(20) }
-    when "posts"
-      discovery = params[:purpose] == "discovery"
-      ids = if params[:post_x_id].present?
-        Post.where(x_id: params[:post_x_id], source: "grok").pluck(:x_id).presence || raise(ArgumentError, "Only unverified AI-suggested posts can be verified one at a time.")
-      elsif discovery
-        Discovery::Suggestion.unresolved.limit(20).pluck(:post_x_id)
-      else
-        X::SyncRun.unresolved_parent_ids.first(20)
-      end
-      discovery ||= params[:post_x_id].present?
-      { "ids" => ids, "purpose" => discovery ? "discovery" : "parents" }
-    when "search" then { "query" => params[:query] }
+    when "posts" then { "ids" => X::SyncRun.unresolved_parent_ids.first(20) }
     else {}
     end
     existing = X::SyncRun.find_by(request_key: params[:request_key])

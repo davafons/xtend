@@ -29,7 +29,7 @@ class Mcp::Tools
       description: "The owner's interests, the daily reply goal, discovery filters, and which private categories he shares.",
       inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
     { name: "get_session_state", title: "Today's session",
-      description: "Progress toward 20 distinct new reply targets, plus post IDs already replied to, set aside, or reported. Use it to avoid duplicates.",
+      description: "Progress toward 20 distinct new reply targets, plus post IDs already replied to. Use it to avoid duplicates.",
       inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
     { name: "list_people", title: "List people",
       description: "Bounded list of people in the CRM with follow state, reply state, tags, pins, keeps, and last observed interaction.",
@@ -47,7 +47,7 @@ class Mcp::Tools
       inputSchema: { type: "object", properties: PERSON_REF.merge(limit: { type: "integer", minimum: 1, maximum: 50 }) },
       annotations: { readOnlyHint: true } },
     { name: "list_pending_proposals", title: "Proposals awaiting review",
-      description: "Tags, recaps, and profile facts staged for the owner that he has not accepted or dismissed yet, plus unverified reply targets still in his Today queue. Check it before proposing so you add to the queue instead of repeating it.",
+      description: "Tags, recaps, and profile facts staged for the owner that he has not accepted or dismissed yet, plus unverified reply targets still on his Outreach page. Check it before proposing so you add to the queue instead of repeating it.",
       inputSchema: { type: "object", properties: {
         kind: { type: "string", enum: Grok::Proposal::KINDS + %w[posts], description: "Only one kind. Defaults to all." },
         limit: { type: "integer", minimum: 1, maximum: 50 } } },
@@ -57,7 +57,7 @@ class Mcp::Tools
       inputSchema: { type: "object", properties: { days: { type: "integer", minimum: 1, maximum: 30 } } },
       annotations: { readOnlyHint: true } },
     { name: "propose_candidate_posts", title: "Propose reply targets",
-      description: "Stage up to 20 public posts as unverified reply candidates in the owner's Today queue. Does not reply or mark anything sent.",
+      description: "Stage up to 20 public posts as unverified reply candidates on the owner's Outreach page. Does not reply or mark anything sent.",
       inputSchema: { type: "object", required: %w[posts], properties: {
         run_id: { type: "string" }, posts: { type: "array", maxItems: 20, items: CANDIDATE } } },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } },
@@ -142,13 +142,10 @@ class Mcp::Tools
 
   def get_session_state(_args)
     session = DailySession.current
-    hidden = PostDisposition.where(kind: "skipped").or(PostDisposition.where("until_at > ?", Time.current))
     { demo: @demo, target: DailySession::TARGET, progress: session.progress,
       remaining: [DailySession::TARGET - session.progress, 0].max,
       queue: { available: Post.opportunities.count, unverified_from_ai: Post.opportunities.where(source: "grok").count },
-      replied_post_ids: ReplyEvent.where(direction: "outgoing").order(occurred_at: :desc).limit(200).pluck(:target_x_id),
-      set_aside_post_ids: Post.where(id: hidden.select(:post_id)).order(updated_at: :desc).limit(200).pluck(:x_id),
-      reported_post_ids: Post.where(id: ReplyReport.select(:post_id)).pluck(:x_id) }
+      replied_post_ids: ReplyEvent.where(direction: "outgoing").order(occurred_at: :desc).limit(200).pluck(:target_x_id) }
   end
 
   def list_people(args)

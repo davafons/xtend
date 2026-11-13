@@ -15,7 +15,6 @@ class DraftTest < ActiveSupport::TestCase
     assert draft.thread?
     assert draft.over_limit?
     assert_equal "First post", draft.title
-    assert_includes draft.intent_url, "text=First%20post"
   end
 
   test "a draft needs some content and cannot be moved past posted" do

@@ -32,7 +32,4 @@ class Follow::Progress
       points
     end
   end
-
-  def unfollowed_total = decisions.sum { |_, unfollowed, _| unfollowed }
-  def kept_total = decisions.sum { |_, _, kept| kept }
 end

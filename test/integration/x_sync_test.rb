@@ -61,7 +61,7 @@ class XSyncTest < ActionDispatch::IntegrationTest
     post x_billing_cycles_path, params: {cycle: {starts_on: cycle.starts_on.to_s, ends_on: cycle.ends_on.to_s, spend_cents: "73.1"}}
     assert_equal 730_000, cycle.reload.provider_spend_micros
   end
-  test "a new search uses a provider-accepted time window without a failed first attempt" do
+  test "a new post read uses a provider-accepted time window without a failed first attempt" do
     Dir.mktmpdir do |directory|
       X::TokenVault.stub(:key_path, Pathname.new(directory).join("key")) do
         X::Connection.connect!({"access_token" => "test", "expires_in" => 7200}, {"id" => "999", "username" => "owner"})
@@ -79,7 +79,7 @@ class XSyncTest < ActionDispatch::IntegrationTest
         end
         Net::HTTP.stub(:start, ->(*args, **options, &block) { block.call(http) }) do
           perform_enqueued_jobs do
-            post x_sync_runs_path, params: {dataset: "search", query: "Rails debugging", request_key: SecureRandom.uuid}
+            post x_sync_runs_path, params: {dataset: "own_posts", request_key: SecureRandom.uuid}
           end
         end
         assert_equal 1, calls

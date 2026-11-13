@@ -84,8 +84,8 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     candidate = Person.resolve_profile!(profile(x_id: "3", handle: "candidate"))
     snapshot("following", [mutual, kept, old, recent, candidate])
     snapshot("followers", [mutual])
-    assert_equal [old.id, candidate.id].sort, Person.cleanup_candidates.pluck(:id).sort
-    assert_equal [candidate.id], Person.cleanup_candidates(quiet_for: 5.years).pluck(:id)
+    assert_equal [old.id, candidate.id].sort, cleanup_ids.sort
+    assert_equal [candidate.id], cleanup_ids("strangers")
     assert_equal "reply", Person::Interactions.for(old).latest.channel
     assert_nil Person::Interactions.for(candidate).latest
     assert_equal "Mutual", mutual.follow_state
@@ -95,11 +95,11 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     person = Person.resolve_profile!(profile)
     snapshot("following", [person])
     snapshot("followers", [], observed_at: 2.days.ago)
-    assert_empty Person.cleanup_candidates
+    assert_empty cleanup_ids
     snapshot("followers", [])
-    assert_equal [person.id], Person.cleanup_candidates.pluck(:id)
+    assert_equal [person.id], cleanup_ids
     snapshot("followers", [], complete: false, observed_at: 1.second.from_now)
-    assert_empty Person.cleanup_candidates
+    assert_empty cleanup_ids
   end
 
   test "manual unfollow reporting does not rewrite graph facts" do
@@ -108,43 +108,15 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     snapshot("followers", [])
     Follow::Review.record!(person, "reported_unfollow")
     assert_equal "You follow", person.follow_state
-    assert_empty Person.cleanup_candidates
+    assert_empty cleanup_ids
   end
 
-  test "candidate import is idempotent and cannot confirm activity" do
-    document = {format: "twitter-crm-discovery-v1", posts: [{x_id: "8001", body: "A real question about testing", published_at: Time.current.iso8601, person: profile, verified: true}]}.to_json
-    assert_difference "Post.count", 1 do
-      Discovery::CandidateImport.call(document)
-    end
-    person = Person.first
-    person.update!(notes: "my note")
-    person.create_pin!
-    assert_no_difference ["Post.count", "Person.count", "ReplyEvent.count", "Outreach.count"] do
-      Discovery::CandidateImport.call(document)
-    end
-    assert_equal "my note", person.reload.notes
-    assert person.pin
-  end
-
-  test "malformed import rolls back all rows" do
-    document = {format: "twitter-crm-discovery-v1", posts: [{x_id: "8001", body: "ok", published_at: Time.current.iso8601, person: profile}, {x_id: "bad"}]}.to_json
-    assert_raises Discovery::CandidateImport::Invalid do
-      Discovery::CandidateImport.call(document)
-    end
-    assert_equal 0, Post.count
-    assert_equal 0, Person.count
-  end
-
-  test "English queue honors skips reports and prior targets" do
+  test "English queue honors prior targets" do
     person = Person.resolve_profile!(profile)
     post = person.posts.create!(x_id: "8001", body: "Hello", published_at: 1.hour.ago)
-    spanish = person.posts.create!(x_id: "8002", body: "Hola", language: "es", published_at: 1.hour.ago)
+    person.posts.create!(x_id: "8002", body: "Hola", language: "es", published_at: 1.hour.ago)
     assert_equal [post.id], Post.opportunities.pluck(:id)
-    post.create_reply_report!
-    assert_empty Post.opportunities
-    assert_equal 0, DailySession.current.progress
     ingest
-    assert_equal 0, ReplyReport.count
     assert_empty Post.opportunities
   end
 
@@ -180,18 +152,10 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     assert_equal 1, DailySession.current.progress
   end
 
-  test "invalid array rows are a handled import error" do
-    assert_raises(Discovery::CandidateImport::Invalid) do
-      Discovery::CandidateImport.call({format: "twitter-crm-discovery-v1", posts: [[]]}.to_json)
-    end
-  end
-
-  test "a verified continuation clears its report without counting an outreach" do
+  test "a verified continuation doesn't count as outreach" do
     person = Person.resolve_profile!(profile)
     post = person.posts.create!(x_id: "8001", body: "An existing conversation", published_at: 1.hour.ago)
-    post.create_reply_report!
     ingest(classification: "continuation")
-    assert_equal 0, ReplyReport.count
     assert_equal 0, DailySession.current.progress
     assert_not_includes Post.opportunities, post
   end

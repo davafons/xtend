@@ -69,7 +69,7 @@ class Outreach::Prospects
       authors = exchanges.keys | watched.keys | network.keys
       posts = X::SourcePost.where(author_x_id: authors, repost: false, reply_to_x_id: nil, published_at: RECENT.ago..Time.current)
         .where("language IS NULL OR language IN (?)", ENGLISH)
-        .where.not(x_id: answered_ids).where.not(x_id: set_aside_ids).order(published_at: :desc)
+        .where.not(x_id: answered_ids).order(published_at: :desc)
       posts.group_by(&:author_x_id)
     end
   end
@@ -200,12 +200,6 @@ class Outreach::Prospects
     ReplyEvent.where(direction: "outgoing").select(:target_x_id).distinct.pluck(:target_x_id) |
       Outreach.pluck(:target_x_id) |
       X::SourcePost.where(author_x_id: @owner).where.not(parent_x_id: nil).pluck(:parent_x_id)
-  end
-
-  # Posts you skipped, snoozed, or reported replying to by hand (awaiting a capture to confirm).
-  def set_aside_ids
-    hidden = PostDisposition.where(kind: "skipped").or(PostDisposition.where("until_at > ?", Time.current))
-    Post.where(id: hidden.select(:post_id)).or(Post.where(id: ReplyReport.select(:post_id))).pluck(:x_id)
   end
 
   def parse_time(value)

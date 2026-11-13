@@ -84,10 +84,6 @@ class OutreachTest < ActiveSupport::TestCase
     assert_equal [ "3001" ], prospects.find("103").recent_posts.map(&:x_id)
     assert_equal "Pinned · 1 new post", prospects.find("103").reasons.first.detail
     assert carol.reload.pin, "ranking never touches manual preferences"
-
-    skipped = Post.create!(person: carol, x_id: "3001", body: "Post 3001", published_at: 1.hour.ago, rank: 10)
-    PostDisposition.create!(post: skipped, kind: "skipped")
-    assert_nil Outreach::Prospects.new.find("103")
   end
 
   test "openings cap posts per author, add discovery picks with their reason, and rank fresher posts first" do

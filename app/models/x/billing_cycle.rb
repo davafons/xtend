@@ -58,12 +58,8 @@ class X::BillingCycle < ApplicationRecord
     with_lock do
       raise LimitExceeded, "Review the current X billing cycle on Spending before reading X." unless starts_on <= Date.current && ends_on > Date.current
       basis = owned_pricing? && %w[followers following own_posts mentions liked_posts bookmarks].include?(dataset) ? "owned" : "standard"
-      rate = basis == "owned" ? 1000 : (%w[own_posts mentions posts search liked_posts bookmarks].include?(dataset) ? 5000 : 10_000)
+      rate = basis == "owned" ? 1000 : (%w[own_posts mentions posts liked_posts bookmarks].include?(dataset) ? 5000 : 10_000)
       reservation = limit * rate
-      discovery = dataset == "search" || (dataset == "posts" && run&.parameters&.fetch("purpose", nil) == "discovery")
-      if discovery && remaining_micros - reservation < allowance_micros / 5
-        raise LimitExceeded, "New discovery is paused to preserve the final 20% for relationship updates. Use saved candidates."
-      end
       trial = Current.workspace.collection_trial_completed_at.nil? && dataset != "identity"
       raise LimitExceeded, "This read exceeds the remaining local cycle allowance." if reservation > remaining_micros
       raise LimitExceeded, "This read exceeds the remaining $5 collection trial." if trial && reservation > self.class.trial_remaining_micros

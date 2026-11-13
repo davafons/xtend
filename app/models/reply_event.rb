@@ -37,7 +37,6 @@ class ReplyEvent < ApplicationRecord
       elsif event.classification == "continuation"
         event.outreach&.destroy!
       end
-      ReplyReport.joins(:post).where(posts: { x_id: event.target_x_id }).destroy_all if event.direction == "outgoing"
       event
     end
   end

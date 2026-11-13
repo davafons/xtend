@@ -155,13 +155,4 @@ class Person < ApplicationRecord
       .where.not(id: Follow::Review.where(reviewed_on: Date.current).select(:person_id))
     mutuals ? pool : pool.where.not(id: graph.follower_ids_query)
   end
-
-  # Non-mutual, unprotected accounts with no observed interaction of any kind within the quiet period.
-  # Someone with an older interaction is "quiet", never "no interaction".
-  def self.cleanup_candidates(quiet_for: CLEANUP_QUIET_PERIOD, mutuals: false)
-    eligible = cleanup_pool(mutuals: mutuals)
-    since = quiet_for.ago
-    active = Interactions.index(eligible).reject { |_, interactions| interactions.quiet_since?(since) }.keys
-    eligible.where.not(id: active).alphabetical
-  end
 end

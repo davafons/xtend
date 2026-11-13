@@ -115,21 +115,12 @@ class Draft < ApplicationRecord
     self.class.normalize(parts.first).first(80)
   end
 
-  def intent_url
-    "https://x.com/intent/post?text=#{ERB::Util.url_encode(parts.first.to_s)}"
-  end
-
   def posted_url
     "https://x.com/i/status/#{posted_x_id}" if posted_x_id
   end
 
   def next_status
     STATUSES.keys[STATUSES.keys.index(status) + 1]
-  end
-
-  def previous_status
-    index = STATUSES.keys.index(status)
-    STATUSES.keys[index - 1] if index.positive?
   end
 
   private

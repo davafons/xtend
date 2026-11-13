@@ -98,20 +98,10 @@ class Person::Timeline
   end
 
   def post_entries
-    person.posts.includes(:post_disposition, :reply_report).flat_map do |post|
-      entries = [Entry.new(at: post.published_at, category: "conversation", kind: :post, author: :them, icon: "sparkles",
-        tone: post.source == "grok" ? :grok : :neutral, title: "Posted · suggested in Today", body: text(post.body), x_id: post.x_id,
-        detail: post.match_reason, url: post.source_url)]
-      if (disposition = post.post_disposition)
-        entries << Entry.new(at: disposition.updated_at, category: "decisions", icon: disposition.kind == "skipped" ? "forward" : "clock",
-          title: disposition.kind == "skipped" ? "You skipped this post" : "You snoozed this post",
-          detail: disposition.until_at && "Until #{disposition.until_at.strftime('%-d %b, %H:%M')}")
-      end
-      if (report = post.reply_report)
-        entries << Entry.new(at: report.created_at, category: "decisions", icon: "flag", tone: :them,
-          title: "You reported replying · waiting for confirmation", url: report.reply_url.presence)
-      end
-      entries
+    person.posts.map do |post|
+      Entry.new(at: post.published_at, category: "conversation", kind: :post, author: :them, icon: "sparkles",
+        tone: post.source == "grok" ? :grok : :neutral, title: "Posted · suggested for outreach", body: text(post.body), x_id: post.x_id,
+        detail: post.match_reason, url: post.source_url)
     end
   end
 
