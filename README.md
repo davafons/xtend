@@ -24,6 +24,14 @@ PARCELA_DATA_DIR=~/.local/state/parcela/environments/<id>/data bin/rails users:a
 
 Parcela runs database preparation and the Tailwind build before startup. SQLite lives in `PARCELA_DATA_DIR` when provided, otherwise `storage/`. Real mode starts empty and makes no X requests.
 
+## Edit pages with Tensaku
+
+Tensaku runs only in development. Its GitHub revision is pinned in `Gemfile`; the published 0.1.0 gem uses an older agent connector.
+
+Open `https://xtend.localhost` and click the flower button or press **Alt+Shift+T** to select an element. Option-click text and press **E** to edit its source, or add a note for your coding agent.
+
+The agent setup comes from `bin/rails generate tensaku:install --agents codex`. Restart Codex after installation to load `.codex/config.toml` and its `bundle exec tensaku mcp` server. Ask it to work through your Tensaku notes. Other MCP clients can use the same command; `.mcp.json` also contains the server entry.
+
 ## What works
 
 - Today shows English candidate tweets with person context, pins, skip and one-day snooze controls.
