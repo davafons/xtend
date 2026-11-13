@@ -49,6 +49,7 @@ Rails.application.routes.draw do
     resources :billing_cycles, only: [ :index, :create, :update ]
     resources :archive_imports, only: :create
     resources :captures, only: :create
+    get "captures/context", to: "contexts#show", as: :capture_context
     resource :capture_status, only: :show
     resource :connection, only: [ :create, :update, :destroy ] do
       get :callback

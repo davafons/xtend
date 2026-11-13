@@ -1,6 +1,14 @@
 # Xtend Capture
 
-A Brave/Chrome extension that forwards what x.com already loaded while you browse to Xtend.
+A Brave/Chrome extension that forwards what x.com already loaded while you browse to Xtend, and shows what Xtend knows about the people on screen.
+
+## What Xtend knows, on x.com
+
+- **Badges by names.** After the handle on posts and in user lists: whether you're mutuals, you follow them, or they follow you; replies from you and from them; how long since the last reply; a pin; and a bell when a reminder is due. Hover the badge for the latest interaction, tags, and notes. People Xtend has nothing on get no badge.
+- **A line in X's hover card.** The same facts plus tags, a line of your notes, and an open reminder.
+- **A card on profiles.** At the top of the sidebar, under X's search: relationship, pinned and kept marks, replies both ways, last reply, latest interaction, tags, your notes, your reminder, and a link to the person in Xtend. A profile Xtend doesn't know yet says so; visiting it saves it, and the card fills in after the next send.
+
+The extension asks Xtend (`GET /x/captures/context?handles=…`, read-only, with the same link that sends captures) only for handles x.com is already showing, keeps answers for three minutes, and asks again after each batch it sends. Everything it adds sits in closed shadow roots that x.com's scripts can't read, but notes and tags are on screen, so mind screen sharing. Turn it off in the popup with **Show what Xtend knows on x.com**.
 
 - **No requests to X.** It copies responses the web app received for timelines, lists, search, profiles (every tab), threads, likes, bookmarks, notifications, follow lists ("Followers", "Following", "Followers you know", and the "Followed by" line on profile hover cards), and "Liked by" / "Reposted by" lists. It also copies the answers to your own actions: follow and unfollow clicks, likes, reposts, bookmarks, and new posts or replies. It never starts, changes, or repeats a request, and never reads DMs.
 - **What Xtend keeps.** Every account it sees goes in a directory; only people you showed interest in (visited profiles, likes, bookmarks, reply exchanges) become people. Posts you were shown and posts touching your people are saved with their counts at each sighting, and replies, quotes, reposts, mentions, likes, and follow edges feed the Network page.
@@ -26,7 +34,7 @@ Browse x.com as usual. The toolbar badge counts pages waiting to be sent. The po
 
 ## How it works
 
-`page.js` runs in x.com's page context and observes XHR and fetch responses for an allowlist of GraphQL operations. `bridge.js` relays them to `background.js`, which queues them and posts batches to `POST /x/captures` with its access token, renewing it with the refresh token first when it is a day from expiring or was refused. Xtend parses them in `X::WebPayload` and saves them through `X::Capture`.
+`overlay.js` runs in the extension's isolated world on x.com, finds handles in posts, user lists, hover cards, and the profile header, asks `background.js` for their context, and renders badges and cards. `page.js` runs in x.com's page context and observes XHR and fetch responses for an allowlist of GraphQL operations. `bridge.js` relays them to `background.js`, which queues them and posts batches to `POST /x/captures` with its access token, renewing it with the refresh token first when it is a day from expiring or was refused. Xtend parses them in `X::WebPayload` and saves them through `X::Capture`.
 
 X changes its web app's GraphQL shapes without notice. When a capture stops adding data, compare a fresh response with `X::WebPayload`.
 

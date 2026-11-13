@@ -42,6 +42,7 @@ function render({ settings, state, raw }) {
     : "";
   $("auto").checked = settings.auto;
   $("paused").checked = settings.paused;
+  $("overlay").checked = settings.overlay;
   $("send").disabled = !state.pending || !settings.connected;
 }
 
@@ -63,6 +64,7 @@ $("send").addEventListener("click", async () => {
 $("clear").addEventListener("click", async () => { await send("clear"); refresh(); });
 $("auto").addEventListener("change", (event) => saveSetting("auto", event.target.checked));
 $("paused").addEventListener("change", (event) => saveSetting("paused", event.target.checked));
+$("overlay").addEventListener("change", (event) => saveSetting("overlay", event.target.checked));
 $("rawDebug").addEventListener("change", (event) => saveSetting("rawDebug", event.target.checked));
 $("rawClear").addEventListener("click", async () => { await send("clear-raw"); refresh(); });
 // One JSON object per line: method, url, status, operation, variables, page, at, and the response body as text.

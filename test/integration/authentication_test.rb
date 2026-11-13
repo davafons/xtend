@@ -4,7 +4,7 @@ class AuthenticationTest < ActionDispatch::IntegrationTest
   PUBLIC = { "sessions#new" => :success, "sessions#create" => :not_found, "rails/health#show" => :success,
     "x/connections#create" => :redirect, "x/connections#callback" => :redirect,
     "mcp/endpoints#create" => :unauthorized, "mcp/endpoints#unsupported" => :unauthorized,
-    "x/captures#create" => :unauthorized,
+    "x/captures#create" => :unauthorized, "x/contexts#show" => :unauthorized,
     "oauth/metadata#authorization_server" => :success, "oauth/metadata#protected_resource" => :success,
     "oauth/registrations#create" => :bad_request, "oauth/tokens#create" => :unauthorized, "oauth/tokens#revoke" => :unauthorized }.freeze
 

@@ -4,7 +4,7 @@
 import { needsRenewal, refresh } from "./oauth.js";
 
 // token is an OAuth access token (renewed with refreshToken) or a pasted capture token (no refreshToken).
-const DEFAULT_SETTINGS = { xtendUrl: "https://xtend.example.com", token: "", refreshToken: "", expiresAt: null, auto: true, paused: false, rawDebug: false };
+const DEFAULT_SETTINGS = { xtendUrl: "https://xtend.example.com", token: "", refreshToken: "", expiresAt: null, auto: true, paused: false, rawDebug: false, overlay: true };
 // The raw debug log stays in extension storage until you download it from the popup; it is never sent anywhere.
 const RAW_PREFIX = "raw:";
 const MAX_RAW_ENTRIES = 5000;
@@ -15,6 +15,10 @@ const MAX_BATCH_BYTES = 6 * 1024 * 1024;
 const ITEM_PREFIX = "q:";
 const SEND_DELAY_MS = 4000;
 const XTEND_TABS = ["https://xtend.example.com/*", "https://xtend.localhost/*"];
+// What Xtend knows about the people on screen, kept briefly so scrolling a timeline doesn't ask twice.
+const CONTEXT_TTL_MS = 3 * 60 * 1000;
+const CONTEXT_MAX_HANDLES = 100;
+const contextCache = new Map();
 let sendTimer = null;
 
 // Storage updates run one at a time so concurrent captures can't overwrite each other's counters.
@@ -82,7 +86,15 @@ function listMessages(result) {
   });
 }
 
+// x.com tabs drop what they showed and ask again, since a batch can add people, replies, and follow states.
+async function staleContext() {
+  contextCache.clear();
+  const xTabs = await chrome.tabs.query({ url: "https://x.com/*" }).catch(() => []);
+  for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "context-stale" }).catch(() => {});
+}
+
 async function announce(result) {
+  staleContext();
   const xtendTabs = await chrome.tabs.query({ url: XTEND_TABS }).catch(() => []);
   for (const tab of xtendTabs) chrome.tabs.sendMessage(tab.id, { type: "captured" }).catch(() => {});
   const messages = listMessages(result);
@@ -143,6 +155,44 @@ async function post(batch, retry = true) {
   if (response.status === 401 && refreshToken && retry && (await renew())) return post(batch, false);
   const body = await response.json().catch(() => ({}));
   return { status: response.status, ok: response.ok, body };
+}
+
+// Reads Xtend's context for handles x.com is showing: cached answers first, the rest in one request.
+async function context(handles) {
+  const current = await settings();
+  if (!current.overlay) return { off: true };
+  if (!current.token) return { error: "not connected" };
+  const now = Date.now();
+  const people = {};
+  const missing = [];
+  for (const handle of new Set(handles.map((handle) => String(handle).toLowerCase()).filter((handle) => /^\w{1,15}$/.test(handle)))) {
+    const cached = contextCache.get(handle);
+    if (cached && now - cached.at < CONTEXT_TTL_MS) people[handle] = cached.person;
+    else missing.push(handle);
+  }
+  for (let i = 0; i < missing.length; i += CONTEXT_MAX_HANDLES) {
+    const chunk = missing.slice(i, i + CONTEXT_MAX_HANDLES);
+    const answer = await readContext(chunk);
+    if (!answer.ok) return { people, error: answer.error };
+    for (const [handle, person] of Object.entries(answer.body.people || {})) {
+      contextCache.set(handle, { person, at: now });
+      people[handle] = person;
+    }
+  }
+  return { people };
+}
+
+async function readContext(handles, retry = true) {
+  const { xtendUrl, refreshToken } = await settings();
+  try {
+    const response = await fetch(`${origin(xtendUrl)}/x/captures/context?handles=${encodeURIComponent(handles.join(","))}`,
+      { headers: { Accept: "application/json", Authorization: `Bearer ${await accessToken()}` } });
+    if (response.status === 401 && refreshToken && retry && (await renew())) return readContext(handles, false);
+    const body = await response.json().catch(() => ({}));
+    return response.ok ? { ok: true, body } : { ok: false, error: body.error || `Xtend answered ${response.status}.` };
+  } catch {
+    return { ok: false, error: "Xtend isn't reachable." };
+  }
 }
 
 async function preflight() {
@@ -266,8 +316,14 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id === chrome.runtime.id && sender.tab && typeof message.entry?.body === "string") recordRaw(message.entry, sender.tab);
     return false;
   }
+  // The overlay on x.com asks what Xtend knows about the handles on screen. It gets that answer and nothing else.
+  if (message.type === "context") {
+    if (sender.id !== chrome.runtime.id || !sender.tab?.url?.startsWith("https://x.com/") || !Array.isArray(message.handles)) return false;
+    context(message.handles).then(reply, () => reply({ error: "failed" }));
+    return true;
+  }
   // Everything else comes from the popup and options page. Content scripts run in x.com's renderer, so they get
-  // nothing here, and the tokens never leave this worker.
+  // nothing more here, and the tokens never leave this worker.
   // The options page opens in a tab, so the check is the sender's URL: only the extension's own pages have one here.
   if (sender.id !== chrome.runtime.id || !sender.url?.startsWith(chrome.runtime.getURL(""))) return false;
   const actions = {
@@ -283,6 +339,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (!actions[message.type]) return false;
   actions[message.type]().then(reply, (error) => reply({ ok: false, message: String(error) }));
   return true;
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local" || !changes.settings) return;
+  const before = changes.settings.oldValue || {};
+  const after = changes.settings.newValue || {};
+  if (before.overlay !== after.overlay || before.token !== after.token || before.xtendUrl !== after.xtendUrl) staleContext();
 });
 
 const schedule = () => chrome.alarms.create("flush", { periodInMinutes: 1 });
