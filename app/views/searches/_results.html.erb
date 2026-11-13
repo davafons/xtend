@@ -13,23 +13,28 @@
   <% if search.people.any? %>
     <%= lc_search_group "People" do %>
       <% search.people.each do |person| %>
-        <%= lc_search_result person.name, person_path(person), detail: [ "@#{person.handle}", person.description.presence&.truncate(70) ].compact.join(" | "), icon: "user" %>
+        <%= person_search_result person, graph: search.follow_graph %>
       <% end %>
     <% end %>
   <% end %>
   <% if search.tags.any? %>
     <%= lc_search_group "Tags" do %>
-      <% search.tags.each do |tag| %><%= lc_search_result "##{tag.name}", people_path(tag: tag.name), detail: "People with this tag", icon: "tag" %><% end %>
+      <% search.tags.each do |tag| %><%= tag_search_result tag, search.tagged_people(tag) %><% end %>
     <% end %>
   <% end %>
   <% if search.drafts.any? %>
     <%= lc_search_group "Drafts" do %>
-      <% search.drafts.each do |draft| %><%= lc_search_result (draft.title.presence || "Untitled draft"), edit_draft_path(draft), detail: Draft::STATUSES.fetch(draft.status).singularize, icon: "pencil-square" %><% end %>
+      <% search.drafts.each do |draft| %><%= draft_search_result draft %><% end %>
+    <% end %>
+  <% end %>
+  <% if search.posts.any? %>
+    <%= lc_search_group "Posts" do %>
+      <% search.posts.each do |post| %><%= post_search_result post, search.post_authors[post.author_x_id] %><% end %>
     <% end %>
   <% end %>
   <%= lc_search_group "Everywhere" do %>
     <%= lc_search_result "People matching “#{search.query}”", people_path(q: search.query), detail: "Search names, handles, bios, and notes", icon: "users" %>
-    <%= lc_search_result "Saved posts matching “#{search.query}”", timeline_path(q: search.query, who: "seen", period: "all", kind: "all"), detail: pluralize(number_with_delimiter(search.post_count), "post"), icon: "queue-list" %>
+    <%= lc_search_result "All saved posts matching “#{search.query}”", timeline_path(q: search.query, who: "seen", period: "all", kind: "all"), detail: pluralize(number_with_delimiter(search.post_count), "post"), icon: "queue-list" %>
   <% end %>
 <% end %>
 <% if (rows = matching.(actions)).any? %>
@@ -44,6 +49,6 @@
 <% end %>
 <% if search.blank? && search.recent_people.any? %>
   <%= lc_search_group "Recent conversations" do %>
-    <% search.recent_people.each do |person| %><%= lc_search_result person.name, person_path(person), detail: "@#{person.handle}", icon: "chat-bubble-left-right" %><% end %>
+    <% search.recent_people.each do |person| %><%= person_search_result person, graph: search.follow_graph, detail: "replied #{time_ago_in_words(person.last_interaction_at)} ago" %><% end %>
   <% end %>
 <% end %>

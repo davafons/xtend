@@ -2,6 +2,7 @@
 # shows its commands and the people you talked to last.
 class Search
   LIMIT = 6
+  POST_LIMIT = 3
 
   attr_reader :query
 
@@ -18,11 +19,16 @@ class Search
 
     @people ||= Person.where("name LIKE :q OR handle LIKE :q OR description LIKE :q OR notes LIKE :q", q: pattern)
       .order(Arel.sql("CASE WHEN handle LIKE #{Person.connection.quote(prefix)} OR name LIKE #{Person.connection.quote(prefix)} THEN 0 ELSE 1 END"), followers_count: :desc)
-      .limit(LIMIT).to_a
+      .includes(:pin, :follow_protection, :tags).limit(LIMIT).to_a
   end
 
   def tags
-    blank? ? [] : (@tags ||= Tag.where("name LIKE ?", pattern).order(:name).limit(LIMIT).to_a)
+    blank? ? [] : (@tags ||= Tag.by_use.where("name LIKE ?", pattern).limit(LIMIT).to_a)
+  end
+
+  # A few of the best-known people with the tag, for the tag row's avatars.
+  def tagged_people(tag)
+    tag.people.order(followers_count: :desc).limit(3)
   end
 
   def drafts
@@ -30,16 +36,38 @@ class Search
   end
 
   def post_count
-    blank? ? 0 : (@post_count ||= X::SourcePost.where(repost: false).where("body LIKE ?", pattern).count)
+    blank? ? 0 : (@post_count ||= matching_posts.count)
+  end
+
+  # The newest saved posts that match, previewed in the palette.
+  def posts
+    blank? ? [] : (@posts ||= matching_posts.order(published_at: :desc).limit(POST_LIMIT).to_a)
+  end
+
+  # Authors of the previewed posts: people first, then accounts the capture has seen.
+  def post_authors
+    @post_authors ||= begin
+      ids = posts.map(&:author_x_id).uniq
+      people = Person.where(x_id: ids).index_by(&:x_id)
+      X::Account.where(x_id: ids - people.keys).index_by(&:x_id).merge(people)
+    end
   end
 
   # Most recent conversations, for the palette before anything is typed.
   def recent_people
     @recent_people ||= Person.where(id: ReplyEvent.group(:person_id).order(Arel.sql("MAX(occurred_at) DESC")).limit(LIMIT).select(:person_id))
-      .sort_by { |person| -person.reply_events.maximum(:occurred_at).to_f }
+      .includes(:pin, :follow_protection, :reply_events).sort_by { |person| -person.last_interaction_at.to_f }
+  end
+
+  def follow_graph
+    @follow_graph ||= Follow::Graph.latest
   end
 
   private
+
+  def matching_posts
+    X::SourcePost.where(repost: false).where("body LIKE ?", pattern)
+  end
 
   def pattern
     "%#{ActiveRecord::Base.sanitize_sql_like(query)}%"
