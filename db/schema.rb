@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_070000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -23,7 +23,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
     t.index ["person_id", "kind", "status"], name: "index_ai_proposals_on_person_id_and_kind_and_status"
-    t.index ["person_id"], name: "index_ai_proposals_on_person_id"
     t.index ["workspace_id"], name: "index_ai_proposals_on_workspace_id"
   end
 
@@ -51,9 +50,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "updated_at", null: false
     t.string "source", default: "x_api", null: false
     t.integer "workspace_id", null: false
-    t.index ["partner_x_id", "occurred_at"], name: "index_direct_messages_on_partner_x_id_and_occurred_at"
+    t.index ["workspace_id", "partner_x_id", "occurred_at"], name: "idx_on_workspace_id_partner_x_id_occurred_at_d6a5065812"
     t.index ["workspace_id", "x_id"], name: "index_direct_messages_on_workspace_id_and_x_id", unique: true
-    t.index ["workspace_id"], name: "index_direct_messages_on_workspace_id"
     t.index ["x_sync_run_id"], name: "index_direct_messages_on_x_sync_run_id"
   end
 
@@ -92,9 +90,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
     t.string "source", default: "owner", null: false
-    t.index ["status"], name: "index_drafts_on_status"
     t.index ["workspace_id", "posted_x_id"], name: "index_drafts_on_workspace_id_and_posted_x_id", unique: true
-    t.index ["workspace_id"], name: "index_drafts_on_workspace_id"
+    t.index ["workspace_id", "status"], name: "index_drafts_on_workspace_id_and_status"
   end
 
   create_table "engagements", force: :cascade do |t|
@@ -109,9 +106,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
-    t.index ["author_x_id"], name: "index_engagements_on_author_x_id"
+    t.index ["workspace_id", "author_x_id"], name: "index_engagements_on_workspace_id_and_author_x_id"
     t.index ["workspace_id", "kind", "post_x_id"], name: "index_engagements_on_workspace_id_and_kind_and_post_x_id", unique: true
-    t.index ["workspace_id"], name: "index_engagements_on_workspace_id"
     t.index ["x_sync_run_id"], name: "index_engagements_on_x_sync_run_id"
   end
 
@@ -120,7 +116,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.integer "person_id", null: false
     t.integer "workspace_id", null: false
     t.index ["follow_snapshot_id", "person_id"], name: "index_follow_memberships_on_follow_snapshot_id_and_person_id", unique: true
-    t.index ["follow_snapshot_id"], name: "index_follow_memberships_on_follow_snapshot_id"
     t.index ["person_id"], name: "index_follow_memberships_on_person_id"
     t.index ["workspace_id"], name: "index_follow_memberships_on_workspace_id"
   end
@@ -142,7 +137,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
     t.index ["person_id", "reviewed_on"], name: "index_follow_reviews_on_person_id_and_reviewed_on", unique: true
-    t.index ["person_id"], name: "index_follow_reviews_on_person_id"
     t.index ["workspace_id"], name: "index_follow_reviews_on_workspace_id"
   end
 
@@ -177,7 +171,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.index ["first_snapshot_id"], name: "index_follower_periods_on_first_snapshot_id"
     t.index ["last_snapshot_id"], name: "index_follower_periods_on_last_snapshot_id"
     t.index ["person_id", "first_snapshot_id"], name: "index_follower_periods_on_person_id_and_first_snapshot_id", unique: true
-    t.index ["person_id"], name: "index_follower_periods_on_person_id"
     t.index ["person_id"], name: "one_open_follow_period_per_person", unique: true, where: "ended_by IS NULL"
     t.index ["workspace_id"], name: "index_follower_periods_on_workspace_id"
   end
@@ -199,7 +192,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.integer "workspace_id", null: false
     t.index ["person_id"], name: "index_outreach_candidates_on_person_id"
     t.index ["workspace_id", "x_id"], name: "index_outreach_candidates_on_workspace_id_and_x_id", unique: true
-    t.index ["workspace_id"], name: "index_outreach_candidates_on_workspace_id"
   end
 
   create_table "outreach_sessions", force: :cascade do |t|
@@ -208,7 +200,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
     t.index ["workspace_id", "anchor_day"], name: "index_outreach_sessions_on_workspace_id_and_anchor_day", unique: true
-    t.index ["workspace_id"], name: "index_outreach_sessions_on_workspace_id"
   end
 
   create_table "outreach_targets", force: :cascade do |t|
@@ -221,7 +212,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.index ["outreach_session_id"], name: "index_outreach_targets_on_outreach_session_id"
     t.index ["reply_event_id"], name: "index_outreach_targets_on_reply_event_id", unique: true
     t.index ["workspace_id", "target_x_id"], name: "index_outreach_targets_on_workspace_id_and_target_x_id", unique: true
-    t.index ["workspace_id"], name: "index_outreach_targets_on_workspace_id"
   end
 
   create_table "people", force: :cascade do |t|
@@ -249,7 +239,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "follows_you_seen_at"
     t.index ["workspace_id", "handle"], name: "index_people_on_workspace_id_and_handle", unique: true
     t.index ["workspace_id", "x_id"], name: "index_people_on_workspace_id_and_x_id", unique: true
-    t.index ["workspace_id"], name: "index_people_on_workspace_id"
   end
 
   create_table "person_tags", force: :cascade do |t|
@@ -260,7 +249,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["person_id", "tag_id"], name: "index_person_tags_on_person_id_and_tag_id", unique: true
-    t.index ["person_id"], name: "index_person_tags_on_person_id"
     t.index ["tag_id"], name: "index_person_tags_on_tag_id"
     t.index ["workspace_id"], name: "index_person_tags_on_workspace_id"
   end
@@ -289,8 +277,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.integer "workspace_id", null: false
     t.datetime "dismissed_at"
     t.index ["person_id"], name: "index_reply_events_on_person_id"
+    t.index ["workspace_id", "direction", "occurred_at"], name: "idx_on_workspace_id_direction_occurred_at_325a6a179f"
+    t.index ["workspace_id", "target_x_id"], name: "index_reply_events_on_workspace_id_and_target_x_id"
     t.index ["workspace_id", "x_id"], name: "index_reply_events_on_workspace_id_and_x_id", unique: true
-    t.index ["workspace_id"], name: "index_reply_events_on_workspace_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -308,7 +297,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["workspace_id", "name"], name: "index_tags_on_workspace_id_and_name", unique: true
-    t.index ["workspace_id"], name: "index_tags_on_workspace_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -365,7 +353,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "updated_at", null: false
     t.index ["workspace_id", "handle"], name: "index_x_accounts_on_workspace_id_and_handle"
     t.index ["workspace_id", "x_id"], name: "index_x_accounts_on_workspace_id_and_x_id", unique: true
-    t.index ["workspace_id"], name: "index_x_accounts_on_workspace_id"
   end
 
   create_table "x_billing_cycles", force: :cascade do |t|
@@ -380,7 +367,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
     t.index ["workspace_id", "starts_on"], name: "index_x_billing_cycles_on_workspace_id_and_starts_on", unique: true
-    t.index ["workspace_id"], name: "index_x_billing_cycles_on_workspace_id"
   end
 
   create_table "x_connections", force: :cascade do |t|
@@ -395,7 +381,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.integer "workspace_id", null: false
     t.string "avatar_url"
     t.index ["workspace_id"], name: "index_single_owner_x_connection", unique: true
-    t.index ["workspace_id"], name: "index_x_connections_on_workspace_id"
   end
 
   create_table "x_follows", force: :cascade do |t|
@@ -408,7 +393,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "followed_at"
     t.index ["workspace_id", "followed_x_id"], name: "index_x_follows_on_workspace_id_and_followed_x_id"
     t.index ["workspace_id", "follower_x_id", "followed_x_id"], name: "idx_on_workspace_id_follower_x_id_followed_x_id_dc37aec6a3", unique: true
-    t.index ["workspace_id"], name: "index_x_follows_on_workspace_id"
   end
 
   create_table "x_interactions", force: :cascade do |t|
@@ -423,7 +407,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.index ["workspace_id", "kind", "post_x_id", "source_x_id", "target_x_id"], name: "index_x_interactions_uniqueness", unique: true
     t.index ["workspace_id", "source_x_id", "target_x_id"], name: "idx_on_workspace_id_source_x_id_target_x_id_0c6ec163ad"
     t.index ["workspace_id", "target_x_id"], name: "index_x_interactions_on_workspace_id_and_target_x_id"
-    t.index ["workspace_id"], name: "index_x_interactions_on_workspace_id"
   end
 
   create_table "x_post_observations", force: :cascade do |t|
@@ -439,7 +422,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.integer "view_count"
     t.index ["workspace_id", "post_x_id", "observed_at"], name: "idx_on_workspace_id_post_x_id_observed_at_44a23d0951"
     t.index ["workspace_id", "surface", "observed_at"], name: "idx_on_workspace_id_surface_observed_at_c1edbcccd3"
-    t.index ["workspace_id"], name: "index_x_post_observations_on_workspace_id"
   end
 
   create_table "x_reads", force: :cascade do |t|
@@ -493,11 +475,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_064000) do
     t.datetime "metrics_observed_at"
     t.datetime "first_seen_at"
     t.index ["workspace_id", "author_x_id", "published_at"], name: "idx_on_workspace_id_author_x_id_published_at_8e405ab74e"
+    t.index ["workspace_id", "conversation_x_id"], name: "index_x_source_posts_on_workspace_id_and_conversation_x_id"
+    t.index ["workspace_id", "parent_x_id"], name: "index_x_source_posts_on_workspace_id_and_parent_x_id"
     t.index ["workspace_id", "published_at"], name: "index_x_source_posts_on_workspace_id_and_published_at"
     t.index ["workspace_id", "quoted_x_id"], name: "index_x_source_posts_on_workspace_id_and_quoted_x_id"
     t.index ["workspace_id", "reply_to_x_id"], name: "index_x_source_posts_on_workspace_id_and_reply_to_x_id"
     t.index ["workspace_id", "x_id"], name: "index_x_source_posts_on_workspace_id_and_x_id", unique: true
-    t.index ["workspace_id"], name: "index_x_source_posts_on_workspace_id"
     t.index ["x_sync_run_id"], name: "index_x_source_posts_on_x_sync_run_id"
   end
 
