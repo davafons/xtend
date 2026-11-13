@@ -22,5 +22,7 @@ gem "solid_queue", "~> 1.7"
 gem "kamal", "~> 2.12", group: :development, require: false
 
 group :development do
+  # An interactive diagram of the schema and models: bin/rails rails_schema:generate, then open tmp/schema.html.
+  gem "rails-schema"
   gem "tensaku", git: "https://github.com/lostcoords/tensaku.git", ref: "e3d76fbdff39100c2d82f137d65011bedc146b7f"
 end
