@@ -65,6 +65,17 @@
             <span class="text-muted-foreground">None observed</span>
           <% end %>
         </dd>
+        <% answers = Network::AnswerRate.new(@person.reply_events) %>
+        <% if answers.total.positive? %>
+          <dt class="text-muted-foreground" title="Your replies to them that got a direct reply back within 7 days. Only replies whose week the mentions checks fully cover count.">Answered</dt>
+          <dd class="text-end">
+            <% if answers.eligible.any? %>
+              <%= answers.answered %> of <%= pluralize(answers.eligible.size, "reply") %> within a week
+            <% else %>
+              <span class="text-muted-foreground">Not enough coverage</span>
+            <% end %>
+          </dd>
+        <% end %>
         <dt class="text-muted-foreground">Last seen</dt>
         <dd class="text-end"><%= interaction_label(interactions.latest) %></dd>
       </dl>

@@ -1,0 +1,44 @@
+<%# Whether replies land: answers within a week, and follows after a first reply. Each number says what it rests on. %>
+<%# locals: (answers:, outreach:, follow_backs:) %>
+<% rate = ->(result) { number_to_percentage(result.rate * 100, precision: 0) } %>
+<%= lc_card do %>
+  <div class="flex flex-col gap-content">
+    <h2 class="<%= lc_text_class(size: :label) %>">Do your replies land?</h2>
+    <% if answers.total.zero? %>
+      <%= lc_text "No replies from you saved for this period.", size: :small, tone: :muted %>
+    <% else %>
+      <%= lc_stats layout: :grid, columns: 3 do %>
+        <%= lc_stat label: "answered within a week", title: "Replies of yours that got a direct reply back from the same person within 7 days" do %>
+          <% if answers.available? %><span class="text-success"><%= rate.(answers) %></span><% else %><span class="text-muted-foreground">—</span><% end %>
+        <% end %>
+        <%= lc_stat label: "first replies answered", title: "Only your first reply to a post: the outreach that counts toward sessions" do %>
+          <% if outreach.available? %><span class="text-success"><%= rate.(outreach) %></span><% else %><span class="text-muted-foreground">—</span><% end %>
+        <% end %>
+        <%= lc_stat label: "followed you after a first reply", title: "People who weren't following at the complete follower check before your first reply, and were at a later one" do %>
+          <% if follow_backs.available? %><%= follow_backs.followed.size %> <span class="text-muted-foreground">of <%= follow_backs.judged.size %></span><% else %><span class="text-muted-foreground">—</span><% end %>
+        <% end %>
+      <% end %>
+      <ul class="flex flex-col gap-tight text-small text-muted-foreground">
+        <li>
+          <% if answers.available? %>
+            <%= answers.answered %> of <%= pluralize(answers.eligible.size, "reply") %> got an answer<% if outreach.available? %>; <%= outreach.answered %> of <%= outreach.eligible.size %> first replies<% end %>.
+          <% else %>
+            Not enough replies with a finished, fully covered week to give a rate (at least <%= Network::AnswerRate::MINIMUM %> needed).
+          <% end %>
+        </li>
+        <% uncovered = answers.uncovered.size %>
+        <% if uncovered.positive? || answers.open.positive? %>
+          <li>
+            Left out:
+            <%= [ ("#{pluralize(answers.open, 'reply')} still inside their week" if answers.open.positive?),
+                  ("#{pluralize(uncovered, 'reply')} outside mentions coverage#{" (#{answers.answered_outside_coverage} answered anyway)" if answers.answered_outside_coverage.positive?}" if uncovered.positive?) ].compact.to_sentence %>.
+            <%= answers.covered_until ? "Mentions checks cover replies to you up to #{answers.covered_until.strftime("%-d %b %Y")}; captures alone can't show a missing answer." : "No mentions check has run yet, so a missing answer can't be told apart from missing data." %>
+          </li>
+        <% end %>
+        <% unless follow_backs.available? %>
+          <li>Follow-backs need a complete follower check before a first reply and another after it.</li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+<% end %>
