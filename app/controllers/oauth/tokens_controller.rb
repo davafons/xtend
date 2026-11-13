@@ -29,7 +29,7 @@ class Oauth::TokensController < ActionController::API
   end
 
   def find_client
-    @client = Oauth::Client.find_by(client_id: params[:client_id].to_s)
+    @client = Oauth::Client.lookup(params[:client_id])
     oauth_error("invalid_client", "Unknown client_id.", status: :unauthorized) unless @client
   end
 

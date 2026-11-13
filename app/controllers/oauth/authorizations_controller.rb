@@ -25,7 +25,7 @@ class Oauth::AuthorizationsController < ApplicationController
   private
 
   def load_request
-    @client = Oauth::Client.find_by(client_id: params[:client_id].to_s)
+    @client = Oauth::Client.lookup(params[:client_id])
     @redirect_uri = params[:redirect_uri].to_s
     return render(:invalid, status: :bad_request) unless @client&.allows_redirect?(@redirect_uri)
 

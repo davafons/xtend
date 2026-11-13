@@ -31,6 +31,12 @@ class Oauth::Client < ApplicationRecord
     find_or_create_by!(client_id: client_id) { |client| client.assign_attributes(FIRST_PARTY.fetch(client_id)) }
   end
 
+  # First-party clients exist from their first use, so a fresh database needs no seeding.
+  def self.lookup(client_id)
+    client_id = client_id.to_s
+    FIRST_PARTY.key?(client_id) ? first_party(client_id) : find_by(client_id: client_id)
+  end
+
   def self.register!(name:, redirect_uris:)
     create!(client_id: "xtend_client_#{SecureRandom.hex(12)}", name: name.presence || "AI assistant",
       redirect_uris: Array(redirect_uris).map(&:to_s), scopes: %w[mcp], registered_via: "dynamic")

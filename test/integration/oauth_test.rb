@@ -138,7 +138,8 @@ class OauthTest < ActionDispatch::IntegrationTest
   end
 
   test "the extension links with its per-install redirect and can only send captures" do
-    client_id = Oauth::Client.first_party(Oauth::Client::EXTENSION).client_id
+    client_id = "xtend-capture"
+    assert_not Oauth::Client.exists?(client_id: client_id), "a fresh database has no first-party clients yet"
     params = { redirect_uri: EXTENSION_REDIRECT, scope: "capture", resource: "http://www.example.com/x/captures" }
     get oauth_authorize_path, params: authorize_params(client_id, **params)
     assert_includes response.body, "Connect Xtend Capture extension to Xtend?"
