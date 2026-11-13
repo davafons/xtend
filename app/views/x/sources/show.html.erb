@@ -22,8 +22,8 @@
   <%= render "archive" %>
   <%= render "collection" %>
 
-  <%= lc_collapsible title: "About this data", card: false, indicator: :chevron, summary_class: "px-content text-small text-muted-foreground sm:px-inset" do %>
-    <ul class="flex list-disc flex-col gap-related px-content ps-inset pt-related text-small text-muted-foreground sm:px-inset sm:ps-section">
+  <%= lc_collapsible title: "About this data", indicator: :chevron, summary_class: "text-small text-muted-foreground" do %>
+    <ul class="flex list-disc flex-col gap-related ps-inset pt-related text-small text-muted-foreground">
       <li>Follow lists refresh for free when you scroll your own Followers or Following page on x.com to the end with the extension on. Nothing else counts as a complete list.</li>
       <li>The extension forwards what x.com already loaded: timelines, lists, search, profiles, threads, likes, bookmarks, follow lists, and "Liked by" and "Reposted by" lists. It sends no requests to X and only covers what you scrolled past; it never completes a like history.</li>
       <li>Install the extension by loading this repository's extension folder unpacked from brave://extensions with Developer mode on, then enter <%= request.base_url %> and the token in its options. Batches from a different X account are refused.</li>

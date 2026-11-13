@@ -108,7 +108,7 @@
       </div>
     <% end %>
 
-    <%= lc_collapsible title: "About this data", card: false, indicator: :chevron, summary_class: "text-small font-normal text-muted-foreground" do %>
+    <%= lc_collapsible title: "About this data", indicator: :chevron, summary_class: "text-small font-normal text-muted-foreground" do %>
       <div class="flex flex-col gap-related text-caption text-muted-foreground">
         <p>Built from collected replies, posts, DM metadata, likes, bookmarks, and complete follow checks. Follow dates fall between checks.</p>
         <p>Coverage: <%= safe_join(Person::Interactions.coverage.map { |label, value| "#{label} #{value}" }, " | ") %>.</p>

@@ -1,7 +1,7 @@
 <%# What the suggestions are built from. Anything not collected is a gap, not a zero. %>
 <%# locals: (graph:) -%>
 <% day = ->(snapshot) { snapshot&.observed_at ? snapshot.observed_at.strftime("%-d %b") : "not checked" } %>
-<section class="flex flex-col gap-heading" aria-labelledby="outreach-coverage">
+<%= lc_card as: :section, class: "flex flex-col gap-heading", aria: { labelledby: "outreach-coverage" } do %>
   <h2 id="outreach-coverage" class="text-eyebrow text-muted-foreground">Based on</h2>
   <dl class="flex flex-col gap-tight text-caption">
     <% Person::Interactions.coverage.merge("Following" => day.(graph.following), "Followers" => day.(graph.followers)).each do |label, value| %>
@@ -12,4 +12,4 @@
     <% end %>
   </dl>
   <p class="text-caption text-muted-foreground">Nothing seen is not proof of nothing said.</p>
-</section>
+<% end %>

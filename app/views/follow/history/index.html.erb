@@ -84,7 +84,7 @@
   <% end %>
 <% end %>
 
-<%= lc_collapsible card: false, indicator: :chevron, summary_class: "w-fit text-small text-muted-foreground" do |collapsible| %>
+<%= lc_collapsible indicator: :chevron, summary_class: "text-small text-muted-foreground" do |collapsible| %>
   <% collapsible.summary do %>About this data<% end %>
   <div class="flex flex-col gap-tight pt-related text-small text-muted-foreground">
     <p>A follow or unfollow happened somewhere between two checks, so dates are ranges. Follows that start and end between checks stay invisible.</p>

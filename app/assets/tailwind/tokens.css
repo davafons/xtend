@@ -6,18 +6,18 @@
 :root {
   color-scheme: dark;
   --container-page: 82rem;
-  --crm-you: oklch(72% 0.14 245deg);
-  --crm-like: oklch(72% 0.17 0deg);
-  --crm-message: oklch(74% 0.13 295deg);
-  --crm-ai: oklch(78% 0.11 185deg);
-  --lc-tab-bar-indicator: var(--crm-you);
+  --xtend-you: oklch(72% 0.14 245deg);
+  --xtend-like: oklch(72% 0.17 0deg);
+  --xtend-message: oklch(74% 0.13 295deg);
+  --xtend-ai: oklch(78% 0.11 185deg);
+  --lc-tab-bar-indicator: var(--xtend-you);
 }
 
 @theme inline {
-  --color-you: var(--crm-you);
-  --color-like: var(--crm-like);
-  --color-message: var(--crm-message);
-  --color-ai: var(--crm-ai);
+  --color-you: var(--xtend-you);
+  --color-like: var(--xtend-like);
+  --color-message: var(--xtend-message);
+  --color-ai: var(--xtend-ai);
 }
 
 /* Dim: X's "Dim" surfaces. Actions take your blue. */
@@ -28,79 +28,82 @@ html[data-palette="dim"] {
   --muted: #1e2a36;
   --accent: #273340;
   --border: #38444d;
-  --primary: var(--crm-you);
+  --primary: var(--xtend-you);
   --primary-foreground: #0d1620;
-  --lc-sidebar-current: color-mix(in oklab, var(--crm-you) 16%, transparent);
+  --lc-sidebar-current: color-mix(in oklab, var(--xtend-you) 16%, transparent);
 }
 
 /* Aurora: Borealis meaning colors on near-black. Actions take the AI mint. */
 html[data-palette="aurora"] {
-  --crm-you: #7c8cff;
-  --crm-ai: #46e3a0;
-  --crm-like: #c86bff;
-  --crm-message: #5fc8ff;
+  --xtend-you: #7c8cff;
+  --xtend-ai: #46e3a0;
+  --xtend-like: #c86bff;
+  --xtend-message: #5fc8ff;
   --background: #07090d;
   --foreground: #f2f4f8;
   --muted: #12161d;
   --accent: #1b2029;
   --border: rgb(255 255 255 / 0.09);
-  --primary: var(--crm-ai);
+  --primary: var(--xtend-ai);
   --primary-foreground: #04140d;
-  --lc-tab-bar-indicator: linear-gradient(90deg, var(--crm-you), var(--crm-ai), var(--crm-like));
+  --lc-tab-bar-indicator: linear-gradient(90deg, var(--xtend-you), var(--xtend-ai), var(--xtend-like));
   --lc-sidebar-current: linear-gradient(90deg,
-    color-mix(in oklab, var(--crm-you) 22%, transparent),
-    color-mix(in oklab, var(--crm-ai) 12%, transparent) 70%, transparent);
-  --crm-frost: rgb(18 22 29 / 0.7);
+    color-mix(in oklab, var(--xtend-you) 22%, transparent),
+    color-mix(in oklab, var(--xtend-ai) 12%, transparent) 70%, transparent);
+  --xtend-frost: rgb(20 24 32 / 0.62);
 }
 
-/* The glow sits only at the top of the page, so long lists read on plain near-black. */
+/* The glow: the three meaning colors near the top, and a faint you-and-ai wash low on the left, so frosted
+   cards further down still have color to blur. It's fixed to the window, and the sidebar has no fill, so the
+   glow runs under it without an edge. */
 html[data-palette="aurora"] body {
   background:
-    radial-gradient(52rem 30rem at 22% -10%, color-mix(in oklab, var(--crm-you) 24%, transparent), transparent 70%),
-    radial-gradient(46rem 28rem at 62% -14%, color-mix(in oklab, var(--crm-ai) 15%, transparent), transparent 70%),
-    radial-gradient(44rem 30rem at 100% 0%, color-mix(in oklab, var(--crm-like) 17%, transparent), transparent 70%),
+    radial-gradient(52rem 30rem at 22% -10%, color-mix(in oklab, var(--xtend-you) 24%, transparent), transparent 70%),
+    radial-gradient(46rem 28rem at 62% -14%, color-mix(in oklab, var(--xtend-ai) 15%, transparent), transparent 70%),
+    radial-gradient(44rem 30rem at 100% 0%, color-mix(in oklab, var(--xtend-like) 17%, transparent), transparent 70%),
+    radial-gradient(48rem 26rem at 8% 112%, color-mix(in oklab, var(--xtend-ai) 9%, transparent), transparent 70%),
+    radial-gradient(40rem 24rem at 70% 118%, color-mix(in oklab, var(--xtend-you) 9%, transparent), transparent 70%),
     var(--background);
   background-attachment: fixed;
 }
 
-/* Frosted surfaces: cards and the sidebar let the glow through, blurred, with the library's glass rim.
-   Fills stay about 70% opaque, so text contrast doesn't depend on what's behind. */
-html[data-palette="aurora"] :is(.lc-card, .crm-sidebar) {
-  --lc-card-bg: var(--crm-frost);
+/* Frosted cards: the library's dark HUD glass (a faint top sheen over a translucent fill, a 1px inner rim,
+   blur and saturation), as on lostcoords-ui menus. The fill stays about 70% opaque, so text contrast never
+   depends on the glow. Reduced transparency falls back to solid. */
+html[data-palette="aurora"] .lc-card {
+  --lc-card-bg: linear-gradient(rgb(255 255 255 / 0.045), rgb(255 255 255 / 0) 40%) var(--xtend-frost);
+  --lc-card-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    inset 0 0 0 1px rgb(255 255 255 / 0.06),
+    0 12px 32px -16px rgb(0 0 0 / 0.6);
+  --lc-avatar-cutout: rgb(20 24 32);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   backdrop-filter: blur(24px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
-}
-html[data-palette="aurora"] .crm-sidebar {
-  background: color-mix(in oklab, var(--background) 55%, transparent);
 }
 @media (prefers-reduced-transparency: reduce) {
   html[data-palette="aurora"] {
-    --crm-frost: var(--muted);
+    --xtend-frost: var(--muted);
   }
-  html[data-palette="aurora"] :is(.lc-card, .crm-sidebar) {
+  html[data-palette="aurora"] .lc-card {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-  }
-  html[data-palette="aurora"] .crm-sidebar {
-    background: var(--background);
   }
 }
 
 /* The signature: the three meaning colors you, ai, and like in one gradient. It marks the app itself:
    the wordmark and the sidebar's current link. */
-.crm-sidebar {
-  --lc-sidebar-indicator: linear-gradient(180deg, var(--crm-you), var(--crm-ai), var(--crm-like));
+.xtend-sidebar {
+  --lc-sidebar-indicator: linear-gradient(180deg, var(--xtend-you), var(--xtend-ai), var(--xtend-like));
 }
-.crm-sidebar a[aria-current="page"] {
+.xtend-sidebar a[aria-current="page"] {
   background: var(--lc-sidebar-current, var(--accent));
 }
-.crm-sidebar a[aria-current="page"] svg {
+.xtend-sidebar a[aria-current="page"] svg {
   color: var(--primary);
 }
 
-.crm-signature-text {
-  background: linear-gradient(90deg, var(--crm-you), var(--crm-ai) 55%, var(--crm-like));
+.xtend-signature-text {
+  background: linear-gradient(90deg, var(--xtend-you), var(--xtend-ai) 55%, var(--xtend-like));
   background-clip: text;
   color: transparent;
 }

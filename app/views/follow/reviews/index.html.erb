@@ -139,7 +139,7 @@
 <% end %>
 
 <% if cleanup.ready? %>
-  <%= lc_collapsible card: false, indicator: :chevron, summary_class: "w-fit text-small text-muted-foreground" do |collapsible| %>
+  <%= lc_collapsible indicator: :chevron, summary_class: "text-small text-muted-foreground" do |collapsible| %>
     <% collapsible.summary do %>About this data<% end %>
     <div class="flex flex-col gap-tight pt-related text-small text-muted-foreground">
       <p>Kept accounts<%= " and mutuals" unless cleanup.mutuals? %> are left out<%= "; mutuals are marked, from the follower list of #{cleanup.followers.observed_at.strftime("%-d %b")}" if cleanup.mutuals? && cleanup.followers %>. Nobody needs unfollowing just to reach a number.</p>
