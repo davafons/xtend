@@ -1,34 +1,8 @@
-<%# One post, laid out like a tweet. Locals: author (:you or :them), person, owner_handle, body, at, url,
+<%# One post in a person's timeline. Locals: author (:you or :them), person, owner_handle, body, at, url,
     marks (["like", "bookmark"]), detail, thread (draws the line down to the next post in the thread). %>
-<% thread = local_assigns.fetch(:thread, false) %>
-<% marks = local_assigns.fetch(:marks, nil) || [] %>
-<div class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-heading">
-  <div class="flex flex-col items-center">
-    <% if author == :you %>
-      <%= owner_avatar %>
-    <% else %>
-      <%= link_to person_avatar(person, size: :md), person, tabindex: -1, aria: { hidden: true } %>
-    <% end %>
-    <% if thread %><span class="mt-tight w-0.5 grow rounded-full bg-border" aria-hidden="true"></span><% end %>
-  </div>
-  <div class="min-w-0 <%= 'pb-content' if thread %>">
-    <p class="flex min-w-0 items-baseline gap-tight text-small">
-      <span class="truncate font-semibold text-foreground"><%= author == :you ? "You" : person.name %></span>
-      <span class="truncate text-muted-foreground">@<%= author == :you ? (owner_handle || "you") : person.handle %></span>
-      <% if at %><span class="shrink-0 text-muted-foreground">· <time datetime="<%= at.iso8601 %>" title="<%= at.strftime('%-d %B %Y, %H:%M') %>"><%= at.year == Date.current.year ? at.strftime("%-d %b, %H:%M") : at.strftime("%-d %b %Y") %></time></span><% end %>
-    </p>
-    <% if body %>
-      <p class="mt-0.5 whitespace-pre-line break-words"><%= body %></p>
-    <% else %>
-      <p class="mt-0.5 text-small italic text-muted-foreground">Post text not collected.</p>
-    <% end %>
-    <% if marks.any? || local_assigns[:detail] || url %>
-      <div class="mt-related flex flex-wrap items-center gap-x-content gap-y-tight text-caption text-muted-foreground">
-        <% if marks.include?("like") %><span class="inline-flex items-center gap-tight text-like"><%= lc_icon "heart", variant: :solid, options: { class: "size-4", "aria-hidden": true } %>You liked</span><% end %>
-        <% if marks.include?("bookmark") %><span class="inline-flex items-center gap-tight text-you"><%= lc_icon "bookmark", variant: :solid, options: { class: "size-4", "aria-hidden": true } %>Bookmarked</span><% end %>
-        <% if local_assigns[:detail] %><span><%= detail %></span><% end %>
-        <% if url && !demo? %><%= link_to url, target: "_blank", rel: "noopener noreferrer", class: "ms-auto inline-flex items-center gap-0.5 font-medium text-muted-foreground hover:text-you" do %>Open on X<%= lc_icon "arrow-up-right", options: { class: "size-3", "aria-hidden": true } %><% end %><% end %>
-      </div>
-    <% end %>
-  </div>
-</div>
+<% you = author == :you %>
+<%= render "shared/x_post",
+  avatar: you ? owner_avatar : link_to(person_avatar(person), person, tabindex: -1, aria: { hidden: true }),
+  name: you ? "You" : person.name, name_url: (person unless you), handle: you ? (owner_handle || "you") : person.handle,
+  body: body, at: at, detail: local_assigns[:detail], url: url, marks: local_assigns[:marks],
+  thread: local_assigns.fetch(:thread, false) %>

@@ -1,14 +1,13 @@
 <%# An X-style composer. Each post in a thread is its own field; the form stores them as one body. %>
-<%# locals: (parts:, placeholder: "What's happening?", submit: "Save", form: nil, intent: false) %>
-<div class="flex flex-col" data-controller="composer">
+<%# locals: (parts:, placeholder: "What's happening?", submit: "Save", form: nil, intent: false, required: false) %>
+<div class="flex flex-col" data-controller="composer" data-composer-required-value="<%= required %>">
   <ol class="flex flex-col" data-composer-target="list">
     <% (parts.presence || [ "" ]).each do |text| %>
       <%= render "drafts/composer_part", text: text, placeholder: placeholder, form: form %>
     <% end %>
   </ol>
   <template data-composer-target="template"><%= render "drafts/composer_part", text: "", placeholder: "Add another post", form: form %></template>
-  <div class="ms-13 flex items-center gap-heading border-t border-border pt-heading">
-    <%= lc_button "Add post", type: :button, variant: :ghost, size: :sm, icon: "plus", class: "text-you", data: { action: "composer#add" } %>
+  <div class="ms-14 flex items-center gap-heading border-t border-border pt-heading">
     <span class="text-small text-muted-foreground" data-composer-target="summary"></span>
     <div class="ms-auto flex items-center gap-heading">
       <span class="flex items-center gap-related text-small tabular-nums text-you data-[state=near]:text-warning data-[state=over]:text-destructive" data-composer-target="ring" role="img" hidden>
@@ -18,10 +17,13 @@
           <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" data-composer-target="ringValue" />
         </svg>
       </span>
+      <span class="h-6 w-px bg-border" data-composer-target="divider" aria-hidden="true" hidden></span>
+      <%= lc_icon_button "Add post", icon: "plus", size: :sm, variant: :outline, class: "text-you", title: "Add post", data: { action: "composer#add" } %>
       <% if intent %>
-        <%= lc_button_link_to "Open in X", "https://x.com/intent/post", target: "_blank", rel: "noopener noreferrer", variant: :secondary, size: :sm, icon: "arrow-up-right", data: { composer_target: "intent" } %>
+        <%= lc_icon_button_link_to "Open in X", "https://x.com/intent/post", icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer",
+          title: "Open in X with the first post filled in. Once posted, set the stage to Posted; the next refresh of your posts links the tweet.", data: { composer_target: "intent" } %>
       <% end %>
-      <%= lc_button submit, type: :submit, size: :sm, form: form %>
+      <%= lc_button submit, type: :submit, form: form, data: { composer_target: "submit" } %>
     </div>
   </div>
 </div>

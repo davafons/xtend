@@ -36,7 +36,8 @@ class FollowListsAndInboxTest < ActionDispatch::IntegrationTest
     event = ingest(direction: "incoming", x_id: "6001", target_x_id: "6000")
     get inbox_path
     assert_response :success
-    assert_includes response.body, "Reply on X"
+    assert_select "a[aria-label='Reply on X'][href$='/status/6001']"
+    assert_select "button[aria-label^='Set aside the reply']"
 
     post reply_event_dismissal_path(event)
     assert_redirected_to inbox_path

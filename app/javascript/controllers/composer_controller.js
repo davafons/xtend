@@ -18,7 +18,8 @@ export function weightedLength(text) {
 }
 
 export default class extends Controller {
-  static targets = ["list", "part", "input", "template", "ring", "ringValue", "remaining", "summary", "intent"]
+  static targets = ["list", "part", "input", "template", "ring", "ringValue", "remaining", "divider", "summary", "intent", "submit"]
+  static values = { required: Boolean }
 
   connect() {
     this.active = this.inputTargets[0]
@@ -72,6 +73,7 @@ export default class extends Controller {
       const over = filled.filter((text) => weightedLength(text) > LIMIT).length
       this.summaryTarget.textContent = filled.length > 1 ? `Thread of ${filled.length}${over ? `, ${over} too long` : ""}` : ""
     }
+    if (this.requiredValue && this.hasSubmitTarget) this.submitTarget.disabled = !texts.some(Boolean)
     if (this.hasIntentTarget) {
       this.intentTarget.href = `https://x.com/intent/post?text=${encodeURIComponent(texts.find(Boolean) || "")}`
     }
@@ -86,6 +88,7 @@ export default class extends Controller {
     this.ringValueTarget.style.strokeDasharray = `${Math.min(length / LIMIT, 1) * circumference} ${circumference}`
     this.ringTarget.dataset.state = left < 0 ? "over" : left <= WARN_AT ? "near" : "ok"
     this.ringTarget.toggleAttribute("hidden", length === 0)
+    if (this.hasDividerTarget) this.dividerTarget.toggleAttribute("hidden", length === 0)
     this.remainingTarget.textContent = left <= WARN_AT ? left : ""
     this.ringTarget.setAttribute("aria-label", `${length} of ${LIMIT} characters`)
   }

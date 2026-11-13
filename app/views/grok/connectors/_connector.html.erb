@@ -1,36 +1,26 @@
 <% workspace = Current.workspace %>
-<section id="connector" class="flex flex-col gap-content scroll-mt-section">
-  <%= lc_heading "Grok Bot connector (MCP)", level: 2, size: :heading %>
-  <%= lc_card do %>
-    <div class="flex flex-col gap-inset">
-      <%= lc_text "An MCP endpoint that lets an AI client read your CRM context and stage reply candidates, profile facts, and recaps for your review. It cannot post, follow, message, or start paid X reads.", size: :small, tone: :muted %>
-      <div class="flex items-start justify-between gap-content">
-        <div>
-          <p class="font-semibold">Endpoint</p>
-          <p class="mt-related break-all font-mono text-small"><%= mcp_url %></p>
-        </div>
-        <%= lc_badge workspace.mcp_token_digest ? "Token active" : "No token", tone: workspace.mcp_token_digest ? :success : :neutral %>
-      </div>
+<% value = ->(text) { tag.span(text, class: "text-small text-muted-foreground") } %>
+<%= lc_list_section "Grok Bot connector (MCP)", id: "connector", class: "scroll-mt-section", footnote: "Lets an AI client read your CRM and stage replies, profile facts, and recaps for your review. It can't post, follow, message, or start paid X reads. Grok Bot runs in xAI's cloud and can't reach this local app yet; until then paste results above or test with a local MCP client." do %>
+  <%= lc_list_group do %>
+    <%= lc_list_row "Endpoint", icon: "link", subtitle: tag.span(mcp_url, class: "font-mono") do %>
+      <%= lc_copy_button value: mcp_url, icon_only: true, variant: :ghost, size: :sm, aria: { label: "Copy endpoint" } %>
+    <% end %>
+    <%= lc_list_row "Token", icon: "key", subtitle: (workspace.mcp_token_digest ? "Created #{time_ago_in_words(workspace.mcp_token_created_at)} ago · #{workspace.mcp_token_used_at ? "last used #{time_ago_in_words(workspace.mcp_token_used_at)} ago" : "not used yet"}" : "None yet") do %>
       <% if workspace.mcp_token_digest %>
-        <p class="text-small text-muted-foreground">Created <%= relative_day workspace.mcp_token_created_at %> · <%= workspace.mcp_token_used_at ? "last used #{time_ago_in_words(workspace.mcp_token_used_at)} ago" : "not used yet" %></p>
-        <div class="flex flex-wrap gap-related">
-          <%= lc_button_to "Replace token", mcp_token_path, variant: :secondary, size: :sm, icon: "arrow-path", data: { turbo: false } %>
-          <%= lc_button_to "Revoke token", mcp_token_path, method: :delete, variant: :ghost, size: :sm, icon: "no-symbol" %>
-        </div>
+        <%= lc_badge "Token active", tone: :success %>
+        <%= lc_icon_button_to "Replace token", mcp_token_path, icon: "arrow-path", size: :sm, title: "Replace token", data: { turbo: false } %>
+        <%= lc_icon_button_to "Revoke token", mcp_token_path, method: :delete, icon: "no-symbol", size: :sm, tone: :destructive, title: "Revoke token" %>
       <% else %>
-        <div><%= lc_button_to "Create connector token", mcp_token_path, variant: :secondary, size: :sm, icon: "key", data: { turbo: false } %></div>
+        <%= lc_button_to "Create token", mcp_token_path, variant: :secondary, size: :sm, data: { turbo: false }, aria: { label: "Create connector token" } %>
       <% end %>
-      <div class="flex flex-col gap-heading pt-related">
-        <p class="text-small font-semibold">Shared with the connector</p>
-        <p class="text-small text-muted-foreground">Always: interests, people, public profiles, follow and reply states, pins, keeps, collected public posts, likes, and bookmarks.</p>
-        <% [[:mcp_share_notes, "Your private notes"], [:mcp_share_dms, "DM metadata (who and when, never text)"]].each do |field, label| %>
-          <div class="flex items-center justify-between gap-content">
-            <span class="text-small"><%= label %> · <strong><%= workspace.public_send(field) ? "shared" : "not shared" %></strong></span>
-            <%= lc_button_to workspace.public_send(field) ? "Stop sharing" : "Share", settings_path, method: :patch, params: { "workspace[#{field}]" => !workspace.public_send(field) }, variant: :ghost, size: :sm %>
-          </div>
-        <% end %>
-      </div>
-      <%= lc_alert "Grok Bot runs in xAI's cloud and can't reach this local app yet. Connecting it needs a separately approved network bridge. Until then, use the paste option under Find conversations with Grok, or test the endpoint with a local MCP client.", tone: :neutral %>
-    </div>
+    <% end %>
+    <%= lc_list_row "Always shared", icon: "globe-alt", subtitle: "Interests, people, public profiles, follow and reply states, pins, keeps, collected public posts, likes, and bookmarks" %>
+    <% [[:mcp_share_notes, "Private notes", "pencil-square", nil], [:mcp_share_dms, "DM metadata", "envelope", "Who and when, never text"]].each do |field, label, icon, subtitle| %>
+      <% shared = workspace.public_send(field) %>
+      <%= lc_list_row label, icon: icon, subtitle: subtitle do %>
+        <%= value.(shared ? "Shared" : "Not shared") %>
+        <%= lc_button_to shared ? "Stop sharing" : "Share", settings_path, method: :patch, params: { "workspace[#{field}]" => !shared }, variant: :secondary, size: :sm, aria: { label: "#{shared ? "Stop sharing" : "Share"} #{label.downcase}" } %>
+      <% end %>
+    <% end %>
   <% end %>
-</section>
+<% end %>

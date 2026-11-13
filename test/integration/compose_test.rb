@@ -8,6 +8,8 @@ class ComposeTest < ActionDispatch::IntegrationTest
     get drafts_path
     assert_response :success
     assert_includes response.body, "Why SQLite is enough"
+    assert_select "nav[aria-label=Compose] a[aria-current=page]", text: /Open/
+    assert_select "nav[aria-label=Compose] a[href='#{ideas_drafts_path}']", text: "Inspiration"
     patch draft_path(draft), params: { draft: { status: "drafting" }, return_to: "board" }
     assert_redirected_to drafts_path
     get edit_draft_path(draft)
@@ -46,6 +48,8 @@ class ComposeTest < ActionDispatch::IntegrationTest
     alternative = draft.alternatives.last
     get edit_draft_path(draft)
     assert_select "#alternatives", text: /A punchier hook/
+    assert_select "#alternatives button[aria-label='Use this version']"
+    assert_select "#alternatives button[aria-label='Delete this version']"
     post draft_alternative_promotion_path(draft, alternative)
     assert_equal "A punchier hook", draft.reload.body
     assert_equal [ "Hook\n\n---\n\nPayoff" ], draft.alternatives.map(&:body)

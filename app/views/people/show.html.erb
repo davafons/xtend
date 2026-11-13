@@ -1,82 +1,103 @@
 <% content_for :title, @person.name %>
-<div>
-  <%= lc_button_link_to "All people", people_path, variant: :ghost, size: :sm, icon: "arrow-left" %>
-</div>
-<div class="grid grid-cols-[minmax(0,1fr)_22rem] items-start gap-section">
-  <section class="flex flex-col gap-inset">
+<div class="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-section">
+  <%= lc_card padding: :none, class: "overflow-hidden" do %>
+    <div class="flex items-center gap-content px-related py-tight">
+      <%= lc_icon_button_link_to "All people", people_path, icon: "arrow-left", title: "All people" %>
+      <div class="min-w-0">
+        <p class="truncate text-label"><%= @person.name %></p>
+        <p class="text-caption tabular-nums text-muted-foreground"><%= pluralize(@timeline.entries.size, "event") %></p>
+      </div>
+    </div>
     <%= render "people/profile", person: @person, graph: @graph %>
 
-    <div class="flex flex-col gap-content">
-      <div class="flex flex-wrap items-center justify-between gap-heading">
-        <%= lc_heading "Timeline", level: 2, size: :heading %>
-        <% counts = @timeline.counts %>
-        <%= view_tabs "Timeline filter", [ [ "Everything · #{@timeline.entries.size}", person_path(@person), @category.nil? ], *Person::Timeline::CATEGORIES.map { |key, label| [ "#{label} · #{counts.fetch(key, 0)}", person_path(@person, show: key), @category == key ] } ] %>
-      </div>
-      <%= lc_card padding: :none do %>
-        <% if @entries.empty? %>
-          <div class="p-inset"><%= lc_text "Nothing here in the collected data. Missing history is not proof that you never interacted.", size: :small, tone: :muted %></div>
-        <% else %>
-          <ol class="flex flex-col divide-y divide-border">
-            <% owner_handle = X::Connection.current&.username %>
-            <% @timeline.items(@category).each do |item| %>
-              <li class="px-inset py-content">
-                <% if item.is_a?(Person::Timeline::Thread) %>
-                  <%= render "people/thread", thread: item, person: @person, timeline: @timeline, owner_handle: owner_handle %>
-                <% else %>
-                  <%= render "people/timeline_entry", entry: item, person: @person, timeline: @timeline, owner_handle: owner_handle %>
-                <% end %>
-              </li>
-            <% end %>
-          </ol>
+    <% counts = @timeline.counts %>
+    <% tabs = [ [ "Everything", @timeline.entries.size, person_path(@person), @category.nil? ], *Person::Timeline::CATEGORIES.map { |key, label| [ label, counts.fetch(key, 0), person_path(@person, show: key), @category == key ] } ] %>
+    <nav aria-label="Timeline filter" class="flex overflow-x-auto border-b border-border">
+      <% tabs.each do |label, count, path, current| %>
+        <%= link_to path, aria: { current: (current ? "page" : nil) }, class: "flex shrink-0 grow justify-center px-related text-small hover:bg-accent #{current ? "font-semibold text-foreground" : "text-muted-foreground"}" do %>
+          <span class="relative inline-flex items-center gap-tight py-content">
+            <%= label %><span class="tabular-nums text-caption text-muted-foreground"><%= count %></span>
+            <% if current %><span class="absolute inset-x-0 bottom-0 h-1 rounded-full bg-you" aria-hidden="true"></span><% end %>
+          </span>
         <% end %>
       <% end %>
-      <p class="text-caption text-muted-foreground">Built from all collected replies, posts, DM metadata, likes, bookmarks, and complete follow checks. Coverage is partial; follow dates fall between checks rather than at exact times.</p>
-    </div>
-  </section>
+    </nav>
 
-  <aside class="flex flex-col gap-inset">
-    <%= render "people/grok", person: @person %>
-    <%= lc_card do %>
-      <%= form_with model: @person, class: "flex flex-col gap-content" do %>
-        <%= lc_field label: "Your notes", id: "person-notes", hint: "Only you maintain these. Imports never overwrite them." do |field| %>
-          <%= lc_textarea @person.notes, name: "person[notes]", rows: 5, placeholder: "Why this person matters, shared interests, or something to follow up on…", **field %>
+    <% if @entries.empty? %>
+      <div class="p-inset"><%= lc_text "Nothing here in the collected data. Missing history is not proof that you never interacted.", size: :small, tone: :muted %></div>
+    <% else %>
+      <ol class="flex flex-col divide-y divide-border">
+        <% owner_handle = X::Connection.current&.username %>
+        <% @timeline.items(@category).each do |item| %>
+          <li class="px-inset py-content">
+            <% if item.is_a?(Person::Timeline::Thread) %>
+              <%= render "people/thread", thread: item, person: @person, timeline: @timeline, owner_handle: owner_handle %>
+            <% else %>
+              <%= render "people/timeline_entry", entry: item, person: @person, timeline: @timeline, owner_handle: owner_handle %>
+            <% end %>
+          </li>
         <% end %>
-        <div><%= lc_button "Save notes", type: :submit, size: :sm, icon: "pencil-square" %></div>
+      </ol>
+    <% end %>
+  <% end %>
+
+  <aside class="flex flex-col gap-content">
+    <%= render "people/grok", person: @person %>
+
+    <%= lc_card padding: :sm do %>
+      <%= form_with model: @person, class: "flex flex-col gap-related" do %>
+        <label for="person-notes" class="text-small text-muted-foreground">Notes</label>
+        <%= lc_textarea @person.notes, id: "person-notes", name: "person[notes]", rows: 4, placeholder: "Why they matter, shared interests, a follow-up…", title: "Only you maintain these. Imports never overwrite them." %>
+        <div class="flex justify-end"><%= lc_button "Save", type: :submit, size: :sm, variant: :secondary %></div>
       <% end %>
     <% end %>
-    <%= lc_card do %>
-      <div class="flex flex-col gap-content">
-        <%= lc_heading "The relationship", level: 2, size: :subheading %>
-        <dl class="grid grid-cols-2 gap-content">
-          <div><dd class="text-3xl font-semibold tabular-nums"><%= @person.outgoing_count %></dd><dt class="text-small text-muted-foreground">Replies from you</dt></div>
-          <div><dd class="text-3xl font-semibold tabular-nums"><%= @person.incoming_count %></dd><dt class="text-small text-muted-foreground">Replies from them</dt></div>
-          <div class="col-span-2"><dt class="text-small text-muted-foreground">Last reply</dt><dd class="text-small font-medium"><%= relative_day @person.last_interaction_at %></dd></div>
-          <% interactions = @person.interactions %>
-          <div class="col-span-2">
-            <dt class="text-small text-muted-foreground">Last direct message</dt>
-            <dd class="text-small font-medium">
-              <% if (dm = interactions.last("dm")) %>
-                <%= relative_day dm.at %> · from <%= dm.direction == "outgoing" ? "you" : "them" %>
-                <% if interactions.awaiting_dm_reply? %><span class="mt-tight block"><%= lc_badge "They sent the last DM", tone: :warning %></span><% end %>
-              <% else %>
-                <span class="text-muted-foreground">None observed</span>
-              <% end %>
-            </dd>
+
+    <% interactions = @person.interactions %>
+    <% dm = interactions.last("dm") %>
+    <%= lc_card padding: :sm do %>
+      <dl class="grid grid-cols-2 gap-related">
+        <% [
+          [ "Replies from you", @person.outgoing_count, "text-you" ],
+          [ "Replies from them", @person.incoming_count, nil ],
+          [ "Likes from you", @person.engagements.count { |engagement| engagement.kind == "like" }, nil ],
+          [ "Bookmarks", @person.engagements.count { |engagement| engagement.kind == "bookmark" }, nil ]
+        ].each do |label, value, tone| %>
+          <div class="flex flex-col-reverse gap-tight rounded-2xl bg-tile p-content">
+            <dt class="text-caption text-muted-foreground"><%= label %></dt>
+            <dd class="text-heading font-semibold tabular-nums <%= tone %>"><%= value %></dd>
           </div>
-          <div><dt class="text-small text-muted-foreground">Likes from you</dt><dd class="text-small font-medium tabular-nums"><%= @person.engagements.count { |engagement| engagement.kind == "like" } %></dd></div>
-          <div><dt class="text-small text-muted-foreground">Bookmarks</dt><dd class="text-small font-medium tabular-nums"><%= @person.engagements.count { |engagement| engagement.kind == "bookmark" } %></dd></div>
-          <div class="col-span-2"><dt class="text-small text-muted-foreground">Last interaction of any kind</dt><dd class="text-small font-medium"><%= interaction_label(interactions.latest) %></dd></div>
-        </dl>
-        <p class="text-caption text-muted-foreground">Coverage: <%= safe_join(Person::Interactions.coverage.map { |label, value| "#{label} #{value}" }, " · ") %>. Reply state, DMs, likes, and follow status are separate facts.</p>
-        <% if @person.follower_periods.any? %>
-          <%= lc_button_link_to "Follower history and timing", follower_history_path, variant: :ghost, size: :sm, icon: "clock" %>
         <% end %>
-      </div>
+      </dl>
+      <dl class="mt-content grid grid-cols-[auto_minmax(0,1fr)] gap-x-heading gap-y-tight text-small">
+        <dt class="text-muted-foreground">Last reply</dt>
+        <dd class="text-end"><%= relative_day @person.last_interaction_at %></dd>
+        <dt class="text-muted-foreground">Last DM</dt>
+        <dd class="text-end">
+          <% if dm %>
+            <%= relative_day dm.at %> · <%= dm.direction == "outgoing" ? "you" : "them" %>
+          <% else %>
+            <span class="text-muted-foreground">None observed</span>
+          <% end %>
+        </dd>
+        <dt class="text-muted-foreground">Last seen</dt>
+        <dd class="text-end"><%= interaction_label(interactions.latest) %></dd>
+      </dl>
+      <% if dm && interactions.awaiting_dm_reply? %><div class="mt-related flex justify-end"><%= lc_badge "They sent the last DM", tone: :warning %></div><% end %>
+      <% if @person.follower_periods.any? %>
+        <div class="mt-related"><%= lc_button_link_to "Follower history", follower_history_path, variant: :ghost, size: :sm, icon: "clock" %></div>
+      <% end %>
     <% end %>
+
     <% neighborhood = Network::Neighborhood.new(@person) %>
-    <%= lc_card do %>
+    <%= lc_card padding: :sm do %>
       <div class="flex flex-col gap-content" id="network">
-        <%= lc_heading "In your network", level: 2, size: :subheading %>
+        <div class="flex items-center justify-between gap-related">
+          <h2 class="text-small text-muted-foreground">In your network</h2>
+          <div class="flex items-center">
+            <%= lc_icon_button_link_to "#{pluralize(neighborhood.saved_posts, "saved post")} on the timeline", timeline_path(person_id: @person.id, kind: "all", period: "all"), icon: "queue-list", size: :sm, title: pluralize(neighborhood.saved_posts, "saved post") %>
+            <%= lc_icon_button_link_to "Open the network", network_path(period: "all"), icon: "share", size: :sm, title: "Network" %>
+          </div>
+        </div>
         <% if neighborhood.empty? %>
           <%= lc_text "No interactions with your other people collected yet.", size: :small, tone: :muted %>
         <% end %>
@@ -85,8 +106,8 @@
             <% neighborhood.partners.each do |partner, kinds| %>
               <li class="flex items-center gap-related">
                 <%= person_avatar partner, size: :sm %>
-                <%= link_to partner.name, partner, class: "min-w-0 grow truncate text-small font-medium hover:underline" %>
-                <span class="shrink-0 text-caption text-muted-foreground" title="<%= kinds.map { |kind, count| "#{count} #{kind.pluralize(count)}" }.join(", ") %>"><%= kinds.values.sum %></span>
+                <%= link_to partner.name, partner, class: "min-w-0 grow truncate text-small hover:underline" %>
+                <span class="shrink-0 text-caption tabular-nums text-muted-foreground" title="<%= kinds.map { |kind, count| "#{count} #{kind.pluralize(count)}" }.join(", ") %>"><%= kinds.values.sum %></span>
               </li>
             <% end %>
           </ol>
@@ -94,26 +115,18 @@
         <% [ [ "Followed by", neighborhood.followed_by ], [ "Follows", neighborhood.follows ] ].each do |label, people| %>
           <% next if people.empty? %>
           <div class="flex flex-col gap-related">
-            <p class="text-small text-muted-foreground"><%= label %></p>
+            <p class="text-caption text-muted-foreground"><%= label %></p>
             <div class="flex flex-wrap gap-tight"><% people.each do |other| %><%= link_to other, title: other.name do %><%= person_avatar other, size: :sm %><% end %><% end %></div>
           </div>
         <% end %>
-        <div class="flex flex-wrap gap-tight">
-          <%= lc_button_link_to "#{pluralize(neighborhood.saved_posts, "saved post")}", timeline_path(person_id: @person.id, kind: "all", period: "all"), variant: :ghost, size: :sm, icon: "queue-list" %>
-          <%= lc_button_link_to "Network", network_path(period: "all"), variant: :ghost, size: :sm, icon: "share" %>
-        </div>
       </div>
     <% end %>
-    <%= lc_card do %>
-      <div class="flex flex-col gap-content">
-        <%= lc_heading "Keep them in your circle", level: 2, size: :subheading %>
-        <%= lc_text "Mutuals are protected automatically. You can also keep anyone whose work you value.", size: :small, tone: :muted %>
-        <% if @person.follow_protection %>
-          <%= lc_badge "Protected from cleanup", tone: :success %>
-          <%= lc_button_to "Remove manual protection", person_follow_protection_path(@person), method: :delete, variant: :ghost, size: :sm, icon: "shield-exclamation" %>
-        <% else %>
-          <%= lc_button_to "Keep following", person_follow_protection_path(@person), variant: :secondary, size: :sm, icon: "shield-check" %>
-        <% end %>
+
+    <%= lc_collapsible title: "About this data", card: false, indicator: :chevron, summary_class: "text-small font-normal text-muted-foreground" do %>
+      <div class="flex flex-col gap-related text-caption text-muted-foreground">
+        <p>Built from collected replies, posts, DM metadata, likes, bookmarks, and complete follow checks. Follow dates fall between checks.</p>
+        <p>Coverage: <%= safe_join(Person::Interactions.coverage.map { |label, value| "#{label} #{value}" }, " · ") %>.</p>
+        <p>Mutuals are protected from cleanup automatically; the shield keeps anyone else.</p>
       </div>
     <% end %>
   </aside>

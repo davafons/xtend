@@ -202,23 +202,23 @@ export default class extends Controller {
     const panel = this.panelTarget
     panel.replaceChildren()
     const heading = document.createElement("h2")
-    heading.className = "text-lg font-semibold"
+    heading.className = "text-label font-semibold"
     if (!node) {
       heading.textContent = "Connections"
       const hint = document.createElement("p")
-      hint.className = "text-sm text-muted-foreground"
+      hint.className = "text-small text-muted-foreground"
       hint.textContent = "Select someone in the graph."
       panel.append(heading, hint)
       return
     }
     heading.textContent = node.owner ? "You" : node.name
     const meta = document.createElement("p")
-    meta.className = "text-sm text-muted-foreground"
+    meta.className = "text-small text-muted-foreground"
     meta.textContent = node.owner ? `@${node.handle}` : [`@${node.handle}`, node.follow_state, node.outside ? "Outside your CRM" : null].filter(Boolean).join(" · ")
     panel.append(heading, meta)
     if (node.person_id || node.outside) {
       const link = document.createElement("a")
-      link.className = "text-sm text-you hover:underline"
+      link.className = "text-small text-you hover:underline"
       link.href = node.person_id ? `/people/${node.person_id}` : `https://x.com/${node.handle}`
       if (!node.person_id) {
         link.target = "_blank"
@@ -235,13 +235,13 @@ export default class extends Controller {
       item.className = "flex flex-col gap-0.5 py-2"
       const name = document.createElement("button")
       name.type = "button"
-      name.className = "cursor-pointer text-start text-sm font-medium hover:underline"
+      name.className = "cursor-pointer text-start text-small font-medium hover:underline"
       name.textContent = connection.node.owner ? "You" : connection.node.name
       name.addEventListener("click", () => this.select(connection.node))
       item.append(name)
       for (const line of connection.lines) {
         const detail = document.createElement("span")
-        detail.className = "text-xs text-muted-foreground"
+        detail.className = "text-caption text-muted-foreground"
         detail.textContent = line
         item.append(detail)
       }
@@ -249,7 +249,7 @@ export default class extends Controller {
     }
     if (connections.length === 0) {
       const none = document.createElement("p")
-      none.className = "text-sm text-muted-foreground"
+      none.className = "text-small text-muted-foreground"
       none.textContent = "No connections in this view."
       panel.append(none)
     } else {

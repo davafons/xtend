@@ -1,9 +1,9 @@
 <% content_for :title, "People" %>
 <h1 class="sr-only">People</h1>
-<%= form_with url: people_path, method: :get, class: lc_inline_class(gap: :related), data: { controller: "auto-submit", turbo_action: "replace" } do %>
+<%= form_with url: people_path, method: :get, class: "flex flex-wrap items-center gap-related", data: { controller: "auto-submit", turbo_action: "replace" } do %>
   <% if params[:sort].present? %><%= hidden_field_tag :sort, params[:sort] %><% end %>
-  <%= lc_input name: "q", value: params[:q], type: :search, size: :sm, placeholder: "Search names, handles, bios, notes…", aria: { label: "Search people" }, class: "min-w-56 flex-1" %>
-  <%= lc_select [["Any follow status", ""], ["Mutuals", "mutual"], ["You follow only", "following_only"], ["They follow only", "followers_only"], ["Lost followers", "lost"]], name: "follow", selected: params[:follow], size: :sm, aria: { label: "Follow status" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+  <%= lc_input name: "q", value: params[:q], type: :search, size: :sm, placeholder: "Search people and notes", aria: { label: "Search people" }, class: "w-72" %>
+  <%= lc_select [["Any follow", ""], ["Mutuals", "mutual"], ["You follow only", "following_only"], ["They follow only", "followers_only"], ["Lost followers", "lost"]], name: "follow", selected: params[:follow], size: :sm, aria: { label: "Follow status" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <%= lc_select [["Any replies", ""], *["Two-way", "You replied only", "They replied only", "No observed replies"].map { |state| [state, state] }], name: "state", selected: params[:state], size: :sm, aria: { label: "Reply state" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <%= lc_select [["Everyone", ""], ["Pinned", "pinned"], ["Kept", "kept"], ["With notes", "notes"], ["Untagged", "untagged"]], name: "filter", selected: params[:filter], size: :sm, aria: { label: "Your markers" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% if @tags.any? %>
@@ -15,38 +15,29 @@
     <%= lc_button_link_to "Talked #{date_range_label(@talked)}", people_path(people_filter_params.except(:from, :to)), variant: :secondary, size: :sm, icon: "x-mark", icon_position: :end, aria: { label: "Remove the date filter: talked #{date_range_label(@talked)}" } %>
   <% end %>
   <%= lc_button "Search", type: :submit, variant: :secondary, class: "sr-only" %>
-  <% if people_filter_params.except(:sort).any? %><%= lc_button_link_to "Clear", people_path(people_filter_params.slice(:sort)), variant: :ghost, size: :sm, icon: "x-mark" %><% end %>
-  <div class="ms-auto flex items-center gap-related">
-    <span class="text-small tabular-nums text-muted-foreground"><%= pluralize(@count, "person", plural: "people") %></span>
-    <%= lc_button_link_to "Add a person", new_person_path, icon: "plus", size: :sm %>
+  <% if people_filter_params.except(:sort).any? %><%= lc_icon_button_link_to "Clear filters", people_path(people_filter_params.slice(:sort)), icon: "x-mark", size: :sm, title: "Clear filters" %><% end %>
+  <div class="ms-auto">
+    <%= lc_button_link_to "Add", new_person_path, icon: "plus", size: :sm, variant: :secondary, aria: { label: "Add a person" } %>
   </div>
 <% end %>
 
 <% if @recent.present? %>
-  <%= lc_section title: "Recent conversations", id: "recent-people" do %>
-    <div class="grid grid-cols-2 gap-content xl:grid-cols-4">
-      <% @recent.each do |person| %>
-        <%= lc_card href: person_path(person), padding: :none, class: "overflow-hidden" do %>
-          <% if person.banner_url.present? && !demo? %>
-            <%= image_tag person.banner_image_url("600x200"), alt: "", loading: "lazy", referrerpolicy: "no-referrer", class: "aspect-[3/1] w-full bg-tile object-cover" %>
-          <% else %>
-            <div class="aspect-[3/1] w-full bg-tile"></div>
-          <% end %>
-          <div class="<%= lc_stack_class(gap: :heading) %> px-content pb-content">
-            <%= person_avatar person, size: :lg, ring: person.follow_state(@graph), class: "-mt-6" %>
-            <div class="min-w-0">
-              <p class="flex items-center gap-tight text-label">
-                <span class="truncate"><%= person.name %></span>
-                <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
-              </p>
-              <p class="truncate text-small text-muted-foreground">@<%= person.handle %></p>
-            </div>
-            <p class="text-small text-muted-foreground">Last reply <%= relative_day person.last_interaction_at %></p>
-          </div>
-        <% end %>
+  <nav id="recent-people" aria-label="Recent conversations" class="grid grid-cols-2 gap-content xl:grid-cols-4">
+    <% @recent.each do |person| %>
+      <%= lc_card href: person_path(person), padding: :sm do %>
+        <span class="flex items-center gap-heading">
+          <%= person_avatar person, ring: person.follow_state(@graph) %>
+          <span class="min-w-0 grow">
+            <span class="flex items-center gap-tight text-label">
+              <span class="truncate"><%= person.name %></span>
+              <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
+            </span>
+            <span class="block truncate text-caption text-muted-foreground" title="Last reply · @<%= person.handle %>"><%= relative_day person.last_interaction_at %></span>
+          </span>
+        </span>
       <% end %>
-    </div>
-  <% end %>
+    <% end %>
+  </nav>
 <% end %>
 
 <% if params[:follow].present? && !@graph.complete? %><%= lc_alert "Follow filters need complete follower and following checks.", tone: :warning %><% end %>
@@ -55,11 +46,12 @@
   <% if people_filter_params.except(:sort).any? %>
     <%= empty_state "Nobody matches these filters.", icon: "funnel" do %><%= lc_button_link_to "Clear filters", people_path, variant: :secondary, icon: "x-mark" %><% end %>
   <% else %>
-    <%= empty_state "Build your circle, one conversation at a time.", "People appear as replies, captures, and follow checks come in. You can save someone yourself, too.", icon: "users" do %>
-      <%= lc_button_link_to "Add your first person", new_person_path, variant: :secondary %>
+    <%= empty_state "Build your circle, one conversation at a time.", "People appear as replies, captures, and follow checks come in.", icon: "users" do %>
+      <%= lc_button_link_to "Add your first person", new_person_path, variant: :secondary, icon: "plus" %>
     <% end %>
   <% end %>
 <% else %>
+  <% follow_source = "Follow status from saved checks: following #{@graph.following&.observed_at&.strftime("%-d %b, %H:%M") || "unknown"}, followers #{@graph.followers&.observed_at&.strftime("%-d %b, %H:%M") || "unknown"}" %>
   <%= lc_stack gap: :content do %>
     <%= lc_card padding: :none, class: "overflow-hidden" do %>
       <div class="overflow-x-auto" tabindex="0" role="region" aria-label="People">
@@ -68,54 +60,41 @@
           <thead>
             <tr>
               <th scope="col"><%= people_sort_header "Person", "name" %></th>
-              <th scope="col" class="text-end max-xl:hidden"><%= people_sort_header "Followers", "followers" %></th>
-              <th scope="col">Follow</th>
+              <th scope="col" class="max-lg:hidden"><span class="sr-only">Bio, notes and tags</span></th>
+              <th scope="col" class="text-end"><%= people_sort_header "Followers", "followers" %></th>
+              <th scope="col" class="text-center" title="<%= follow_source %>">Follow</th>
               <th scope="col"><%= people_sort_header "Replies", "replies" %></th>
-              <th scope="col"><%= people_sort_header "Last reply", "recent" %></th>
+              <th scope="col" class="text-end"><%= people_sort_header "Last reply", "recent" %></th>
             </tr>
           </thead>
           <tbody>
             <% @people.each do |person| %>
+              <% follow = person.follow_state(@graph) %>
               <tr>
-                <th scope="row" class="font-normal">
-                  <div class="<%= lc_stack_class(gap: :related) %>">
-                    <%= render "people/identity", person: person, ring: person.follow_state(@graph) %>
-                    <% summary = person.notes.presence || person.description.presence %>
-                    <% if person.tags.any? || summary %>
-                      <div class="<%= lc_stack_class(gap: :tight) %> max-w-64 ps-11">
-                        <% if person.tags.any? %><span class="flex flex-wrap gap-tight"><% person.tags.each do |tag| %><%= tag_chip tag.name %><% end %></span><% end %>
-                        <% if summary %><span class="line-clamp-1 text-small <%= "text-muted-foreground" unless person.notes.present? %>" title="<%= summary %>"><%= summary %></span><% end %>
-                      </div>
-                    <% end %>
+                <th scope="row" class="font-normal"><%= render "people/identity", person: person, ring: follow %></th>
+                <td class="w-full max-w-0 max-lg:hidden">
+                  <% summary = person.notes.presence || person.description.presence %>
+                  <div class="flex min-w-0 items-center gap-related">
+                    <% person.tags.each do |tag| %><span class="shrink-0"><%= tag_chip tag.name %></span><% end %>
+                    <% if summary %><span class="min-w-0 truncate text-small <%= person.notes.present? ? "text-foreground" : "text-muted-foreground" %>" title="<%= summary %>"><%= summary %></span><% end %>
                   </div>
-                </th>
-                <td class="whitespace-nowrap text-end text-small tabular-nums max-xl:hidden"><%= compact_count person.followers_count %></td>
-                <td class="whitespace-nowrap"><%= relationship_badge person.follow_state(@graph) %></td>
-                <td>
-                  <span class="flex flex-wrap items-center gap-x-heading gap-y-tight">
-                    <%= relationship_badge person.reply_state %>
-                    <% if person.reply_events.any? %>
-                      <span class="text-caption tabular-nums" title="Replies from you · replies from them">
-                        <span class="inline-flex items-center gap-0.5 text-you"><%= lc_icon "arrow-up-right", options: { class: "size-3", "aria-hidden": true } %><%= person.outgoing_count %></span>
-                        <span class="ms-related inline-flex items-center gap-0.5 text-success"><%= lc_icon "arrow-down-left", options: { class: "size-3", "aria-hidden": true } %><%= person.incoming_count %></span>
-                      </span>
-                    <% end %>
-                  </span>
                 </td>
-                <td class="text-small"><%= relative_day person.last_interaction_at %></td>
+                <td class="whitespace-nowrap text-end text-small tabular-nums"><%= compact_count person.followers_count %></td>
+                <td class="text-center"><%= relationship_cue follow %></td>
+                <td class="whitespace-nowrap text-small"><%= reply_counts person %></td>
+                <td class="whitespace-nowrap text-end text-small text-muted-foreground"><%= relative_day person.last_interaction_at %></td>
               </tr>
             <% end %>
           </tbody>
         <% end %>
       </div>
     <% end %>
-    <div class="flex items-center justify-between gap-content">
-      <div><% if @page > 1 %><%= lc_button_link_to "Previous", people_path(people_filter_params(page: @page - 1)), variant: :secondary, size: :sm, icon: "arrow-left" %><% end %></div>
+    <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-content">
+      <div><% if @page > 1 %><%= lc_icon_button_link_to "Previous page", people_path(people_filter_params(page: @page - 1)), icon: "arrow-left", variant: :secondary, size: :sm %><% end %></div>
       <p class="text-small tabular-nums text-muted-foreground">
         <% if @count.positive? %><%= (@page - 1) * PeopleController::PER_PAGE + 1 %>–<%= [@page * PeopleController::PER_PAGE, @count].min %> of <% end %><%= pluralize(@count, "person", plural: "people") %>
-        <% if @graph.following || @graph.followers %> · follow status from saved checks: following <%= @graph.following&.observed_at&.strftime("%-d %b, %H:%M") || "unknown" %>, followers <%= @graph.followers&.observed_at&.strftime("%-d %b, %H:%M") || "unknown" %><% end %>
       </p>
-      <div><% if @page * PeopleController::PER_PAGE < @count %><%= lc_button_link_to "Next", people_path(people_filter_params(page: @page + 1)), variant: :secondary, size: :sm, icon: "arrow-right", icon_position: :end %><% end %></div>
+      <div class="justify-self-end"><% if @page * PeopleController::PER_PAGE < @count %><%= lc_icon_button_link_to "Next page", people_path(people_filter_params(page: @page + 1)), icon: "arrow-right", variant: :secondary, size: :sm %><% end %></div>
     </div>
   <% end %>
 <% end %>

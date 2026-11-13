@@ -50,12 +50,12 @@ module ApplicationHelper
     lc_badge(class: MEANING_CLASSES.fetch(meaning), &block)
   end
 
-  # A ring in the follow relationship's color: green both ways, blue you follow, amber they follow.
-  RING_CLASSES = { both: "ring-success", you: "ring-you", them: "ring-warning" }.freeze
+  # An outline ring in the follow relationship's color: green both ways, blue you follow, amber they follow.
+  RING_CLASSES = { both: "outline-success", you: "outline-you", them: "outline-warning" }.freeze
 
   def person_avatar(person, size: :md, ring: nil, **options)
     ring_class = RING_CLASSES[state_meaning(ring)] if ring
-    options[:class] = [ options[:class], ("ring-2 ring-offset-2 ring-offset-card #{ring_class}" if ring_class) ].compact.join(" ").presence
+    options[:class] = [ options[:class], ("outline-2 outline-offset-2 #{ring_class}" if ring_class) ].compact.join(" ").presence
     options.compact!
     if person.avatar_url.present? && !demo?
       lc_avatar(src: person.avatar_image_url, alt: "", size: size, loading: "lazy", referrerpolicy: "no-referrer", **options)
@@ -142,13 +142,6 @@ module ApplicationHelper
     meaning_badge(state_meaning(state)) do
       safe_join([lc_icon(relationship_icon(state), options: { class: "size-3.5", "aria-hidden": true }), tag.span(state)])
     end
-  end
-
-  def person_actions(person)
-    safe_join([
-      person.pin ? lc_button_to("Unpin", person_pin_path(person), method: :delete, variant: :ghost, size: :sm, icon: "bookmark-slash") : lc_button_to("Pin", person_pin_path(person), variant: :ghost, size: :sm, icon: "bookmark"),
-      person.follow_protection ? lc_badge(tone: :success) { safe_join([lc_icon("shield-check", options: { class: "size-3.5", "aria-hidden": true }), "Keep following"]) } : nil
-    ].compact, " ")
   end
 
   def source_link(label, url, **options)

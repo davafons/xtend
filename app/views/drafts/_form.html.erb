@@ -3,7 +3,7 @@
   <% unless draft.persisted? %><%= hidden_field_tag :open, "1" %><% end %>
   <% if draft.inspiration_url.present? %><%= hidden_field_tag "draft[inspiration_url]", draft.inspiration_url %><% end %>
 <% end %>
-<% if draft.errors.any? %><%= lc_alert draft.errors.full_messages.to_sentence, tone: :destructive %><% end %>
-<%= lc_card do %>
+<% if draft.errors.any? %><div class="px-content pb-content"><%= lc_alert draft.errors.full_messages.to_sentence, tone: :destructive %></div><% end %>
+<div class="border-b border-border px-content pt-content pb-heading">
   <%= render "drafts/composer", parts: draft.parts, form: "draft-form", intent: draft.persisted? && !draft.posted_url && !demo? %>
-<% end %>
+</div>

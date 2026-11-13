@@ -1,0 +1,14 @@
+<%# An X-style post row: the avatar column, then name, @handle and time on one line, then the block. %>
+<%# locals: (avatar:, name:, handle: nil, time: nil, extra: nil, id: nil) %>
+<li class="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-x-heading px-content py-heading" <%= tag.attributes(id: id) %>>
+  <div><%= avatar %></div>
+  <div class="flex min-w-0 flex-col gap-tight text-[15px] leading-5">
+    <div class="flex min-w-0 items-center gap-tight">
+      <span class="truncate font-bold"><%= name %></span>
+      <% if handle %><span class="truncate text-muted-foreground">@<%= handle %></span><% end %>
+      <% if time %><span class="text-muted-foreground" aria-hidden="true">·</span><span class="shrink-0 text-muted-foreground"><%= time %></span><% end %>
+      <% if extra %><span class="ms-auto flex shrink-0 items-center gap-related"><%= extra %></span><% end %>
+    </div>
+    <%= yield %>
+  </div>
+</li>

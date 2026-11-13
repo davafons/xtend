@@ -1,0 +1,72 @@
+<%# One account to review, laid out like X's "Who to follow" row: avatar, name and handle, bio, their latest post
+    as a quoted post, and the decision actions in one cluster on the right. %>
+<%# locals: (person:, cleanup:, proposal:, posts:) -%>
+<% posted = cleanup.last_active[person.id] %>
+<% interactions = cleanup.interactions.fetch(person.id) %>
+<% latest = interactions.latest %>
+<li id="<%= dom_id(person, :review) %>" class="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] gap-x-heading px-inset py-content">
+  <%= link_to person, tabindex: -1, aria: { hidden: true } do %><%= person_avatar person %><% end %>
+
+  <div class="<%= lc_stack_class(gap: :related) %> max-w-2xl">
+    <div class="min-w-0">
+      <div class="flex min-w-0 items-center gap-tight">
+        <%= link_to person.name, person, class: "truncate font-semibold hover:underline" %>
+        <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
+        <% if cleanup.mutual?(person) %><%= relationship_badge "Mutual" %><% end %>
+      </div>
+      <p class="truncate text-small text-muted-foreground">
+        <%= safe_join([ "@#{person.handle}", ("#{compact_count person.followers_count} followers" if person.followers_count), ("Joined #{person.joined_x_at.strftime('%b %Y')}" if person.joined_x_at), (person.location.truncate(24) if person.location.present?) ].compact, " · ") %>
+      </p>
+    </div>
+
+    <% if person.description.present? %><p class="line-clamp-2 text-body"><%= person.description %></p><% end %>
+
+    <p class="flex flex-wrap items-center gap-x-content gap-y-tight text-small text-muted-foreground">
+      <span class="flex items-center gap-tight" title="<%= posted ? "Last post #{posted.strftime("%-d %b %Y")}" : "X hasn't reported their last post" %>">
+        <%= lc_icon "pencil-square", options: { class: "size-4", "aria-hidden": true } %>
+        <% if posted %>Posted <%= relative_day posted %><% else %>Last post unknown<% end %>
+      </span>
+      <span class="flex items-center gap-tight" title="<%= latest ? interaction_label(latest) : "Nothing observed in collected history" %>">
+        <%= lc_icon "chat-bubble-left-right", options: { class: "size-4", "aria-hidden": true } %>
+        <% if latest %>Quiet for <%= "up to " if latest.approximate? %><%= pluralize((Date.current - latest.at.to_date).to_i, "day") %> · <%= interaction_label(latest) %><% else %>No interaction observed<% end %>
+      </span>
+      <% if interactions.awaiting_dm_reply? %><%= lc_badge "They sent the last DM", tone: :warning %><% end %>
+    </p>
+
+    <% if person.tags.any? || proposal %>
+      <div class="flex flex-wrap items-center gap-tight">
+        <% person.tags.each do |tag| %><%= tag_chip tag.name, href: follow_reviews_path(review_filters.merge("tag" => tag.name)) %><% end %>
+        <% if proposal %>
+          <span class="flex items-center gap-tight text-caption text-grok" title="<%= proposal.payload["reason"] %>"><%= lc_icon "sparkles", options: { class: "size-3.5", "aria-hidden": true } %>Grok suggests</span>
+          <% proposal.payload["tags"].each do |name| %><%= tag_chip name, href: follow_reviews_path(review_filters.merge("tag" => name)) %><% end %>
+          <%= lc_icon_button_to "Accept Grok's tags for #{person.name}", grok_proposal_path(proposal), method: :patch, params: { decision: "accept" }, icon: "check", size: :sm, title: "Accept tags" %>
+          <%= lc_icon_button_to "Dismiss Grok's tags for #{person.name}", grok_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, icon: "x-mark", size: :sm, title: "Dismiss tags" %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if person.notes.present? %><p class="line-clamp-2 text-small"><span class="text-muted-foreground">Note ·</span> <%= person.notes %></p><% end %>
+
+    <% if posts.present? %>
+      <ul class="<%= lc_stack_class(gap: :tight) %>" aria-label="Latest saved posts from @<%= person.handle %>">
+        <% posts.each do |post| %>
+          <li class="rounded-2xl bg-tile px-heading py-related">
+            <p class="flex min-w-0 items-center gap-tight text-small">
+              <%= person_avatar person, size: :xs %>
+              <span class="truncate font-semibold"><%= person.name %></span>
+              <span class="shrink-0 text-muted-foreground">· <%= relative_day post.published_at %><%= " · reply" if post.reply_to_x_id %></span>
+            </p>
+            <p class="mt-tight line-clamp-3 text-body"><%= post.body %></p>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+
+  <div class="flex items-center gap-tight self-start">
+    <% unless demo? %><%= lc_icon_button_link_to "Open @#{person.handle} on X", person.profile_url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open on X" %><% end %>
+    <%= lc_icon_button_to "Defer until tomorrow", follow_reviews_path(review_filters.merge(person_id: person.id, decision: "defer")), icon: "clock", size: :sm, title: "Defer until tomorrow" %>
+    <%= lc_button_to "Keep", follow_reviews_path(review_filters.merge(person_id: person.id, decision: "keep")), variant: :secondary, size: :sm, icon: "shield-check", title: "Keep following; never suggest again" %>
+    <%= lc_button_to "Unfollowed", follow_reviews_path(review_filters.merge(person_id: person.id, decision: "reported_unfollow")), variant: :secondary, size: :sm, icon: "user-minus", title: "I unfollowed them on X", aria: { label: "I unfollowed #{person.name}" } %>
+  </div>
+</li>

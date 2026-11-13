@@ -1,0 +1,34 @@
+<%# The right column of the list views: quick ideas from focus areas, and the Grok prompt. %>
+<%# locals: (ideas:) %>
+<aside class="sticky top-6 flex flex-col gap-content">
+  <%= lc_card do %>
+    <div class="flex flex-col gap-heading">
+      <div class="flex items-center justify-between gap-heading">
+        <%= lc_heading "Focus areas", level: 2, size: :subheading %>
+        <%= lc_icon_button_link_to "Edit focus areas", settings_path, icon: "pencil", size: :sm, title: "Edit focus areas" %>
+      </div>
+      <% if ideas.interests.any? %>
+        <ul class="-mx-related flex flex-col">
+          <% ideas.interests.each do |interest| %>
+            <li class="flex items-center justify-between gap-heading rounded-xl px-related py-tight hover:bg-tile">
+              <span class="text-small"><%= interest %></span>
+              <%= lc_icon_button_to "Save an idea about #{interest}", drafts_path, params: { draft: { topic: interest, status: "idea" } }, icon: "light-bulb", size: :sm, title: "Save an idea about this" %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <%= lc_text "None set yet.", size: :small, tone: :muted %>
+      <% end %>
+    </div>
+  <% end %>
+  <%= lc_card do %>
+    <div class="flex flex-col gap-heading">
+      <%= lc_heading "Angles from Grok", level: 2, size: :subheading %>
+      <%= lc_text "A prompt with your focus areas, recent posts, and open drafts.", size: :small, tone: :muted %>
+      <div class="flex items-center gap-related">
+        <%= lc_copy_button "Copy Grok prompt", value: ideas.grok_prompt, variant: :secondary, size: :sm %>
+      </div>
+      <%= lc_collapsible title: "Read the prompt", card: false, indicator: :chevron, button: { variant: :ghost, size: :sm } do %><p class="whitespace-pre-wrap rounded-2xl bg-tile p-content text-caption"><%= ideas.grok_prompt %></p><% end %>
+    </div>
+  <% end %>
+</aside>

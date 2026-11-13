@@ -1,38 +1,32 @@
 <% content_for :title, "Settings" %>
 <h1 class="sr-only">Settings</h1>
-<div class="grid grid-cols-2 items-start gap-section">
-  <div class="flex flex-col gap-section">
-    <%= lc_section title: "Your workspace" do %>
-      <%= lc_card do %>
-        <%= form_with model: @workspace, url: settings_path, class: "flex flex-col gap-inset" do %>
-          <%= lc_field label: "Workspace name", id: "workspace-name" do |field| %>
-            <%= lc_input name: "workspace[name]", value: @workspace.name, required: true, **field %>
-          <% end %>
-          <%= lc_field label: "What you build and care about", id: "workspace-interests", hint: "One topic per line. These are editable interests, not a public biography." do |field| %>
-            <%= lc_textarea @workspace.builder_interests, name: "workspace[builder_interests]", rows: 6, **field %>
-          <% end %>
-          <div>
-            <%= lc_button "Save interests", type: :submit, size: :sm, icon: "adjustments-horizontal" %>
-          </div>
+<div class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl") %>">
+  <%= render "x_connection" %>
+
+  <%= lc_list_section "Workspace", footnote: "Interests take one topic per line. They're editable, not a public biography." do %>
+    <%= form_with model: @workspace, url: settings_path do %>
+      <%= lc_list_group do %>
+        <%= lc_list_field "Name", icon: "building-office", id: "workspace-name" do %>
+          <%= lc_input name: "workspace[name]", value: @workspace.name, required: true, plain: true, id: "workspace-name" %>
+        <% end %>
+        <%= lc_list_row do %>
+          <label for="workspace-interests" class="mb-related block text-small text-muted-foreground">What you build and care about</label>
+          <%= lc_textarea @workspace.builder_interests, name: "workspace[builder_interests]", rows: 6, id: "workspace-interests" %>
+          <div class="mt-related flex justify-end"><%= lc_button "Save", type: :submit, variant: :secondary, size: :sm, aria: { label: "Save interests" } %></div>
         <% end %>
       <% end %>
     <% end %>
-    <%= lc_section title: "Posting reminders" do %>
-      <%= lc_card do %>
-        <%= form_with model: @workspace, url: settings_path, class: "flex flex-col gap-inset" do %>
-          <%= lc_field label: "Posting times and strategy", id: "workspace-posting-notes", hint: "Keep your preferred times, time zone, and audience here as a reminder." do |field| %>
-            <%= lc_textarea @workspace.posting_notes, name: "workspace[posting_notes]", rows: 14, **field %>
-          <% end %>
-          <div>
-            <%= lc_button "Save posting reminders", type: :submit, size: :sm, icon: "bookmark" %>
-          </div>
+  <% end %>
+
+  <%= lc_list_section "Posting reminders", footnote: "Your preferred times, time zone, and audience, kept as a reminder." do %>
+    <%= form_with model: @workspace, url: settings_path do %>
+      <%= lc_list_group do %>
+        <%= lc_list_row do %>
+          <%= lc_textarea @workspace.posting_notes, name: "workspace[posting_notes]", rows: 10, id: "workspace-posting-notes", aria: { label: "Posting times and strategy" } %>
+          <div class="mt-related flex justify-end"><%= lc_button "Save", type: :submit, variant: :secondary, size: :sm, aria: { label: "Save posting reminders" } %></div>
         <% end %>
       <% end %>
     <% end %>
-  </div>
-  <div class="flex flex-col gap-section">
-    <%= lc_section title: "X account" do %>
-      <%= lc_card do %><%= render "x_connection" %><% end %>
-    <% end %>
-  </div>
+  <% end %>
+
 </div>

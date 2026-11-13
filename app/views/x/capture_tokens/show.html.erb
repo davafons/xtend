@@ -1,14 +1,12 @@
 <% content_for :title, "Capture token" %>
-<div class="mx-auto flex max-w-2xl flex-col gap-inset py-section">
-  <%= lc_heading "Your capture token", level: 1, size: :title %>
-  <%= lc_alert "Copy it now. It is shown only once; the app keeps only a fingerprint. Creating another token revokes this one.", tone: :warning %>
-  <%= lc_card do %>
-    <div class="flex flex-col gap-inset">
-      <%= lc_code_block @token, id: "capture-token" %>
-      <%= lc_text "Open the extension's options and paste this token, with this CRM address:", size: :small, tone: :muted %>
-      <%= lc_code_block request.base_url, id: "capture-url" %>
-      <%= lc_text "The token can only send captured X data to this workspace. Revoke it on X data if it leaks.", size: :small, tone: :muted %>
-      <div><%= lc_button_link_to "Back to X data", x_sources_path(anchor: "capture"), variant: :secondary, size: :sm, icon: "arrow-left" %></div>
+<h1 class="sr-only">Your capture token</h1>
+<div class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl") %>">
+  <%= lc_alert "Copy it now. It's shown only once; creating another token revokes this one.", tone: :warning %>
+  <%= lc_list_section "Paste both into the extension's options", footnote: "The token can only send captured X data to this workspace. Revoke it on X data if it leaks." do %>
+    <div class="<%= lc_stack_class(gap: :content) %>">
+      <%= lc_code_block @token, id: "capture-token", title: "Token" %>
+      <%= lc_code_block request.base_url, id: "capture-url", title: "CRM address" %>
     </div>
   <% end %>
+  <div><%= lc_button_link_to "Done", x_sources_path(anchor: "capture"), variant: :secondary, size: :sm, icon: "arrow-left", aria: { label: "Back to X data" } %></div>
 </div>

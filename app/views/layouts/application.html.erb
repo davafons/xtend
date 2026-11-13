@@ -15,19 +15,16 @@
     <div class="flex min-h-dvh">
       <% if Current.workspace %><%= render "layouts/application/sidebar" %><% end %>
       <div class="min-w-0 flex-1">
-        <%= lc_container do %>
-          <main id="main" class="<%= lc_stack_class(gap: :section) %> py-section">
-            <% if Current.workspace %>
-              <%= lc_search label: "Search and commands", src: search_path, trigger: "Search people, tags, drafts, posts, or jump to a page…", placeholder: "Search or type a command…", empty: "Nothing matches %{query}", class: "w-full" do %>
-                <%= render "searches/results", search: Search.new(nil) %>
-              <% end %>
-            <% end %>
-            <% if Current.workspace && X::SyncRun.active.exists? %>
-              <div data-controller="refresh" data-refresh-at-value="<%= Time.current.to_f %>" role="status"><%= lc_alert "Reading from X in the background. This page updates when it finishes.", tone: :neutral %></div>
-            <% end %>
+        <%= lc_container class: "px-8 xl:px-12" do %>
+          <main id="main" class="<%= lc_stack_class(gap: :section) %> py-10">
             <% flash.each do |kind, message| %><%= lc_alert message, tone: (kind == "alert" ? :destructive : :success) %><% end %>
             <%= yield %>
           </main>
+        <% end %>
+        <% if Current.workspace && X::SyncRun.active.exists? %>
+          <div class="fixed end-inset bottom-inset z-40 flex items-center gap-related rounded-full bg-popover px-content py-related text-small shadow-lg" data-controller="refresh" data-refresh-at-value="<%= Time.current.to_f %>" role="status">
+            <span class="size-2 animate-pulse rounded-full bg-grok" aria-hidden="true"></span>Reading from X
+          </div>
         <% end %>
       </div>
     </div>

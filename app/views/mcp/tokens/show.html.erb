@@ -1,14 +1,12 @@
 <% content_for :title, "Connector token" %>
-<div class="mx-auto flex max-w-2xl flex-col gap-inset py-section">
-  <%= lc_heading "Your connector token", level: 1, size: :title %>
-  <%= lc_alert "Copy it now. It is shown only once; the app keeps only a fingerprint. Creating another token revokes this one.", tone: :warning %>
-  <%= lc_card do %>
-    <div class="flex flex-col gap-inset">
-      <%= lc_code_block @token, id: "mcp-token" %>
-      <%= lc_text "Test with a local MCP client, for example Claude Code:", size: :small, tone: :muted %>
-      <%= lc_code_block "claude mcp add --transport http twitter-crm #{mcp_url} --header \"Authorization: Bearer #{@token}\"", id: "mcp-command", language: :bash %>
-      <%= lc_text "Never paste this token into a public place. Revoke it on the Grok page if it leaks.", size: :small, tone: :muted %>
-      <div><%= lc_button_link_to "Back to Grok", grok_connector_path, variant: :secondary, size: :sm, icon: "arrow-left" %></div>
+<h1 class="sr-only">Your connector token</h1>
+<div class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl") %>">
+  <%= lc_alert "Copy it now. It's shown only once; creating another token revokes this one.", tone: :warning %>
+  <%= lc_list_section "Connector token", footnote: "Never paste this token anywhere public. Revoke it on the Grok page if it leaks." do %>
+    <div class="<%= lc_stack_class(gap: :content) %>">
+      <%= lc_code_block @token, id: "mcp-token", title: "Token" %>
+      <%= lc_code_block "claude mcp add --transport http twitter-crm #{mcp_url} --header \"Authorization: Bearer #{@token}\"", id: "mcp-command", language: :bash, title: "Test with a local MCP client" %>
     </div>
   <% end %>
+  <div><%= lc_button_link_to "Done", grok_connector_path, variant: :secondary, size: :sm, icon: "arrow-left", aria: { label: "Back to Grok" } %></div>
 </div>

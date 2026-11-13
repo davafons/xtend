@@ -1,61 +1,57 @@
-<%# An X-style profile header: banner, avatar overlapping it, actions on the right, then bio, facts, counts, and tags. %>
-<%= lc_card padding: :none, class: "overflow-hidden" do %>
-  <% if person.banner_url.present? && !demo? %>
-    <%= image_tag person.banner_image_url, alt: "", loading: "lazy", referrerpolicy: "no-referrer", class: "aspect-[3/1] w-full bg-accent object-cover" %>
-  <% else %>
-    <div class="aspect-[5/1] w-full bg-accent"></div>
-  <% end %>
-  <div class="flex flex-col gap-heading px-inset pb-inset">
-    <div class="flex items-start justify-between gap-content">
-      <%= person_avatar person, size: :xl, ring: person.follow_state(graph), class: "-mt-[4.25rem] size-34 text-3xl [--lc-avatar-border:4px]" %>
-      <div class="flex flex-wrap items-center justify-end gap-related pt-heading">
-        <%= person_actions(person) %>
-        <%= source_link "View on X", person.profile_url, variant: :secondary, size: :sm %>
-      </div>
-    </div>
-    <div>
-      <%= lc_heading person.name, level: 1, size: :heading %>
-      <p class="text-muted-foreground">@<%= person.handle %></p>
-    </div>
-    <% if person.description.present? %>
-      <p class="whitespace-pre-line"><%= person.description %></p>
-    <% else %>
-      <%= lc_text "No profile description collected yet.", size: :small, tone: :muted %>
-    <% end %>
-    <% if person.x_id.nil? && person.posts.where(source: "grok").exists? %>
-      <%= lc_alert "Known only from Grok research. No X read has confirmed this account yet; the profile shown is what Grok reported.", tone: :warning %>
-    <% end %>
-    <% facts = [
-      ([ "map-pin", person.location ] if person.location.present?),
-      ([ "link", link_to(person.website_url.sub(%r{\Ahttps?://(www\.)?}, "").sub(/[?#].*\z/, "").delete_suffix("/").truncate(40), person.website_url, target: "_blank", rel: "noopener noreferrer", class: "text-you hover:underline") ] if person.website_url.present? && !demo?),
-      ([ "calendar", "Joined #{person.joined_x_at.strftime('%B %Y')}" ] if person.joined_x_at)
-    ].compact %>
-    <% if facts.any? %>
-      <div class="flex flex-wrap items-center gap-x-content gap-y-tight text-muted-foreground">
-        <% facts.each do |icon, fact| %><span class="inline-flex items-center gap-tight"><%= lc_icon icon, options: { class: "size-4", "aria-hidden": true } %><%= fact %></span><% end %>
-      </div>
-    <% end %>
-    <% if person.followers_count %>
-      <div class="flex flex-wrap items-center gap-x-inset gap-y-tight text-small text-muted-foreground">
-        <span><strong class="font-semibold text-foreground tabular-nums"><%= number_with_delimiter(person.following_count) %></strong> Following</span>
-        <span><strong class="font-semibold text-foreground tabular-nums"><%= compact_count(person.followers_count) %></strong> Followers</span>
-        <span><strong class="font-semibold text-foreground tabular-nums"><%= number_with_delimiter(person.posts_count) %></strong> posts</span>
-        <% if person.profile_observed_at %><span class="text-caption">as of <%= person.profile_observed_at.strftime("%-d %b %Y") %></span><% end %>
-      </div>
-    <% end %>
-    <div class="flex flex-wrap items-center gap-related">
-      <%= relationship_badge person.reply_state %>
-      <%= relationship_badge person.follow_state(graph) %>
-    </div>
-    <div class="flex flex-wrap items-center gap-related" id="tags">
-      <% person.tags.each do |tag| %>
-        <%= tag_chip tag.name, remove: person_tag_path(person, tag) %>
-      <% end %>
-      <%= form_with url: person_tags_path(person), class: "flex items-center gap-tight" do %>
-        <%= lc_input name: "name", size: :sm, placeholder: person.tags.any? ? "Add a tag" : "Add tags, e.g. tokyo, ios dev", list: "tag-options", aria: { label: "Add tags" }, class: "w-56" %>
-        <datalist id="tag-options"><% Tag.order(:name).pluck(:name).each do |name| %><option value="<%= name %>"></option><% end %></datalist>
-        <%= lc_button "Add", type: :submit, variant: :ghost, size: :sm, icon: "tag" %>
-      <% end %>
+<%# An X-style profile header: banner, avatar overlapping it, round actions on the right, then name, bio, facts, counts, and tags. %>
+<% follow = person.follow_state(graph) %>
+<% if person.banner_url.present? && !demo? %>
+  <%= image_tag person.banner_image_url, alt: "", loading: "lazy", referrerpolicy: "no-referrer", class: "aspect-[3/1] w-full bg-tile object-cover" %>
+<% else %>
+  <div class="aspect-[4/1] w-full bg-tile"></div>
+<% end %>
+<div class="flex flex-col gap-heading px-inset pb-content">
+  <div class="flex items-start justify-between gap-content">
+    <%= person_avatar person, size: :xl, ring: follow, class: "-mt-[4.25rem] size-34 text-3xl [--lc-avatar-border:4px]" %>
+    <div class="flex items-center gap-related pt-content">
+      <%= person_profile_actions(person) %>
+      <%= source_link "View on X", person.profile_url, variant: :outline, size: :sm %>
     </div>
   </div>
-<% end %>
+  <div>
+    <%= lc_heading person.name, level: 1, size: :heading %>
+    <p class="flex flex-wrap items-center gap-related text-muted-foreground">
+      <span>@<%= person.handle %></span>
+      <%= relationship_badge follow %>
+      <% unless person.reply_state == "No observed replies" %><%= relationship_badge person.reply_state %><% end %>
+    </p>
+  </div>
+  <% if person.description.present? %>
+    <p class="whitespace-pre-line text-[15px] leading-5"><%= person.description %></p>
+  <% end %>
+  <% if person.x_id.nil? && person.posts.where(source: "grok").exists? %>
+    <%= lc_alert "Known only from Grok research; no X read has confirmed this account yet.", tone: :warning %>
+  <% end %>
+  <% facts = [
+    ([ "map-pin", person.location ] if person.location.present?),
+    ([ "link", link_to(person.website_url.sub(%r{\Ahttps?://(www\.)?}, "").sub(/[?#].*\z/, "").delete_suffix("/").truncate(40), person.website_url, target: "_blank", rel: "noopener noreferrer", class: "text-you hover:underline") ] if person.website_url.present? && !demo?),
+    ([ "calendar", "Joined #{person.joined_x_at.strftime('%B %Y')}" ] if person.joined_x_at)
+  ].compact %>
+  <% if facts.any? %>
+    <div class="flex flex-wrap items-center gap-x-content gap-y-tight text-[15px] text-muted-foreground">
+      <% facts.each do |icon, fact| %><span class="inline-flex items-center gap-tight"><%= lc_icon icon, options: { class: "size-4", "aria-hidden": true } %><%= fact %></span><% end %>
+    </div>
+  <% end %>
+  <% if person.followers_count %>
+    <p class="flex flex-wrap items-center gap-x-content gap-y-tight text-[15px] text-muted-foreground" title="<%= "As of #{person.profile_observed_at.strftime("%-d %b %Y")}" if person.profile_observed_at %>">
+      <span><strong class="font-semibold text-foreground tabular-nums"><%= number_with_delimiter(person.following_count) %></strong> Following</span>
+      <span><strong class="font-semibold text-foreground tabular-nums"><%= compact_count(person.followers_count) %></strong> Followers</span>
+      <span><strong class="font-semibold text-foreground tabular-nums"><%= number_with_delimiter(person.posts_count) %></strong> Posts</span>
+    </p>
+  <% end %>
+  <div class="flex flex-wrap items-center gap-related" id="tags">
+    <% person.tags.each do |tag| %>
+      <%= tag_chip tag.name, remove: person_tag_path(person, tag) %>
+    <% end %>
+    <%= form_with url: person_tags_path(person), class: "flex items-center gap-tight" do %>
+      <%= lc_input name: "name", size: :sm, placeholder: person.tags.any? ? "Add a tag" : "Add tags, e.g. tokyo, ios dev", list: "tag-options", aria: { label: "Add tags" }, class: "w-48" %>
+      <datalist id="tag-options"><% Tag.order(:name).pluck(:name).each do |name| %><option value="<%= name %>"></option><% end %></datalist>
+      <%= lc_icon_button "Add tag", icon: "plus", type: :submit, size: :sm, title: "Add tag" %>
+    <% end %>
+  </div>
+</div>

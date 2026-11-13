@@ -2,38 +2,41 @@
 <% locked = demo? || !@cycle || !connection %>
 <% missing = X::Config::DATASET_SCOPES.values.reject { |scope| connection&.granted?(scope) } %>
 <% read = ->(label, dataset, mode: nil, disabled: locked, **options) { lc_button_to label, x_sync_runs_path, params: { dataset: dataset, mode: mode, request_key: SecureRandom.uuid }.compact, variant: :secondary, size: :sm, disabled: disabled, **options } %>
+<% cost = ->(standard, owned = nil) { tag.span(standard, class: "w-14 shrink-0 text-end text-small tabular-nums text-muted-foreground", title: [ "#{standard} standard", ("#{owned} owned" if owned) ].compact.join(" · ")) } %>
 <div id="collection" class="<%= lc_stack_class(gap: :section) %> scroll-mt-section">
   <% unless @cycle %>
-    <%= lc_alert "Record the current billing cycle and account spend on Spending before reading X.", tone: :warning do %>
-      <%= lc_button_link_to "Open Spending", x_billing_cycles_path, variant: :secondary, size: :sm %>
+    <%= lc_list_group do %>
+      <%= lc_list_row "No billing cycle recorded", icon: lc_icon("exclamation-triangle", options: { class: "text-warning", "aria-hidden": true }), subtitle: "Record the current billing cycle and account spend before reading X." do %>
+        <%= lc_button_link_to "Open Spending", x_billing_cycles_path, variant: :secondary, size: :sm %>
+      <% end %>
     <% end %>
   <% end %>
   <% if connection && missing.any? %><%= lc_alert "Reconnect X to grant #{missing.to_sentence}. Your existing data is kept.", tone: :warning %><% end %>
 
-  <%= lc_list_section "Collect a small sample", footnote: "Each action reads one bounded page; a continuation always needs another click. The four samples together cost at most $2.10 at standard rates." do %>
+  <%= lc_list_section "Sample from the X API", footnote: "One bounded page per click; a continuation always needs another click. Costs are standard rates." do %>
     <%= lc_list_group do %>
-      <% [["followers", "Sample followers", "user-group", "Up to 100 · $1.00 standard"], ["following", "Sample following", "user-plus", "Up to 100 · $1.00 standard"], ["own_posts", "Sample your posts", "document-text", "Up to 10 · $0.05 standard"], ["mentions", "Sample mentions", "at-symbol", "Up to 10 · $0.05 standard"]].each do |dataset, label, icon, cost| %>
-        <%= lc_list_row label, icon: icon, subtitle: cost do %><%= read.(label.split.first, dataset, aria: { label: label }) %><% end %>
+      <% [["followers", "Followers", "user-group", "Up to 100", "$1.00"], ["following", "Following", "user-plus", "Up to 100", "$1.00"], ["own_posts", "Your posts", "document-text", "Up to 10", "$0.05"], ["mentions", "Mentions", "at-symbol", "Up to 10", "$0.05"]].each do |dataset, label, icon, size, price| %>
+        <%= lc_list_row label, icon: icon, subtitle: size do %><%= cost.(price) %><%= read.("Sample", dataset, aria: { label: "Sample #{label.downcase}" }) %><% end %>
       <% end %>
     <% end %>
   <% end %>
 
-  <%= lc_list_section "Refresh", footnote: "Replies update only once their author and parent can be resolved. Old history enriches people without adding to today's outreach. Collection ends 15 seconds before each check, so a reply you just sent may need a later refresh." do %>
+  <%= lc_list_section "Refresh from the X API", footnote: "A completed follower refresh also finds people who left." do %>
     <%= lc_list_group do %>
       <% following_limit = X::SyncRun.following_refresh_limit %>
-      <%= lc_list_row "Following list", icon: "user-plus", subtitle: "Everyone you follow, with when each last posted · up to #{following_limit} in one page · $#{'%.2f' % (following_limit / 1000.0)} owned, $#{'%.2f' % (following_limit / 100.0)} standard" do %><%= read.("Refresh", "following", mode: "refresh", aria: { label: "Refresh following list" }) %><% end %>
-      <%= lc_list_row "Follower baseline", icon: "arrow-path", subtitle: "Up to 200 per page · $0.20 owned, $2.00 standard · a completed refresh also finds losses" do %><%= read.("Refresh", "followers", mode: "refresh", aria: { label: "Refresh follower baseline" }) %><% end %>
+      <%= lc_list_row "Following list", icon: "user-plus", subtitle: "Up to #{following_limit}, with when each last posted" do %><%= cost.("$#{'%.2f' % (following_limit / 100.0)}", "$#{'%.2f' % (following_limit / 1000.0)}") %><%= read.("Refresh", "following", mode: "refresh", aria: { label: "Refresh following list" }) %><% end %>
+      <%= lc_list_row "Follower baseline", icon: "arrow-path", subtitle: "Up to 200 per page" do %><%= cost.("$2.00", "$0.20") %><%= read.("Refresh", "followers", mode: "refresh", aria: { label: "Refresh follower baseline" }) %><% end %>
       <%= lc_list_row "Sent replies", icon: "arrow-up-right", subtitle: "Your newest posts and replies" do %><%= read.("Refresh", "own_posts", mode: "refresh", aria: { label: "Refresh sent replies" }) %><% end %>
       <%= lc_list_row "Incoming activity", icon: "arrow-down-left", subtitle: "Your newest mentions" do %><%= read.("Refresh", "mentions", mode: "refresh", aria: { label: "Refresh incoming activity" }) %><% end %>
     <% end %>
   <% end %>
 
-  <%= lc_list_section "Private interactions", footnote: "The first run reads from the newest item backwards; later runs stop at items already saved. X doesn't say when you liked or bookmarked something, so the post date (or the previous check) is the earliest possible time. DMs keep only who sent each one-to-one message and when, and X serves only the last 30 days." do %>
+  <%= lc_list_section "Private interactions", footnote: "DMs keep only sender and time; X serves the last 30 days." do %>
     <%= lc_list_group do %>
-      <% [["liked_posts", "Your likes", "heart", "Up to 100 per page · $0.10 owned, $0.50 standard"],
-          ["bookmarks", "Bookmarks", "bookmark", "Up to 100 per page · $0.10 owned, $0.50 standard"],
-          ["dm_events", "DM activity", "envelope", "Up to 20 per page · $0.20, no owned rate"]].each do |dataset, label, icon, cost| %>
-        <%= lc_list_row label, icon: icon, subtitle: cost do %><%= read.("Collect", dataset, disabled: demo? || !@cycle || !connection&.granted?(X::Config::DATASET_SCOPES.fetch(dataset)), aria: { label: "Collect #{label.downcase}" }) %><% end %>
+      <% [["liked_posts", "Your likes", "heart", "Up to 100 per page", "$0.50", "$0.10"],
+          ["bookmarks", "Bookmarks", "bookmark", "Up to 100 per page", "$0.50", "$0.10"],
+          ["dm_events", "DM activity", "envelope", "Up to 20 per page", "$0.20", nil]].each do |dataset, label, icon, size, standard, owned| %>
+        <%= lc_list_row label, icon: icon, subtitle: size do %><%= cost.(standard, owned) %><%= read.("Collect", dataset, disabled: demo? || !@cycle || !connection&.granted?(X::Config::DATASET_SCOPES.fetch(dataset)), aria: { label: "Collect #{label.downcase}" }) %><% end %>
       <% end %>
     <% end %>
   <% end %>
@@ -41,25 +44,24 @@
   <% unknown_users = X::SyncRun.unresolved_user_ids %>
   <% unknown_parents = X::SyncRun.unresolved_parent_ids %>
   <% if unknown_users.any? || unknown_parents.any? %>
-    <%= lc_list_section "Missing context", footnote: "Each action resolves up to 20, within the remaining budget." do %>
+    <%= lc_list_section "Missing context", footnote: "Each click resolves up to 20, within the remaining budget." do %>
       <%= lc_list_group do %>
-        <% if unknown_users.any? %><%= lc_list_row "Unresolved people", icon: "user", subtitle: unknown_users.size.to_s do %><%= read.("Resolve", "users", disabled: demo? || !@cycle, aria: { label: "Resolve people" }) %><% end %><% end %>
-        <% if unknown_parents.any? %><%= lc_list_row "Missing parent posts", icon: "chat-bubble-left", subtitle: unknown_parents.size.to_s do %><%= read.("Resolve", "posts", disabled: demo? || !@cycle, aria: { label: "Resolve parents" }) %><% end %><% end %>
+        <% if unknown_users.any? %><%= lc_list_row "Unresolved people", icon: "user" do %><span class="w-14 shrink-0 text-end text-small tabular-nums text-muted-foreground"><%= unknown_users.size %></span><%= read.("Resolve", "users", disabled: demo? || !@cycle, aria: { label: "Resolve people" }) %><% end %><% end %>
+        <% if unknown_parents.any? %><%= lc_list_row "Missing parent posts", icon: "chat-bubble-left" do %><span class="w-14 shrink-0 text-end text-small tabular-nums text-muted-foreground"><%= unknown_parents.size %></span><%= read.("Resolve", "posts", disabled: demo? || !@cycle, aria: { label: "Resolve parents" }) %><% end %><% end %>
       <% end %>
     <% end %>
   <% end %>
 
   <% if @runs.any? %>
+    <% shown, more = @runs.to_a.partition.with_index { |_, index| index < 3 } %>
     <%= lc_list_section "Recent collection" do %>
       <%= lc_list_group do %>
-        <% @runs.each do |run| %>
-          <%= lc_list_row "#{run.dataset.humanize} · #{run.mode.humanize}", subtitle: [ "#{run.resource_count} resources · #{run.page_number} pages · #{run.created_at.strftime("%-d %b, %H:%M")}", run.message.presence ].compact.join(" · "), id: dom_id(run), data: { request_key: run.request_key } do %>
-            <% if X::SyncRun::ACTIVE_STATUSES.include?(run.status) %>
-              <%= lc_button_to "Recover interrupted page", x_sync_run_path(run), method: :patch, params: {recover: "1"}, variant: :ghost, size: :sm, disabled: run.updated_at > 2.minutes.ago %>
-            <% elsif run.status == "partial" || run.status == "ready" || (run.status == "paused" && run.page_number.zero?) || run.x_reads.where(status: "received").exists? %>
-              <%= lc_button_to(run.status == "paused" ? "Retry this page" : "Read next page", x_sync_run_path(run), method: :patch, params: {page: run.page_number}, variant: :secondary, size: :sm, disabled: demo? || (run.retry_at && run.retry_at > Time.current)) %>
-            <% end %>
-            <%= lc_badge run.status.humanize, tone: run.status == "completed" ? :success : :neutral %>
+        <%= render partial: "run", collection: shown %>
+      <% end %>
+      <% if more.any? %>
+        <%= lc_collapsible title: "#{more.size} earlier", card: false, indicator: :chevron, summary_class: "px-content text-small text-muted-foreground sm:px-inset" do %>
+          <%= lc_list_group class: "pt-related" do %>
+            <%= render partial: "run", collection: more %>
           <% end %>
         <% end %>
       <% end %>

@@ -1,21 +1,13 @@
 <% content_for :title, "Grok" %>
 <h1 class="sr-only">Grok</h1>
-<div class="grid grid-cols-2 items-start gap-section">
-  <div class="flex flex-col gap-section">
-    <%= render "tags" %>
-    <%= render "connector" %>
-  </div>
-  <div class="flex flex-col gap-section">
-      <%= lc_section title: "Grok Bot context" do %>
-        <%= lc_card do %>
-          <div class="flex flex-col gap-content">
-            <%= lc_text "Download your interests, all saved people, public reply counts, follow states, tags, and pins for a Grok Bot conversation.", size: :small, tone: :muted %>
-            <%= lc_text "The file excludes private notes and DMs. Downloading does not send it anywhere. A live Bot connection is not configured.", size: :small, tone: :muted %>
-            <div>
-              <%= lc_button_link_to "Export public context", context_export_path, variant: :secondary, size: :sm, icon: "arrow-down-tray", data: { turbo: false } %>
-            </div>
-          </div>
-        <% end %>
+<div class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl") %>">
+  <%= render "tags" %>
+  <%= render "connector" %>
+  <%= lc_list_section "Grok Bot context", footnote: "Interests, saved people, public reply counts, follow states, tags, and pins. Excludes private notes and DMs; downloading sends it nowhere." do %>
+    <%= lc_list_group do %>
+      <%= lc_list_row "Public context file", icon: "document-arrow-down" do %>
+        <%= lc_button_link_to "Export", context_export_path, variant: :secondary, size: :sm, data: { turbo: false }, aria: { label: "Export public context" } %>
       <% end %>
-  </div>
+    <% end %>
+  <% end %>
 </div>

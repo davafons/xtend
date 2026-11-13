@@ -40,4 +40,37 @@ module PeopleHelper
     in ["bookmark", _] then "You bookmarked their post · on or after #{day}"
     end
   end
+
+  # A relationship as one colored icon; the state is its title and screen-reader text.
+  def relationship_cue(state, title: state)
+    meaning = state_meaning(state)
+    tag.span(class: "inline-flex #{ApplicationHelper::MEANING_TEXT.fetch(meaning)}", title: title) do
+      safe_join([ lc_icon(relationship_icon(state), options: { class: "size-4", "aria-hidden": true }), tag.span(state, class: "sr-only") ])
+    end
+  end
+
+  # Replies in a table cell: replies from you (blue) · from them; the reply state is the title.
+  def reply_counts(person)
+    return tag.span("—", class: "text-muted-foreground", title: "No observed replies") if person.reply_events.empty?
+    title = "#{person.reply_state}: #{person.outgoing_count} from you, #{person.incoming_count} from them"
+    tag.span(class: "inline-flex items-center gap-related tabular-nums", title: title) do
+      safe_join([ tag.span(person.reply_state, class: "sr-only"), tag.span(person.outgoing_count, class: "text-you"),
+        tag.span("·", class: "text-muted-foreground", "aria-hidden": true), tag.span(person.incoming_count) ])
+    end
+  end
+
+  # Pin and keep-following as round icon buttons, like the buttons on an X profile.
+  def person_profile_actions(person)
+    pin = if person.pin
+      lc_icon_button_to("Unpin", person_pin_path(person), method: :delete, variant: :outline, title: "Pinned · unpin", aria: { pressed: true }) { lc_icon("bookmark", variant: :solid, options: { class: "text-you", "aria-hidden": true }) }
+    else
+      lc_icon_button_to("Pin", person_pin_path(person), icon: "bookmark", variant: :outline, title: "Pin")
+    end
+    keep = if person.follow_protection
+      lc_icon_button_to("Remove manual protection", person_follow_protection_path(person), method: :delete, variant: :outline, title: "Kept: protected from cleanup · remove", aria: { pressed: true }) { lc_icon("shield-check", variant: :solid, options: { class: "text-success", "aria-hidden": true }) }
+    else
+      lc_icon_button_to("Keep following", person_follow_protection_path(person), icon: "shield-check", variant: :outline, title: "Keep following: protect from cleanup (mutuals are protected automatically)")
+    end
+    safe_join([ pin, keep ])
+  end
 end

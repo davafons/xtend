@@ -2,11 +2,14 @@
     cookie so the server renders it the same way on every page. %>
 <% collapsed = cookies[:sidebar] == "collapsed" %>
 <% expanded = cookies[:sidebar] == "expanded" %>
-<aside class="crm-sidebar group/sidebar sticky top-0 flex h-dvh w-60 shrink-0 flex-col gap-section overflow-y-auto px-related py-inset rail:w-16" aria-label="Sidebar" data-controller="sidebar lc-scroll-keeper" data-lc-scroll-keeper-key-value="sidebar" <%= "data-collapsed" if collapsed %><%= "data-expanded" if expanded %>>
+<aside class="crm-sidebar group/sidebar sticky top-0 flex h-dvh w-60 shrink-0 flex-col gap-content overflow-y-auto px-related py-inset rail:w-16" aria-label="Sidebar" data-controller="sidebar lc-scroll-keeper" data-lc-scroll-keeper-key-value="sidebar" <%= "data-collapsed" if collapsed %><%= "data-expanded" if expanded %>>
   <div class="flex items-center justify-between gap-related ps-heading rail:flex-col rail:ps-0">
     <%= link_to root_path, class: "crm-signature-text text-subheading font-bold", aria: { label: "Twitter CRM" } do %><span class="rail:hidden">Twitter CRM</span><span class="hidden rail:inline" aria-hidden="true">TC</span><% end %>
     <%= lc_icon_button (collapsed ? "Expand sidebar" : "Collapse sidebar"), icon: "chevron-double-left", size: :sm, class: "rail:[&_svg]:rotate-180", aria: { expanded: !collapsed }, data: { action: "sidebar#toggle", sidebar_target: "toggle" } %>
   </div>
+  <%= lc_search label: "Search and commands", src: search_path, trigger: "Search", placeholder: "Search people, tags, drafts, posts, or pages…", empty: "Nothing matches %{query}", class: "w-full rail:hidden" do %>
+    <%= render "searches/results", search: Search.new(nil) %>
+  <% end %>
   <%= lc_nav_list label: "Main", indicator: true, class: "flex-1" do |nav| %>
     <% navigation_sections.each do |heading, items| %>
       <%= nav.group heading do %>

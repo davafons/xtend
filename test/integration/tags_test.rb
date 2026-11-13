@@ -41,6 +41,6 @@ class TagsTest < ActionDispatch::IntegrationTest
     get person_path(@person)
     assert_response :success
     assert_includes response.body, "You replied to A Builder"
-    assert_includes response.body, "Post text not collected."
+    assert_includes response.body, "Text not collected"
   end
 end

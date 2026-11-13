@@ -1,0 +1,63 @@
+<%# One post as x.com draws it: avatar column, name line, text, media, quote, and the action row.
+    An action shows only when there is a count or one of your marks for it, so a blank means not collected.
+    thread: draws the line from this avatar down to the next post in the same conversation. %>
+<%# locals: (avatar:, name:, handle:, body:, name_url: nil, at: nil, detail: nil, cue: nil, context: nil, media_kinds: [], quote: nil, counts: nil, counts_note: nil, marks: [], url: nil, thread: false, extra: nil) -%>
+<% counted = !counts.nil? %>
+<% counts ||= {} %>
+<% marks ||= [] %>
+<div class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 text-[0.9375rem] leading-5">
+  <div class="flex flex-col items-center [--lc-avatar-size:--spacing(10)]">
+    <%= avatar %>
+    <% if thread %><span class="mt-1 -mb-3 w-0.5 grow bg-border" aria-hidden="true"></span><% end %>
+  </div>
+  <div class="min-w-0 <%= thread ? 'pb-5' : '' %>">
+    <p class="flex min-w-0 items-center gap-1 text-muted-foreground">
+      <% if name_url %><%= link_to name, name_url, class: "truncate font-bold text-foreground hover:underline" %><% else %><span class="truncate font-bold text-foreground"><%= name %></span><% end %>
+      <% if handle %><span class="min-w-0 truncate">@<%= handle %></span><% end %>
+      <%= cue %>
+      <% if at %><span aria-hidden="true">·</span><span class="shrink-0"><%= x_post_time at, detail: detail %></span><% end %>
+    </p>
+    <% if context %><p class="text-muted-foreground"><%= context %></p><% end %>
+    <% if body.present? %>
+      <p class="mt-0.5 whitespace-pre-line break-words"><%= x_post_body body %></p>
+    <% else %>
+      <p class="mt-0.5 italic text-muted-foreground">Text not collected</p>
+    <% end %>
+    <% if media_kinds.any? %>
+      <% video = (media_kinds & %w[video animated_gif]).any? %>
+      <p class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-tile px-3 py-1 text-caption text-muted-foreground">
+        <%= lc_icon(video ? "film" : "photo", options: { class: "size-4", "aria-hidden": true }) %>
+        <%= media_kinds.map { |kind| { "photo" => "Photo", "video" => "Video", "animated_gif" => "GIF" }.fetch(kind, kind) }.uniq.to_sentence %>
+      </p>
+    <% end %>
+    <% if quote %>
+      <div class="mt-3 rounded-2xl bg-tile px-3 py-2.5">
+        <p class="flex min-w-0 items-center gap-1 text-muted-foreground">
+          <span class="truncate font-bold text-foreground"><%= quote[:name] || "Quoted post" %></span>
+          <% if quote[:handle] %><span class="truncate">@<%= quote[:handle] %></span><% end %>
+        </p>
+        <p class="mt-0.5 line-clamp-4 whitespace-pre-line break-words"><%= x_post_body quote[:body] %></p>
+      </div>
+    <% end %>
+    <% stat = ->(key, icon, label, mark: nil, tone: nil) { x_post_stat(icon, counts[key], label, counted: counted, mine: mark && marks.include?(mark), tone: tone, note: counts_note) } %>
+    <div class="-ms-2 mt-1 grid grid-cols-[repeat(4,minmax(0,1fr))_auto] items-center text-[0.8125rem] tabular-nums text-muted-foreground">
+      <div class="flex items-center">
+        <% if url && !demo? %>
+          <%= link_to url, target: "_blank", rel: "noopener noreferrer", aria: { label: "Reply on X" }, title: "Reply on X", class: "group inline-flex items-center hover:text-you" do %>
+            <span class="<%= PostsHelper::ICON_BOX %> group-hover:bg-you/15"><%= lc_icon "chat-bubble-oval-left", options: { class: "size-[1.15rem]", "aria-hidden": true } %></span><%= compact_count(counts[:reply]) if counts[:reply].to_i.positive? %>
+          <% end %>
+        <% else %>
+          <%= stat.(:reply, "chat-bubble-oval-left", "replies") %>
+        <% end %>
+      </div>
+      <div class="flex items-center"><%= stat.(:repost, "arrow-path-rounded-square", "reposts") %></div>
+      <div class="flex items-center"><%= stat.(:like, "heart", "likes", mark: "like", tone: "text-like") %></div>
+      <div class="flex items-center"><%= stat.(:view, "chart-bar", "views") %></div>
+      <div class="flex items-center gap-1">
+        <%= stat.(:bookmark, "bookmark", "bookmarks", mark: "bookmark", tone: "text-you") %>
+        <%= extra %>
+        <% if url && !demo? %><%= lc_icon_button_link_to "Open on X", url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open on X" %><% end %>
+      </div>
+    </div>
+  </div>
+</div>

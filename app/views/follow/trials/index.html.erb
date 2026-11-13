@@ -2,15 +2,11 @@
 <h1 class="sr-only">Follow trials</h1>
 <% trials = @trials %>
 <% counts = trials.counts %>
-<%= stat_cards [
-  [ "Followed since #{trials.baseline&.observed_at&.strftime("%-d %b") || "—"}", counts["all"] ],
-  [ "Followed you back", counts["all"].positive? ? "#{counts["followed_back"]} · #{(counts["followed_back"] * 100.0 / counts["all"]).round}%" : "—" ],
-  [ "No follow-back after #{trials.days} days", counts["due"] ],
-  [ "Still in trial", counts["waiting"] ]
-] %>
-
 <div class="flex flex-wrap items-center gap-related">
   <%= view_tabs "Trial views", Follow::Trials::VIEWS.map { |key, label| [ "#{label} · #{counts[key]}", follow_trials_path(view: key, days: trials.days), trials.view == key ] } %>
+  <% if trials.available? && counts["all"].positive? %>
+    <p class="text-small text-muted-foreground"><span class="tabular-nums text-foreground"><%= (counts["followed_back"] * 100.0 / counts["all"]).round %>%</span> followed back since <%= trials.baseline.observed_at.strftime("%-d %b") %></p>
+  <% end %>
   <%= form_with url: follow_trials_path, method: :get, class: "ms-auto", data: { controller: "auto-submit", turbo_action: "replace" } do %>
     <%= hidden_field_tag :view, trials.view, id: nil %>
     <%= lc_select Follow::Trials::PERIODS.map { |days| [ "Trial: #{days} days", days ] }, name: "days", selected: trials.days, size: :sm, aria: { label: "Trial length" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
@@ -18,23 +14,23 @@
 </div>
 
 <% if !trials.available? %>
-  <%= empty_state "Needs a first complete following list.", "Scroll your Following page on x.com to the end with the extension on. Accounts you follow after that start a trial here.", icon: "beaker" %>
+  <%= empty_state "Needs a first complete following list.", "Scroll your Following page on x.com to the end with the extension on; later follows start a trial here.", icon: "beaker" %>
 <% elsif trials.list.empty? %>
-  <% empty = { "due" => "Nobody has gone #{trials.days} days without following you back. Accounts you keep following are left out.", "followed_back" => "Nobody you followed recently has followed back yet.", "waiting" => "No trial is running: everyone you followed recently is past #{trials.days} days or followed back.", "all" => "You haven't followed anyone since #{trials.baseline.observed_at.strftime("%-d %b")}, or the capture hasn't seen it yet." } %>
-  <%= empty_state empty.fetch(trials.view), icon: "beaker" %>
+  <% title, text = { "due" => [ "Nobody is overdue.", "No one has gone #{trials.days} days without following you back." ], "followed_back" => [ "No follow-backs yet.", nil ], "waiting" => [ "No trial running.", "Everyone you followed recently is past #{trials.days} days or followed back." ], "all" => [ "No new follows.", "None since #{trials.baseline.observed_at.strftime("%-d %b")} that the capture has seen." ] }.fetch(trials.view) %>
+  <%= empty_state title, text, icon: "beaker" %>
 <% else %>
   <%= lc_card padding: :none, class: "overflow-hidden" do %>
     <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Follow trials">
       <%= lc_table do %>
         <caption class="sr-only">People you followed recently</caption>
         <thead>
-          <tr>
+          <tr class="whitespace-nowrap">
             <th scope="col">Account</th>
             <th scope="col">You followed</th>
             <th scope="col">Follows you</th>
-            <th scope="col">You, last</th>
-            <th scope="col">Them, last</th>
-            <th scope="col" class="text-end">Decision</th>
+            <th scope="col">Your last</th>
+            <th scope="col">Their last</th>
+            <th scope="col"><span class="sr-only">Decision</span></th>
           </tr>
         </thead>
         <tbody>
@@ -45,7 +41,7 @@
             <tr>
               <th scope="row" class="font-normal">
                 <%= render "people/identity", person: person %>
-                <% if trial.kept %><span class="ms-11 text-caption text-muted-foreground">You chose to keep following</span><% end %>
+
               </th>
               <td class="whitespace-nowrap text-small">
                 <span class="block font-medium"><%= pluralize(trial.days, "day") %> ago</span>
@@ -59,13 +55,17 @@
                   <%= lc_badge "Not yet" %>
                 <% end %>
               </td>
-              <td class="text-small"><%= mine ? interaction_label(mine) : tag.span("Nothing observed", class: "text-muted-foreground") %></td>
-              <td class="text-small"><%= theirs ? interaction_label(theirs) : tag.span("Nothing observed", class: "text-muted-foreground") %></td>
+              <td class="text-small"><%= mine ? interaction_label(mine) : tag.span("—", class: "text-muted-foreground", title: "Nothing observed") %></td>
+              <td class="text-small"><%= theirs ? interaction_label(theirs) : tag.span("—", class: "text-muted-foreground", title: "Nothing observed") %></td>
               <td>
-                <div class="flex flex-wrap items-center justify-end gap-tight">
+                <div class="flex items-center justify-end gap-tight">
                   <%= lc_icon_button_link_to "Open @#{person.handle} on X", person.profile_url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open on X" %>
-                  <% unless trial.kept %><%= lc_button_to "Keep", follow_reviews_path(person_id: person.id, decision: "keep", return_to: "trials", view: trials.view, days: trials.days), variant: :secondary, size: :sm, icon: "shield-check" %><% end %>
-                  <%= lc_button_to "I unfollowed", follow_reviews_path(person_id: person.id, decision: "reported_unfollow", return_to: "trials", view: trials.view, days: trials.days), variant: :secondary, size: :sm, icon: "user-minus", class: "whitespace-nowrap" %>
+                  <% if trial.kept %>
+                    <%= lc_badge(tone: :success, title: "You chose to keep following") { safe_join([lc_icon("shield-check", options: { class: "size-3.5", "aria-hidden": true }), "Kept"]) } %>
+                  <% else %>
+                    <%= lc_button_to "Keep", follow_reviews_path(person_id: person.id, decision: "keep", return_to: "trials", view: trials.view, days: trials.days), variant: :secondary, size: :sm, icon: "shield-check", title: "Keep following; never suggest again" %>
+                  <% end %>
+                  <%= lc_button_to "Unfollowed", follow_reviews_path(person_id: person.id, decision: "reported_unfollow", return_to: "trials", view: trials.view, days: trials.days), variant: :secondary, size: :sm, icon: "user-minus", title: "I unfollowed them on X", aria: { label: "I unfollowed #{person.name}" } %>
                 </div>
               </td>
             </tr>
@@ -75,4 +75,11 @@
     </div>
   <% end %>
 <% end %>
-<%= lc_text "Follow dates are ranges: between the last complete following list without them and the first time the capture or a list saw you following them. People on your first list (#{trials.baseline&.observed_at&.strftime("%-d %b %Y") || "none yet"}) have unknown start dates and aren't trials. Unfollowing on X records itself with the extension on. X treats rapid follow-and-unfollow cycles as platform manipulation, so keep the people who followed back and talk with you.", size: :caption, tone: :muted %>
+<%= lc_collapsible card: false, indicator: :chevron, summary_class: "w-fit text-small text-muted-foreground" do |collapsible| %>
+  <% collapsible.summary do %>About this data<% end %>
+  <div class="flex flex-col gap-tight pt-related text-small text-muted-foreground">
+    <p>Follow dates are ranges: from the last complete following list without them to the first time the capture or a list saw you following them.</p>
+    <p>People on your first list (<%= trials.baseline&.observed_at&.strftime("%-d %b %Y") || "none yet" %>) have unknown start dates and aren't trials. Unfollowing on X records itself with the extension on.</p>
+    <p>X treats rapid follow-and-unfollow cycles as platform manipulation, so keep the people who followed back and talk with you.</p>
+  </div>
+<% end %>

@@ -1,54 +1,56 @@
 <% content_for :title, @draft.title.to_s.truncate(40).presence || "Draft" %>
-<div class="flex items-center justify-between gap-section">
-  <%= lc_button_link_to "Drafts", drafts_path, variant: :ghost, size: :sm, icon: "arrow-left" %>
-  <div class="flex items-center gap-related">
-    <% if @draft.source == "grok" %><%= grok_badge "Written by Grok" %><% end %>
-    <span class="text-small text-muted-foreground">Edited <%= time_ago_in_words(@draft.updated_at) %> ago</span>
-    <%= lc_button_to "Delete", draft_path(@draft), method: :delete, variant: :ghost, size: :sm, icon: "trash", data: { turbo_confirm: "Delete this draft, its alternatives, and its history?" } %>
-  </div>
-</div>
+<% name, handle = owner_identity %>
+<% revisions = @draft.revisions.newest_first.limit(20).to_a %>
 
-<div class="grid grid-cols-[minmax(0,40rem)_20rem] items-start justify-between gap-section">
-  <div class="flex flex-col gap-section">
-    <div class="flex flex-col gap-content"><%= render "form", draft: @draft %></div>
+<div class="mx-auto grid w-full max-w-[60rem] grid-cols-[minmax(0,600px)_20rem] items-start gap-section">
+  <div class="flex flex-col">
+    <div class="flex items-center gap-related border-b border-border px-related py-related">
+      <%= lc_icon_button_link_to "Back to drafts", drafts_path, icon: "arrow-left", title: "Back to drafts" %>
+      <span class="ms-auto flex items-center gap-related text-small text-muted-foreground">
+        <% if @draft.source == "grok" %><%= grok_badge "Written by Grok" %><% end %>
+        <span>Edited <%= time_ago_in_words(@draft.updated_at) %> ago</span>
+      </span>
+      <%= lc_icon_button_to "Delete draft", draft_path(@draft), method: :delete, icon: "trash", tone: :destructive, title: "Delete draft", form: { data: { turbo_confirm: "Delete this draft, its alternatives, and its history?" } } %>
+    </div>
 
-    <section class="flex flex-col gap-heading" id="alternatives" aria-labelledby="alternatives-heading">
-      <div>
-        <%= lc_heading "Other versions", level: 2, size: :heading, id: "alternatives-heading" %>
-        <%= lc_text "Different takes on the same idea. Using one makes it the main version and keeps the current text here.", size: :small, tone: :muted %>
-      </div>
-      <% if @draft.alternatives.any? %>
-        <%= lc_card padding: :none do %>
-          <ol class="flex flex-col divide-y divide-border">
-            <% @draft.alternatives.each do |alternative| %>
-              <li class="flex flex-col gap-heading px-inset py-content">
-                <div class="flex items-center gap-related text-small text-muted-foreground">
-                  <% if alternative.source == "grok" %><%= grok_badge %><% else %><span>You</span><% end %>
-                  <% if alternative.note.present? %><span class="truncate"><%= alternative.note %></span><% end %>
-                  <span class="ms-auto tabular-nums <%= "text-destructive" if alternative.over_limit? %>"><%= alternative.thread? ? "Thread of #{alternative.parts.size}" : "#{alternative.part_lengths.first}/#{Draft::LIMIT}" %></span>
-                </div>
-                <p class="whitespace-pre-line break-words"><%= alternative.parts.join("\n\n") %></p>
-                <div class="flex items-center gap-tight">
-                  <%= lc_button_to "Use this version", draft_alternative_promotion_path(@draft, alternative), variant: :secondary, size: :sm, icon: "arrow-up" %>
-                  <%= lc_button_to draft_alternative_path(@draft, alternative), method: :delete, variant: :ghost, size: :sm, aria: { label: "Delete this version" }, title: "Delete this version" do %><%= lc_icon "trash", options: { class: "size-4" } %><% end %>
-                </div>
-              </li>
-            <% end %>
-          </ol>
+    <%= render "form", draft: @draft %>
+
+    <section id="alternatives" aria-labelledby="alternatives-heading">
+      <h2 id="alternatives-heading" class="px-content pt-content text-caption font-semibold text-muted-foreground" title="Different takes on the same idea. Using one swaps it with the main text.">Other versions</h2>
+      <ol class="flex flex-col divide-y divide-border border-b border-border">
+        <% @draft.alternatives.each do |alternative| %>
+          <% grok = alternative.source == "grok" %>
+          <% count = capture do %>
+            <span class="text-small tabular-nums <%= alternative.over_limit? ? "text-destructive" : "text-muted-foreground" %>"><%= alternative.thread? ? "#{alternative.parts.size} posts" : "#{alternative.part_lengths.first}/#{Draft::LIMIT}" %></span>
+            <span class="-my-1.5 -me-1.5 flex items-center">
+              <%= lc_icon_button_to "Use this version", draft_alternative_promotion_path(@draft, alternative), icon: "arrows-up-down", size: :sm, class: "text-you", title: "Use this version (the current text stays here)" %>
+              <%= lc_icon_button_to "Delete this version", draft_alternative_path(@draft, alternative), method: :delete, icon: "trash", size: :sm, title: "Delete this version" %>
+            </span>
+          <% end %>
+          <%= render layout: "drafts/post", locals: {
+                avatar: (grok ? lc_icon_badge(icon: "sparkles", shape: :circle, size: 11, class: "bg-grok/15 text-grok") : owner_avatar(size: 11)),
+                name: (grok ? "Grok" : name), handle: (handle unless grok), time: alternative.note.presence, extra: count } do %>
+            <div class="flex flex-col gap-heading">
+              <% alternative.parts.each do |part| %><p class="whitespace-pre-line break-words"><%= part %></p><% end %>
+            </div>
+          <% end %>
         <% end %>
-      <% end %>
-      <%= lc_card do %>
-        <%= form_with url: draft_alternatives_path(@draft), class: "flex flex-col gap-heading" do %>
-          <%= lc_textarea "", name: "alternative[body]", rows: 3, placeholder: "Write another version. Separate thread posts with a --- line.", aria: { label: "Another version" }, required: true %>
-          <%= lc_button "Add version", type: :submit, variant: :secondary, size: :sm, icon: "plus", class: "self-start" %>
-        <% end %>
-      <% end %>
+        <li>
+          <%= form_with url: draft_alternatives_path(@draft), class: "grid grid-cols-[2.75rem_minmax(0,1fr)] gap-x-heading px-content py-heading" do %>
+            <%= owner_avatar size: 11 %>
+            <div class="flex flex-col gap-related">
+              <%= lc_textarea "", name: "alternative[body]", rows: 2, placeholder: "Another version. Separate thread posts with a --- line.", aria: { label: "Another version" }, required: true,
+                class: "min-h-0 resize-y border-0 px-0 pt-2.5 text-[15px] shadow-none [--lc-field-bg:transparent] focus-visible:outline-none focus-visible:ring-0" %>
+              <%= lc_button "Add version", type: :submit, variant: :secondary, size: :sm, class: "self-end" %>
+            </div>
+          <% end %>
+        </li>
+      </ol>
     </section>
   </div>
 
   <aside class="sticky top-6 flex flex-col gap-content">
     <%= render "details", draft: @draft %>
-    <% revisions = @draft.revisions.newest_first.limit(20).to_a %>
     <% if revisions.size > 1 %>
       <%= lc_card do %>
         <div class="flex flex-col gap-heading">
@@ -56,16 +58,19 @@
           <ol class="flex flex-col divide-y divide-border">
             <% revisions.each_with_index do |revision, index| %>
               <li class="flex flex-col gap-tight py-heading first:pt-0 last:pb-0">
-                <div class="flex items-center gap-related text-caption text-muted-foreground">
-                  <time datetime="<%= revision.updated_at.iso8601 %>" title="<%= revision.updated_at.strftime("%-d %b %Y, %H:%M") %>"><%= time_ago_in_words(revision.updated_at) %> ago</time>
+                <div class="flex h-7 items-center gap-related text-caption text-muted-foreground">
                   <span><%= revision.source == "grok" ? "Grok" : "You" %></span>
+                  <span aria-hidden="true">·</span>
+                  <%= x_post_time(revision.updated_at) %>
                   <% if index.zero? %>
                     <span class="ms-auto">Current</span>
                   <% else %>
-                    <%= lc_button_to "Restore", draft_revision_restoration_path(@draft, revision), variant: :ghost, size: :sm, form: { class: "ms-auto" } %>
+                    <%= lc_icon_button_to "Restore this version", draft_revision_restoration_path(@draft, revision), icon: "arrow-uturn-left", size: :sm, title: "Restore", form: { class: "ms-auto" } %>
                   <% end %>
                 </div>
-                <p class="line-clamp-3 whitespace-pre-line text-small <%= "text-muted-foreground" unless index.zero? %>"><%= revision.body %></p>
+                <% revision_parts = Draft.new(body: revision.body).parts %>
+                <p class="line-clamp-3 whitespace-pre-line text-small <%= "text-muted-foreground" unless index.zero? %>"><%= revision_parts.first %></p>
+                <% if revision_parts.size > 1 %><span class="text-caption text-muted-foreground"><%= revision_parts.size %> posts</span><% end %>
               </li>
             <% end %>
           </ol>

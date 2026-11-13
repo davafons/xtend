@@ -1,20 +1,19 @@
 <% workspace = Current.workspace %>
-<%= lc_list_section "Browser capture", id: "capture", class: "scroll-mt-section", footnote: "Install: load the extension folder in this repository unpacked from brave://extensions with Developer mode on, then enter #{request.base_url} and the token in its options. Batches from a different X account are refused." do %>
+<%= lc_list_section "Browser extension", id: "capture", class: "scroll-mt-section", footnote: "Free. Saves what x.com already loaded while you browse." do %>
   <%= lc_list_group do %>
-    <%= lc_list_row padded: true do %>
-      <%= lc_text "The Twitter CRM extension forwards what x.com already loaded while you browse: timelines, lists, search, profiles, threads, your likes and bookmarks, follow lists, and \"Liked by\" and \"Reposted by\" lists. That fills Timeline and Network. It sends no requests to X and costs nothing, but it only covers what you scrolled past. Scrolling your own Followers or Following page all the way down saves a complete list; nothing else counts as complete, and it never completes a like history.", size: :small, tone: :muted %>
-    <% end %>
-    <%= lc_list_row "Extension token", icon: "key", subtitle: (workspace.capture_token_digest ? "Created #{relative_day workspace.capture_token_created_at} · #{workspace.capture_token_used_at ? "last batch #{time_ago_in_words(workspace.capture_token_used_at)} ago" : "no batch received yet"}" : "No token. The extension can't send anything until you create one.") do %>
+    <%= lc_list_row "Token", icon: "key", subtitle: (workspace.capture_token_digest ? "Created #{time_ago_in_words(workspace.capture_token_created_at)} ago · #{workspace.capture_token_used_at ? "last batch #{time_ago_in_words(workspace.capture_token_used_at)} ago" : "no batch yet"}" : "None yet; the extension can't send anything") do %>
       <% if workspace.capture_token_digest %>
-        <%= lc_button_to "Replace", x_capture_token_path, variant: :secondary, size: :sm, icon: "arrow-path", data: { turbo: false }, aria: { label: "Replace token" } %>
-        <%= lc_icon_button_to "Revoke token", x_capture_token_path, method: :delete, icon: "no-symbol", size: :sm, tone: :destructive %>
         <%= lc_badge "Token active", tone: :success %>
+        <%= lc_icon_button_to "Replace token", x_capture_token_path, icon: "arrow-path", size: :sm, title: "Replace token", data: { turbo: false } %>
+        <%= lc_icon_button_to "Revoke token", x_capture_token_path, method: :delete, icon: "no-symbol", size: :sm, tone: :destructive, title: "Revoke token" %>
       <% else %>
-        <%= lc_button_to "Create capture token", x_capture_token_path, variant: :secondary, size: :sm, icon: "plus", data: { turbo: false } %>
+        <%= lc_button_to "Create token", x_capture_token_path, variant: :secondary, size: :sm, data: { turbo: false }, aria: { label: "Create capture token" } %>
       <% end %>
     <% end %>
     <% if @capture_totals.values.any?(&:positive?) %>
-      <%= lc_list_row "Last 7 days", icon: "arrow-down-tray", subtitle: "#{pluralize(@capture_totals[:posts], "post")} · #{pluralize(@capture_totals[:likes], "like")} · #{pluralize(@capture_totals[:bookmarks], "bookmark")}" %>
+      <%= lc_list_row "Last 7 days", icon: "arrow-down-tray" do %>
+        <span class="text-small tabular-nums text-muted-foreground"><%= pluralize(@capture_totals[:posts], "post") %> · <%= pluralize(@capture_totals[:likes], "like") %> · <%= pluralize(@capture_totals[:bookmarks], "bookmark") %></span>
+      <% end %>
     <% end %>
   <% end %>
 <% end %>

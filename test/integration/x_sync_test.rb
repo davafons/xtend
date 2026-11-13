@@ -19,7 +19,7 @@ class XSyncTest < ActionDispatch::IntegrationTest
           assert_equal 0, calls, "the request only queues the read"
           assert_equal "queued", X::SyncRun.last.status
           get x_sources_path
-          assert_includes response.body, "Reading from X in the background"
+          assert_includes response.body, "Reading from X"
           perform_enqueued_jobs
         end
         assert_equal 1, calls

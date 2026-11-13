@@ -1,0 +1,11 @@
+<%# A follow list's freshness and the free way to refresh it: scroll the list to the end on x.com. %>
+<% complete = Follow::Snapshot.latest_complete(direction) %>
+<% url = own_list_url(direction) %>
+<%= lc_list_row direction.capitalize, icon: (direction == "followers" ? "user-group" : "user-plus"), subtitle: follow_list_summary(direction) do %>
+  <% if complete&.fresh? %>
+    <%= lc_badge "Current", tone: :success %>
+  <% else %>
+    <%= lc_badge complete ? "Stale" : "Missing", title: (complete ? "Older than a day" : nil) %>
+  <% end %>
+  <% if url %><%= lc_icon_button_link_to "Scroll your #{direction} on X to refresh", url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Scroll your #{direction} on X to refresh" %><% end %>
+<% end %>

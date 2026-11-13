@@ -1,0 +1,20 @@
+<% last_import = X::ArchiveImport.order(:created_at).last %>
+<%= lc_list_section "X archive", id: "archive", class: "scroll-mt-section", footnote: "Fills your full one-to-one DM history: sender and time only, never message text." do %>
+  <%= form_with url: x_archive_imports_path, multipart: true do %>
+    <%= lc_list_group do %>
+      <%= lc_list_row "Last import", icon: "archive-box" do %>
+        <span class="text-small tabular-nums text-muted-foreground">
+          <% if last_import %>
+            <%= relative_day last_import.created_at %> · <%= pluralize(last_import.direct_messages_count, "new DM") %><%= " · partial, coverage not claimed" if last_import.partial %>
+          <% else %>
+            Never
+          <% end %>
+        </span>
+      <% end %>
+      <%= lc_list_row "Archive .zip", icon: "arrow-up-tray" do %>
+        <%= tag.input type: :file, name: "file", accept: "application/zip,.zip", required: true, id: "archive-file", aria: { label: "X archive .zip" }, class: "max-w-56 text-small text-muted-foreground file:me-related file:rounded-full file:border-0 file:bg-secondary file:px-content file:py-tight file:text-small file:text-foreground" %>
+        <%= lc_button "Import", type: :submit, variant: :secondary, size: :sm, aria: { label: "Import DM history" } %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>

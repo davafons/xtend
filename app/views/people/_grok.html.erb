@@ -1,13 +1,13 @@
 <% recap = person.grok_proposals.latest_recap %>
 <% pending = person.grok_proposals.pending.order(:created_at) %>
 <% if recap || pending.any? %>
-  <%= lc_card do %>
+  <%= lc_card padding: :sm do %>
     <div class="flex flex-col gap-content">
-      <h2 class="flex items-center gap-related text-subheading text-grok"><%= lc_icon "sparkles", options: { class: "size-5", "aria-hidden": true } %>From Grok</h2>
+      <h2 class="flex items-center gap-tight text-small font-semibold text-grok"><%= lc_icon "sparkles", options: { class: "size-4", "aria-hidden": true } %>Grok</h2>
       <% if recap %>
         <div>
           <p class="whitespace-pre-line text-small"><%= recap.payload["summary"] %></p>
-          <p class="mt-tight text-caption text-muted-foreground">Recap accepted <%= relative_day recap.reviewed_at %>. Grok research, not collected evidence.</p>
+          <p class="mt-tight text-caption text-muted-foreground" title="Grok research, not collected evidence">Accepted <%= relative_day recap.reviewed_at %></p>
         </div>
       <% end %>
       <% pending.each do |proposal| %>

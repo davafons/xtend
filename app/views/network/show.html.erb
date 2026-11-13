@@ -1,5 +1,6 @@
 <% content_for :title, "Network" %>
 <% kind_labels = { "reply" => "Replies", "quote" => "Quotes", "repost" => "Reposts", "mention" => "Mentions", "like" => "Likes", "follow" => "Follows" } %>
+<% kind_icons = { "reply" => "chat-bubble-oval-left", "quote" => "chat-bubble-bottom-center-text", "repost" => "arrow-path-rounded-square", "mention" => "at-symbol", "like" => "heart", "follow" => "user-plus" } %>
 <h1 class="sr-only">Network</h1>
 
 <%= form_with url: network_path, method: :get, class: "flex flex-wrap items-center gap-related", data: { controller: "auto-submit", turbo_action: "replace" } do %>
@@ -8,10 +9,10 @@
   <% if @tags.any? %>
     <%= lc_select [ [ "Any tag", "" ], *@tags.map { |tag| [ "##{tag.name}", tag.name ] } ], name: "tag", selected: @graph.tag, size: :sm, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% end %>
-  <fieldset class="flex flex-wrap items-center gap-tight">
+  <fieldset class="ms-auto flex flex-wrap items-center gap-tight">
     <legend class="sr-only">Interactions to show</legend>
     <% Network::Graph::KINDS.each do |kind| %>
-      <%= lc_toggle kind_labels.fetch(kind), name: "kinds[]", value: kind, active: @graph.kinds.include?(kind), size: :sm, input: { type: "checkbox", data: { action: "auto-submit#submit" } } %>
+      <%= lc_toggle name: "kinds[]", value: kind, active: @graph.kinds.include?(kind), size: :sm, title: kind_labels.fetch(kind), input: { type: "checkbox", data: { action: "auto-submit#submit" } } do %><%= lc_icon kind_icons.fetch(kind), options: { class: "size-4", "aria-hidden": true } %><span class="sr-only"><%= kind_labels.fetch(kind) %></span><% end %>
     <% end %>
   </fieldset>
   <div class="flex items-center gap-tight">
@@ -21,56 +22,52 @@
 <% end %>
 
 <% if @coverage.empty? %>
-  <%= empty_state "No interactions collected yet.", "Install the browser extension from X data and browse x.com as usual. Threads, timelines, follow lists, and \"Liked by\" lists you open fill this in, with no X API cost.", icon: "share" do %>
+  <%= empty_state "No interactions collected yet.", "Browse x.com with the capture extension on; threads, timelines, and follow lists you open fill this in for free.", icon: "share" do %>
     <%= lc_button_link_to "Set up browser capture", x_sources_path(anchor: "capture"), variant: :secondary %>
   <% end %>
 <% else %>
   <div class="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-inset" data-live="manual" data-controller="network" data-network-url-value="<%= network_path(request.query_parameters.merge(format: :json)) %>">
     <%= lc_card padding: :none, class: "relative overflow-hidden" do %>
       <div class="relative h-[40rem]">
-        <canvas class="absolute inset-0 size-full cursor-grab touch-none" data-network-target="canvas" role="img" aria-label="Network graph of <%= pluralize(@graph.nodes.size, "account") %> and <%= pluralize(@graph.links.size, "connection") %>"></canvas>
+        <canvas class="absolute inset-0 size-full cursor-grab touch-none" title="Scroll to zoom, drag to move, select someone to see their connections" data-network-target="canvas" role="img" aria-label="Network graph of <%= pluralize(@graph.nodes.size, "account") %> and <%= pluralize(@graph.links.size, "connection") %>"></canvas>
         <div class="pointer-events-none absolute start-4 top-4 rounded-lg bg-tile px-related py-tight text-small font-medium" data-network-target="tooltip" hidden></div>
-        <p class="absolute bottom-3 start-4 text-caption text-muted-foreground">Scroll to zoom, drag to move. Select someone to see their connections.</p>
       </div>
     <% end %>
     <aside class="flex flex-col gap-content">
       <%= lc_card do %>
         <div class="flex flex-col gap-heading" data-network-target="panel">
-          <%= lc_heading "Connections", level: 2, size: :subheading %>
+          <h2 class="<%= lc_text_class(size: :label) %>">Connections</h2>
           <%= lc_text "Select someone in the graph.", size: :small, tone: :muted %>
         </div>
       <% end %>
       <%= lc_card do %>
-        <div class="flex flex-col gap-heading text-small">
-          <%= lc_heading "Key", level: 2, size: :subheading %>
-          <div class="flex flex-col gap-1.5">
-            <span class="flex items-center gap-related"><span class="size-3 rounded-full ring-2 ring-success"></span>Mutual</span>
-            <span class="flex items-center gap-related"><span class="size-3 rounded-full ring-2 ring-you"></span>You follow</span>
-            <span class="flex items-center gap-related"><span class="size-3 rounded-full ring-2 ring-warning"></span>Follows you</span>
-            <span class="flex items-center gap-related"><span class="size-3 rounded-full ring-2 ring-muted-foreground"></span>Outside your CRM</span>
-            <span class="flex items-center gap-related"><span class="h-0.5 w-4 bg-you"></span>Your interactions</span>
-            <span class="flex items-center gap-related"><span class="h-0.5 w-4 bg-like"></span>Likes</span>
-            <span class="flex items-center gap-related"><span class="h-0.5 w-4 bg-foreground/40"></span>Replies, quotes, reposts, mentions</span>
-            <span class="flex items-center gap-related"><span class="w-4 border-t-2 border-dashed border-foreground/40"></span>Follows only</span>
-            <span class="flex items-center gap-related"><%= lc_icon "arrow-long-right", options: { class: "size-4 shrink-0 text-muted-foreground", "aria-hidden": true } %>Arrows point from who acted to who received it</span>
-          </div>
-        </div>
-      <% end %>
-      <%= lc_card do %>
-        <div class="flex flex-col gap-related text-small">
-          <%= lc_heading "Collected so far", level: 2, size: :subheading %>
-          <dl class="grid grid-cols-[1fr_auto] gap-x-content gap-y-tight tabular-nums">
-            <% X::Interaction::KINDS.each do |kind| %>
-              <dt class="text-muted-foreground"><%= kind_labels.fetch(kind) %></dt><dd class="text-end"><%= number_with_delimiter(@coverage.interactions_by_kind.fetch(kind, 0)) %></dd>
-            <% end %>
-            <dt class="text-muted-foreground">Follow edges</dt><dd class="text-end"><%= number_with_delimiter(@coverage.follow_edges) %></dd>
-            <dt class="text-muted-foreground">Accounts seen</dt><dd class="text-end"><%= number_with_delimiter(@coverage.accounts) %></dd>
-            <dt class="text-muted-foreground">Posts saved</dt><dd class="text-end"><%= number_with_delimiter(@coverage.posts) %></dd>
-          </dl>
-          <p class="text-caption text-muted-foreground">
-            <%= @coverage.last_capture_at ? "Last browser capture #{time_ago_in_words(@coverage.last_capture_at)} ago." : "No browser capture yet." %>
-            <% if @graph.isolated_count.positive? %><%= pluralize(@graph.isolated_count, "person") %> in this view <%= @graph.isolated_count == 1 ? "has" : "have" %> no connection yet.<% end %>
-          </p>
+        <div class="flex flex-col gap-content text-small">
+          <section class="flex flex-col gap-related" aria-labelledby="network-key">
+            <h2 id="network-key" class="text-caption text-muted-foreground">Key</h2>
+            <ul class="grid grid-cols-2 gap-x-related gap-y-tight">
+              <li class="flex items-center gap-related"><span class="size-3 shrink-0 rounded-full ring-2 ring-success"></span>Mutual</li>
+              <li class="flex items-center gap-related"><span class="size-3 shrink-0 rounded-full ring-2 ring-you"></span>You follow</li>
+              <li class="flex items-center gap-related"><span class="size-3 shrink-0 rounded-full ring-2 ring-warning"></span>Follows you</li>
+              <li class="flex items-center gap-related"><span class="size-3 shrink-0 rounded-full ring-2 ring-muted-foreground"></span>Outside CRM</li>
+              <li class="flex items-center gap-related"><span class="h-0.5 w-4 shrink-0 bg-you"></span>Yours</li>
+              <li class="flex items-center gap-related"><span class="h-0.5 w-4 shrink-0 bg-like"></span>Likes</li>
+              <li class="flex items-center gap-related" title="Replies, quotes, reposts, mentions"><span class="h-0.5 w-4 shrink-0 bg-foreground/40"></span>Other</li>
+              <li class="flex items-center gap-related"><span class="w-4 shrink-0 border-t-2 border-dashed border-foreground/40"></span>Follows only</li>
+              <li class="col-span-2 flex items-center gap-related"><%= lc_icon "arrow-long-right", options: { class: "size-4 shrink-0 text-muted-foreground", "aria-hidden": true } %>From who acted</li>
+            </ul>
+          </section>
+          <section class="flex flex-col gap-related" aria-labelledby="network-collected">
+            <h2 id="network-collected" class="text-caption text-muted-foreground" title="<%= @coverage.last_capture_at ? "Last browser capture #{time_ago_in_words(@coverage.last_capture_at)} ago" : "No browser capture yet" %>">Collected</h2>
+            <dl class="grid grid-cols-[1fr_auto] gap-x-content gap-y-tight tabular-nums">
+              <% X::Interaction::KINDS.each do |kind| %>
+                <dt class="text-muted-foreground"><%= kind_labels.fetch(kind) %></dt><dd class="text-end"><%= number_with_delimiter(@coverage.interactions_by_kind.fetch(kind, 0)) %></dd>
+              <% end %>
+              <dt class="text-muted-foreground">Follow edges</dt><dd class="text-end"><%= number_with_delimiter(@coverage.follow_edges) %></dd>
+              <dt class="text-muted-foreground">Accounts seen</dt><dd class="text-end"><%= number_with_delimiter(@coverage.accounts) %></dd>
+              <dt class="text-muted-foreground">Posts saved</dt><dd class="text-end"><%= number_with_delimiter(@coverage.posts) %></dd>
+            </dl>
+            <% if @graph.isolated_count.positive? %><p class="text-caption text-muted-foreground"><%= pluralize(@graph.isolated_count, "person") %> here <%= @graph.isolated_count == 1 ? "has" : "have" %> no connection yet.</p><% end %>
+          </section>
         </div>
       <% end %>
     </aside>
@@ -78,8 +75,8 @@
 
   <% top = @graph.nodes.reject { |node| node[:owner] }.sort_by { |node| -node[:weight] }.first(12) %>
   <% if top.any? %>
-    <section class="mt-section flex flex-col gap-heading" aria-labelledby="most-connected">
-      <%= lc_heading "Most connected in this view", level: 2, size: :heading, id: "most-connected" %>
+    <section class="flex flex-col gap-related" aria-labelledby="most-connected">
+      <h2 id="most-connected" class="<%= lc_text_class(size: :small, tone: :muted) %>">Most connected in this view</h2>
       <%= lc_card padding: :none do %>
         <ol class="grid grid-cols-2 divide-y divide-border xl:grid-cols-3">
           <% top.each do |node| %>

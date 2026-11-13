@@ -1,33 +1,36 @@
 <% content_for :title, "X data" %>
 <h1 class="sr-only">X data</h1>
-<div class="grid grid-cols-2 items-start gap-section">
-  <div class="<%= lc_stack_class(gap: :section) %>">
-    <%= lc_list_section "What's saved", id: "health", footnote: "Follow lists refresh for free when you scroll your own Followers or Following page on x.com to the end with the extension on. Reply history has limited coverage: an empty direction doesn't mean no replies ever happened." do %>
-      <%= lc_list_group do %>
-        <%= render "follow/lists/status", direction: "followers" %>
-        <%= render "follow/lists/status", direction: "following" %>
-        <%= lc_list_row "Follower changes and timing", icon: "chart-bar", href: follower_history_path do %>
-          <%= lc_icon "chevron-right", options: { class: "size-4 text-muted-foreground", "aria-hidden": true } %>
-        <% end %>
-        <%= lc_list_row "Reply history", icon: "chat-bubble-left-right", subtitle: "#{ReplyEvent.count} supported events" %>
-        <%= lc_list_row "Private messages", icon: "envelope", subtitle: ((since = DirectMessage.covered_since) ? "#{pluralize(DirectMessage.count, "one-to-one message")} since #{since.strftime("%-d %b %Y")} · sender and time only, never text, and never sent to Grok" : "Not collected · never sent to Grok") %>
+<div class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl") %>">
+  <%= lc_list_section "Saved", id: "health", footnote: "Reply history covers only what was collected; an empty direction doesn't mean no replies." do %>
+    <%= lc_list_group do %>
+      <%= render "follow_list", direction: "followers" %>
+      <%= render "follow_list", direction: "following" %>
+      <%= lc_list_row "Follower changes and timing", icon: "chart-bar", href: follower_history_path do %>
+        <%= lc_icon "chevron-right", options: { class: "size-4 text-muted-foreground", "aria-hidden": true } %>
+      <% end %>
+      <%= lc_list_row "Reply history", icon: "chat-bubble-left-right" do %>
+        <span class="text-small tabular-nums text-muted-foreground"><%= pluralize(ReplyEvent.count, "event") %></span>
+      <% end %>
+      <% since = DirectMessage.covered_since %>
+      <%= lc_list_row "Private messages", icon: "envelope", subtitle: (since ? "Since #{since.strftime("%-d %b %Y")} · sender and time only, never sent to Grok" : "Never sent to Grok") do %>
+        <span class="text-small tabular-nums text-muted-foreground"><%= since ? pluralize(DirectMessage.count, "message") : "Not collected" %></span>
       <% end %>
     <% end %>
-    <%= render "capture" %>
-    <%= lc_list_section "Import your X archive", id: "archive", class: "scroll-mt-section", footnote: "Must be the archive of the connected account. Re-importing a newer archive only adds messages not already saved. Posts, likes, and follows in the archive aren't imported; X API collection covers them." do %>
-      <%= lc_card do %>
-        <%= form_with url: x_archive_imports_path, multipart: true, class: lc_stack_class(gap: :content) do %>
-          <%= lc_text "Upload the .zip X sent you to fill in your full DM history, including encrypted chats the API can't see. Only the manifest, account, and DM files are opened. For one-to-one conversations it keeps who sent each message and when; message text is never stored.", size: :small, tone: :muted %>
-          <% if (last_import = X::ArchiveImport.order(:created_at).last) %>
-            <%= lc_text "Last import #{relative_day last_import.created_at}: archive generated #{last_import.generated_at.strftime("%-d %b %Y")} · #{pluralize(last_import.direct_messages_count, "new DM")}#{" · partial archive, so coverage isn't claimed" if last_import.partial}", size: :small %>
-          <% end %>
-          <%= lc_field label: "X archive · .zip", id: "archive-file" do |field| %>
-            <%= tag.input type: :file, name: "file", accept: "application/zip,.zip", required: true, class: "text-small", **field %>
-          <% end %>
-          <div><%= lc_button "Import DM history", type: :submit, variant: :secondary, size: :sm, icon: "arrow-up-tray" %></div>
-        <% end %>
-      <% end %>
-    <% end %>
-  </div>
+  <% end %>
+
+  <%= render "capture" %>
+  <%= render "archive" %>
   <%= render "collection" %>
+
+  <%= lc_collapsible title: "About this data", card: false, indicator: :chevron, summary_class: "px-content text-small text-muted-foreground sm:px-inset" do %>
+    <ul class="flex list-disc flex-col gap-related px-content ps-inset pt-related text-small text-muted-foreground sm:px-inset sm:ps-section">
+      <li>Follow lists refresh for free when you scroll your own Followers or Following page on x.com to the end with the extension on. Nothing else counts as a complete list.</li>
+      <li>The extension forwards what x.com already loaded: timelines, lists, search, profiles, threads, likes, bookmarks, follow lists, and "Liked by" and "Reposted by" lists. It sends no requests to X and only covers what you scrolled past; it never completes a like history.</li>
+      <li>Install the extension by loading this repository's extension folder unpacked from brave://extensions with Developer mode on, then enter <%= request.base_url %> and the token in its options. Batches from a different X account are refused.</li>
+      <li>The archive must belong to the connected account. Only the manifest, account, and DM files are opened, including encrypted chats the API can't see. Re-importing a newer archive only adds new messages; posts, likes, and follows in it aren't imported.</li>
+      <li>X API reads take one bounded page per click. Replies update once their author and parent resolve, and collection ends 15 seconds before each check, so a reply you just sent may need a later refresh. Old history enriches people without adding to today's outreach.</li>
+      <li>Likes and bookmarks read from the newest backwards and stop at saved items. X doesn't say when you liked or bookmarked something, so the post date (or the previous check) is the earliest possible time. X serves only the last 30 days of DMs.</li>
+      <li>Costs are per page at standard rates; owned rates apply once pricing evidence is recorded on Spending.</li>
+    </ul>
+  <% end %>
 </div>

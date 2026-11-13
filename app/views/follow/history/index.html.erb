@@ -1,27 +1,27 @@
 <% content_for :title, "Followers" %>
 <h1 class="sr-only">Followers</h1>
-<%= stat_cards [
-  [ "Followers", @counts["current"] ],
-  [ "You follow back", @counts["current"].positive? ? "#{(@follow_back * 100.0 / @counts["current"]).round}%" : "—" ],
-  [ "New since last check", @new_since_last ? "+#{@new_since_last}" : "—" ],
-  [ "Lost since last check", @lost_since_last ? "−#{@lost_since_last}" : "—" ]
-] %>
-
-<div class="flex flex-wrap items-center justify-between gap-heading">
+<div class="flex flex-wrap items-center gap-related">
   <%= view_tabs "Follower views", Follow::HistoryController::VIEWS.map { |key, label| [ "#{label} · #{@counts[key]}", follower_history_path(view: key), @view == key ] } %>
-  <div class="flex flex-wrap items-center gap-related">
-    <p class="text-small text-muted-foreground">
-      <% if @checks.any? %>Lists: <%= @checks.map { |check| check.observed_at.strftime("%-d %b, %H:%M") }.join(" and ") %><% else %>No complete follower list yet<% end %>
+  <div class="ms-auto flex items-center gap-tight">
+    <p class="text-small text-muted-foreground" title="Complete follower lists compared">
+      <% if @checks.any? %><%= @checks.map { |check| check.observed_at.strftime("%-d %b, %H:%M") }.join(" vs ") %><% else %>No complete follower list yet<% end %>
     </p>
-    <% if (url = own_list_url("followers")) %><%= lc_button_link_to "Scroll your followers on X", url, variant: :secondary, size: :sm, icon: "arrow-up-right", target: "_blank", rel: "noopener noreferrer", title: "Scrolling to the end with the extension on saves a new complete list" %><% end %>
+    <% if (url = own_list_url("followers")) %><%= lc_icon_button_link_to "Scroll your followers on X", url, size: :sm, icon: "arrow-up-right", target: "_blank", rel: "noopener noreferrer", title: "Scroll your followers on X to save a new complete list" %><% end %>
   </div>
 </div>
+
+<p class="flex flex-wrap items-center gap-x-content gap-y-tight text-small text-muted-foreground">
+  <span><span class="tabular-nums text-foreground"><%= number_with_delimiter @counts["current"] %></span> followers</span>
+  <% if @counts["current"].positive? %><span>you follow back <span class="tabular-nums text-foreground"><%= (@follow_back * 100.0 / @counts["current"]).round %>%</span></span><% end %>
+  <% if @new_since_last || @lost_since_last %><span>last check <span class="tabular-nums text-success">+<%= @new_since_last || 0 %></span> <span class="tabular-nums text-warning">−<%= @lost_since_last || 0 %></span></span><% end %>
+  <% if @duration %><span title="Mean range across <%= @duration[:count] %> completed periods with observed starts. Ongoing follows and unknown starts are excluded.">follows last <span class="tabular-nums text-foreground"><%= @duration[:minimum_days].round(1) %>–<%= @duration[:maximum_days].round(1) %> days</span></span><% end %>
+</p>
 
 <% if @view == "changes" %>
   <%= render "changes", changes: @follower_changes, graph: @graph %>
 <% elsif @periods.empty? %>
-  <% empty = { "new" => "No new followers detected yet. The first complete check is a baseline; a later check reveals who started following.", "lost" => "No losses detected yet. A loss appears when a later complete check no longer includes someone.", "not_followed_back" => "You follow back everyone who follows you.", "current" => "No complete follower list yet. Scroll your Followers page on x.com to the end with the extension on." } %>
-  <%= empty_state empty.fetch(@view), icon: "user-group" %>
+  <% title, text = { "new" => [ "No new followers yet.", "The first complete list is a baseline; later ones show who started following." ], "lost" => [ "No losses yet.", "A loss shows when a later complete list no longer includes someone." ], "not_followed_back" => [ "You follow back everyone who follows you.", nil ], "current" => [ "No complete follower list yet.", "Scroll your Followers page on x.com to the end with the extension on." ] }.fetch(@view) %>
+  <%= empty_state title, text, icon: "user-group" %>
 <% else %>
   <%= lc_card padding: :none, class: "overflow-hidden" do %>
     <div class="overflow-x-auto" tabindex="0" role="region" aria-label="<%= Follow::HistoryController::VIEWS.fetch(@view) %>">
@@ -84,22 +84,12 @@
   <% end %>
 <% end %>
 
-<div class="mt-section grid grid-cols-2 gap-inset">
-  <%= lc_card do %>
-    <div class="flex flex-col gap-heading">
-      <%= lc_heading "How long follows last", level: 2, size: :subheading %>
-      <% if @duration %>
-        <p class="text-title font-semibold"><%= @duration[:minimum_days].round(1) %>–<%= @duration[:maximum_days].round(1) %> days</p>
-        <%= lc_text "Mean range across #{@duration[:count]} completed periods with observed starts. Ongoing follows and unknown starts are excluded.", size: :small, tone: :muted %>
-      <% else %>
-        <%= lc_text "Needs a follower who started and then stopped between checks. Followers from the first check have unknown start dates.", size: :small, tone: :muted %>
-      <% end %>
-    </div>
-  <% end %>
-  <%= lc_card do %>
-    <div class="flex flex-col gap-heading">
-      <%= lc_heading "Reading the dates", level: 2, size: :subheading %>
-      <%= lc_text "A follow or unfollow happened somewhere between two checks, so dates are ranges. Follows that start and end between checks stay invisible. A disappearance can be a suspension or deactivation, not only an unfollow. Scrolling your Followers page on x.com to the end with the extension on saves a list for free; an X API check costs about $0.17.", size: :small, tone: :muted %>
-    </div>
-  <% end %>
-</div>
+<%= lc_collapsible card: false, indicator: :chevron, summary_class: "w-fit text-small text-muted-foreground" do |collapsible| %>
+  <% collapsible.summary do %>About this data<% end %>
+  <div class="flex flex-col gap-tight pt-related text-small text-muted-foreground">
+    <p>A follow or unfollow happened somewhere between two checks, so dates are ranges. Follows that start and end between checks stay invisible.</p>
+    <p>A disappearance can be a suspension or deactivation, not only an unfollow.</p>
+    <p><% if @duration %>How long follows last is the mean range across <%= pluralize(@duration[:count], "completed period") %> with observed starts.<% else %>How long follows last needs a follower who started and then stopped between checks.<% end %> Followers from the first check have unknown start dates.</p>
+    <p>Scrolling your Followers page on x.com to the end with the extension on saves a list for free; an X API check costs about $0.17.</p>
+  </div>
+<% end %>
