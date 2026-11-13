@@ -2,7 +2,7 @@
 <h1 class="sr-only">Compose</h1>
 <% name, handle = owner_identity %>
 
-<div class="grid items-start gap-section lg:grid-cols-[minmax(0,1fr)_20rem]">
+<div class="<%= lc_split_class %>">
   <div class="flex flex-col">
     <%= compose_tabs counts: @counts, status: @status %>
 
@@ -23,7 +23,7 @@
             <% if draft.source == "grok" %><%= grok_badge %><% end %>
             <% unless @status %><%= lc_badge Draft::STATUSES.fetch(draft.status) %><% end %>
           <% end %>
-          <%= render layout: "drafts/post", locals: { avatar: owner_avatar(size: 11), name: name, handle: handle, time: x_post_time(draft.posted_at || draft.updated_at), extra: extra.presence, id: dom_id(draft) } do %>
+          <%= render layout: "drafts/post", locals: { avatar: owner_avatar(size: 11), name: name, handle: handle, time: lc_time(draft.posted_at || draft.updated_at), extra: extra.presence, id: dom_id(draft) } do %>
             <%= link_to edit_draft_path(draft), class: "flex flex-col gap-tight hover:opacity-80" do %>
               <% if draft.parts.any? %>
                 <span class="line-clamp-6 whitespace-pre-line break-words"><%= draft.parts.first %></span>

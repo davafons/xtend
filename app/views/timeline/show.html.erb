@@ -2,7 +2,7 @@
 <% filters = request.query_parameters.except("page") %>
 <h1 class="sr-only"><%= @timeline.person ? "#{@timeline.person.name}'s posts" : "Timeline" %></h1>
 
-<div class="grid items-start gap-section lg:grid-cols-[minmax(0,1fr)_20rem]">
+<div class="<%= lc_split_class %>">
   <section class="flex min-w-0 flex-col" aria-label="Posts">
     <div class="pb-content">
       <% if @timeline.person %>
@@ -12,12 +12,14 @@
         </div>
       <% else %>
         <% who = { "network" => "Your people", "following" => "Following", "mutual" => "Mutuals", "seen" => "Everything" } %>
-        <%= view_tabs "Whose posts", Network::Timeline::WHO.keys.map { |key| [ who.fetch(key, Network::Timeline::WHO[key]), timeline_path(filters.merge("who" => key)), @timeline.who == key ] } %>
+        <%= lc_tab_bar label: "Whose posts", fill: true do |bar| %>
+          <% Network::Timeline::WHO.each_key do |key| %><%= bar.link who.fetch(key, Network::Timeline::WHO[key]), timeline_path(filters.merge("who" => key)), current: @timeline.who == key %><% end %>
+        <% end %>
       <% end %>
     </div>
 
     <% if @timeline.posts.empty? %>
-      <%= empty_state "No posts here yet.", "Browse x.com with the capture extension on, or widen the filters.", icon: "queue-list" %>
+      <%= lc_empty_state title: "No posts here yet.", text: "Browse x.com with the capture extension on, or widen the filters.", icon: "queue-list", card: true %>
     <% else %>
       <ol class="flex flex-col divide-y divide-border border-y border-border">
         <% @timeline.posts.each do |post| %>

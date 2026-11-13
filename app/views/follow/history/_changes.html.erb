@@ -17,7 +17,7 @@
 <% end %>
 
 <% if changes.changes.empty? %>
-  <%= empty_state "No changes between complete lists yet.", "The first complete list is a baseline; each later one shows who started or stopped following you.", icon: "user-group" %>
+  <%= lc_empty_state title: "No changes between complete lists yet.", text: "The first complete list is a baseline; each later one shows who started or stopped following you.", icon: "user-group", card: true %>
 <% else %>
   <%= lc_card padding: :none, class: "overflow-hidden" do %>
     <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Follower changes">

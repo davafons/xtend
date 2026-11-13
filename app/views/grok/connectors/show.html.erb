@@ -1,6 +1,6 @@
 <% content_for :title, "Grok" %>
 <h1 class="sr-only">Grok</h1>
-<div class="gap-section lg:columns-2 *:mb-section *:break-inside-avoid">
+<div class="<%= lc_columns_class %>">
   <%= render "tags" %>
   <%= render "connector" %>
   <%= lc_list_section "Grok Bot context", footnote: "Interests, saved people, public reply counts, follow states, tags, and pins. Excludes private notes and DMs; downloading sends it nowhere." do %>

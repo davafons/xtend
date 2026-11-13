@@ -19,17 +19,6 @@ module PostsHelper
     end
   end
 
-  # X's own timestamps: "now", "12m", "4h" within a day, then "4 Nov", and "4 Nov 2025" in earlier years.
-  def x_post_time(at, detail: nil)
-    label =
-      if at > 1.minute.ago then "now"
-      elsif at > 1.hour.ago then "#{((Time.current - at) / 60).floor}m"
-      elsif at > 1.day.ago then "#{((Time.current - at) / 3600).floor}h"
-      else at.strftime(at.year == Time.current.year ? "%-d %b" : "%-d %b %Y")
-      end
-    tag.time(label, datetime: at.iso8601, title: [ at.strftime("%-d %B %Y, %H:%M"), detail ].compact.join(" · "))
-  end
-
   # Post text with line breaks kept and links, @mentions and #hashtags in the link color, as X shows them.
   def x_post_body(text)
     parts = text.to_s.split(%r{(https?://\S+|(?<![\w@])@\w{1,15}|(?<![\w#])#[A-Za-z_]\w*)})

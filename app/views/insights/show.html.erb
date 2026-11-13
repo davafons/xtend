@@ -9,17 +9,12 @@
       <%= lc_button_link_to date_range_label(@activity.range), insights_path, variant: :secondary, size: :sm, icon: "x-mark", icon_position: :end, aria: { label: "Remove the date range #{date_range_label(@activity.range)}" } %>
     <% end %>
   </div>
-  <dl class="flex flex-wrap items-baseline gap-x-section gap-y-tight">
-    <% [ [ "your replies", number_with_delimiter(@activity.replies_sent.sum), "text-you" ],
-         [ "replies to you", number_with_delimiter(@activity.replies_received.sum), "text-warning" ],
-         [ "people", link_to(number_with_delimiter(@activity.partner_count), people_path(from: period_dates.first, to: period_dates.last), class: "hover:underline", title: "People you talked with"), nil ],
-         [ "two-way", number_with_delimiter(@activity.two_way_count), "text-success" ] ].each do |label, value, tone| %>
-      <div class="flex items-baseline gap-tight">
-        <dd class="text-heading font-semibold tabular-nums <%= tone %>"><%= value %></dd>
-        <dt class="order-last text-small text-muted-foreground"><%= label %></dt>
-      </div>
-    <% end %>
-  </dl>
+  <%= lc_stats do %>
+    <%= lc_stat label: "your replies" do %><span class="text-you"><%= number_with_delimiter(@activity.replies_sent.sum) %></span><% end %>
+    <%= lc_stat number_with_delimiter(@activity.replies_received.sum), label: "replies to you", tone: :warning %>
+    <%= lc_stat label: "people" do %><%= link_to number_with_delimiter(@activity.partner_count), people_path(from: period_dates.first, to: period_dates.last), class: "hover:underline", title: "People you talked with" %><% end %>
+    <%= lc_stat number_with_delimiter(@activity.two_way_count), label: "two-way", tone: :success %>
+  <% end %>
 </div>
 
 <%= lc_card do %>

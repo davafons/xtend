@@ -2,7 +2,7 @@
 <% name, handle = owner_identity %>
 <% revisions = @draft.revisions.newest_first.limit(20).to_a %>
 
-<div class="grid items-start gap-section lg:grid-cols-[minmax(0,1fr)_20rem]">
+<div class="<%= lc_split_class %>">
   <div class="flex flex-col">
     <div class="flex items-center gap-related border-b border-border px-related py-related">
       <%= lc_icon_button_link_to "Back to drafts", drafts_path, icon: "arrow-left", title: "Back to drafts" %>
@@ -61,7 +61,7 @@
                 <div class="flex h-7 items-center gap-related text-caption text-muted-foreground">
                   <span><%= revision.source == "grok" ? "Grok" : "You" %></span>
                   <span aria-hidden="true">·</span>
-                  <%= x_post_time(revision.updated_at) %>
+                  <%= lc_time(revision.updated_at) %>
                   <% if index.zero? %>
                     <span class="ms-auto">Current</span>
                   <% else %>

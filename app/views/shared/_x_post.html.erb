@@ -15,7 +15,7 @@
       <% if name_url %><%= link_to name, name_url, class: "truncate font-bold text-foreground hover:underline" %><% else %><span class="truncate font-bold text-foreground"><%= name %></span><% end %>
       <% if handle %><span class="min-w-0 truncate">@<%= handle %></span><% end %>
       <%= cue %>
-      <% if at %><span aria-hidden="true">·</span><span class="shrink-0"><%= x_post_time at, detail: detail %></span><% end %>
+      <% if at %><span aria-hidden="true">·</span><span class="shrink-0"><%= lc_time at, detail: detail %></span><% end %>
     </p>
     <% if context %><p class="text-muted-foreground"><%= context %></p><% end %>
     <% if body.present? %>

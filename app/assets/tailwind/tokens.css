@@ -20,63 +20,17 @@
 
 /* The signature: the three meaning colors you (blue), grok (teal), and like (pink) in one gradient.
    It marks the app itself, so it appears only on the wordmark and the sidebar's current link. */
+.crm-sidebar {
+  --lc-sidebar-indicator: linear-gradient(180deg, var(--crm-you), var(--crm-grok), var(--crm-like));
+}
+
+/* Underlined tabs mark the current view in your color, as X does. */
+:root {
+  --lc-tab-bar-indicator: var(--crm-you);
+}
+
 .crm-signature-text {
   background: linear-gradient(90deg, var(--crm-you), var(--crm-grok) 55%, var(--crm-like));
   background-clip: text;
   color: transparent;
-}
-
-.crm-sidebar [data-slot="nav-link"] {
-  position: relative;
-}
-
-.crm-sidebar [data-slot="nav-link"][aria-current="page"]::before {
-  content: "";
-  position: absolute;
-  inset-block: 0.5rem;
-  inset-inline-start: -0.5rem;
-  width: 3px;
-  border-radius: 9999px;
-  background: linear-gradient(180deg, var(--crm-you), var(--crm-grok), var(--crm-like));
-}
-
-/* The sidebar rail: icons only, when you collapsed it, or below 1280px unless you expanded it. */
-@custom-variant rail {
-  &:where(.crm-sidebar[data-collapsed], .crm-sidebar[data-collapsed] *) {
-    @slot;
-  }
-  @media (width < 80rem) {
-    &:where(.crm-sidebar:not([data-expanded]), .crm-sidebar:not([data-expanded]) *) {
-      @slot;
-    }
-  }
-}
-
-/* On the rail, labels stay for screen readers and in each link's title. */
-.crm-sidebar[data-collapsed] :is([data-slot="nav-group-title"], [data-slot="nav-link"] > span) {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.crm-sidebar[data-collapsed] [data-slot="nav-link"] {
-  justify-content: center;
-}
-
-@media (width < 80rem) {
-  .crm-sidebar:not([data-expanded]) :is([data-slot="nav-group-title"], [data-slot="nav-link"] > span) {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .crm-sidebar:not([data-expanded]) [data-slot="nav-link"] {
-    justify-content: center;
-  }
 }

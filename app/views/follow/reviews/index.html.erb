@@ -28,14 +28,14 @@
 <% end %>
 
 <% if !cleanup.following %>
-  <%= empty_state "Your following list comes first.", "Scroll your Following page on x.com to the end with the extension on.", icon: "user-plus" do %>
+  <%= lc_empty_state title: "Your following list comes first.", text: "Scroll your Following page on x.com to the end with the extension on.", icon: "user-plus", card: true do %>
     <div class="flex items-center gap-tight">
       <% if (url = own_list_url("following")) %><%= lc_button_link_to "Scroll your following on X", url, size: :sm, icon: "arrow-up-right", target: "_blank", rel: "noopener noreferrer" %><% end %>
       <%= lc_button_to "Refresh with the X API", x_sync_runs_path, params: { dataset: "following", mode: "refresh", request_key: SecureRandom.uuid, return_to: "follow_reviews" }, variant: :secondary, size: :sm, icon: "arrow-path", disabled: demo? || !X::Connection.current %>
     </div>
   <% end %>
 <% elsif !cleanup.ready? %>
-  <%= empty_state "Leaving mutuals out needs a fresh follower list.", "Your follower list is older than a day. Scroll your Followers page on x.com to the end, or include mutuals.", icon: "shield-check" do %>
+  <%= lc_empty_state title: "Leaving mutuals out needs a fresh follower list.", text: "Your follower list is older than a day. Scroll your Followers page on x.com to the end, or include mutuals.", icon: "shield-check", card: true do %>
     <div class="flex items-center gap-tight">
       <% if (url = own_list_url("followers")) %><%= lc_button_link_to "Scroll your followers on X", url, size: :sm, icon: "arrow-up-right", target: "_blank", rel: "noopener noreferrer" %><% end %>
       <%= lc_button_link_to "Include mutuals", follow_reviews_path(review_filters.merge("mutuals" => "1")), variant: :secondary, size: :sm %>
@@ -57,7 +57,7 @@
   <% end %>
 
   <% if @candidates.empty? %>
-    <%= empty_state "Nothing left here.", "#{reason_hints.fetch(cleanup.reason)}: nobody else matches.", icon: "check" %>
+    <%= lc_empty_state title: "Nothing left here.", text: "#{reason_hints.fetch(cleanup.reason)}: nobody else matches.", icon: "check", card: true %>
   <% else %>
     <%= lc_card padding: :none do %>
       <ol class="divide-y divide-border" aria-label="Accounts to review">

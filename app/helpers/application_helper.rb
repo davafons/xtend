@@ -101,36 +101,12 @@ module ApplicationHelper
     end
   end
 
-  # A row of headline numbers, each a small card: [[label, value], ...].
-  def stat_cards(stats)
-    tag.dl(class: "grid gap-content", style: "grid-template-columns: repeat(#{stats.size}, minmax(0, 1fr))") do
-      safe_join(stats.map do |label, value|
-        lc_card(padding: :sm, class: "flex flex-col-reverse gap-tight") do
-          safe_join([ tag.dt(label, class: lc_text_class(size: :small, tone: :muted)), tag.dd(value, class: "text-heading tabular-nums") ])
-        end
-      end)
-    end
-  end
-
   # Links between views of one page, as the library's segmented control. Items are [label, path, current].
   # Many items wrap as pills instead of running past the page.
   def view_tabs(label, items, pills: items.size > 5)
     options = pills ? { variant: :pills, size: :sm } : { class: "w-fit max-w-full" }
     lc_toggle_group(label: label, as: :nav, **options) do
       safe_join(items.map { |text, path, current| lc_toggle_group_item(text, href: path, current: current) })
-    end
-  end
-
-  # The library's empty state in a card: an icon, a title, an optional line, and the block's actions.
-  def empty_state(title, text = nil, icon: "inbox", &block)
-    lc_card do
-      lc_empty_state do
-        safe_join([
-          lc_icon_badge(icon: icon, shape: :circle, size: :lg),
-          lc_stack(gap: :tight, class: "max-w-md") { safe_join([ lc_heading(title, level: 2, size: :subheading), (lc_text(text, size: :small, tone: :muted) if text) ].compact) },
-          (capture(&block) if block)
-        ].compact)
-      end
     end
   end
 

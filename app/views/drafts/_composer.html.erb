@@ -10,13 +10,7 @@
   <div class="ms-14 flex items-center gap-heading border-t border-border pt-heading">
     <span class="text-small text-muted-foreground" data-composer-target="summary"></span>
     <div class="ms-auto flex items-center gap-heading">
-      <span class="flex items-center gap-related text-small tabular-nums text-you data-[state=near]:text-warning data-[state=over]:text-destructive" data-composer-target="ring" role="img" hidden>
-        <span data-composer-target="remaining"></span>
-        <svg viewBox="0 0 20 20" class="size-6 -rotate-90" aria-hidden="true">
-          <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2" class="opacity-20" />
-          <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" data-composer-target="ringValue" />
-        </svg>
-      </span>
+      <%= lc_char_counter max: 280, count: 0, class: "text-you", data: { action: "composer:count@window->lc-char-counter#update" } %>
       <span class="h-6 w-px bg-border" data-composer-target="divider" aria-hidden="true" hidden></span>
       <%= lc_icon_button "Add post", icon: "plus", size: :sm, variant: :outline, class: "text-you", title: "Add post", data: { action: "composer#add" } %>
       <% if intent %>

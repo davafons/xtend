@@ -1,35 +1,35 @@
-<%# Collapses to icons: below 1280px by default, and wherever you collapsed it yourself. Your choice is kept in a
-    cookie so the server renders it the same way on every page. %>
-<% collapsed = cookies[:sidebar] == "collapsed" %>
-<% expanded = cookies[:sidebar] == "expanded" %>
-<aside class="crm-sidebar group/sidebar sticky top-0 flex h-dvh w-60 shrink-0 flex-col gap-content overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-related py-inset rail:w-16" aria-label="Sidebar" data-controller="sidebar lc-scroll-keeper" data-lc-scroll-keeper-key-value="sidebar" <%= "data-collapsed" if collapsed %><%= "data-expanded" if expanded %>>
-  <div class="flex items-center justify-between gap-related ps-heading rail:flex-col rail:ps-0">
-    <%= link_to root_path, class: "crm-signature-text text-subheading font-bold", aria: { label: "Twitter CRM" } do %><span class="rail:hidden">Twitter CRM</span><span class="hidden rail:inline" aria-hidden="true">TC</span><% end %>
-    <%= lc_icon_button (collapsed ? "Expand sidebar" : "Collapse sidebar"), icon: "chevron-double-left", size: :sm, class: "rail:[&_svg]:rotate-180", aria: { expanded: !collapsed }, data: { action: "sidebar#toggle", sidebar_target: "toggle" } %>
-  </div>
-  <%= lc_search label: "Search and commands", src: search_path, trigger: "Search", placeholder: "Search people, tags, drafts, posts, or pages…", empty: "Nothing matches %{query}", class: "w-full rail:hidden" do %>
+<%# Collapses to icons below 1280px and wherever you collapsed it; the choice is kept in a cookie. %>
+<% connection = X::Connection.current unless demo? %>
+<% handle = Current.user&.x_handle %>
+<%= lc_sidebar cookie: "sidebar", class: "crm-sidebar" do |sidebar| %>
+  <%= sidebar.header do %>
+    <%= link_to root_path, class: "crm-signature-text text-subheading font-bold", aria: { label: "Twitter CRM" } do %><span class="lc-rail:hidden">Twitter CRM</span><span class="hidden lc-rail:inline" aria-hidden="true">TC</span><% end %>
+  <% end %>
+  <%= lc_search label: "Search and commands", src: search_path, trigger: "Search", placeholder: "Search people, tags, drafts, posts, or pages…", empty: "Nothing matches %{query}", class: "w-full lc-rail:hidden" do %>
     <%= render "searches/results", search: Search.new(nil) %>
   <% end %>
-  <%= lc_nav_list label: "Main", indicator: true, class: "flex-1" do |nav| %>
-    <% navigation_sections.each do |heading, items| %>
-      <%= nav.group heading do %>
-        <% items.each do |label, path, icon| %>
-          <%= nav.link label, path, icon: icon, current: navigation_active?(path), title: label %>
+  <%= sidebar.body do %>
+    <%= lc_nav_list label: "Main", indicator: true do |nav| %>
+      <% navigation_sections.each do |heading, items| %>
+        <%= nav.group heading do %>
+          <% items.each do |label, path, icon| %>
+            <%= nav.link label, path, icon: icon, current: navigation_active?(path), title: label %>
+          <% end %>
         <% end %>
       <% end %>
     <% end %>
   <% end %>
-  <div class="<%= lc_stack_class(gap: :related) %>">
+  <%= sidebar.footer do %>
     <% unless demo? %>
       <% workspace = Current.workspace %>
       <div data-controller="live" data-live-url-value="<%= x_capture_status_path %>" data-live-captured-at-value="<%= workspace.captured_at&.iso8601(3) %>">
-      <div class="flex items-center gap-related px-heading rail:justify-center rail:px-0"
+      <div class="flex items-center gap-related px-heading lc-rail:justify-center lc-rail:px-0"
         title="<%= capture_summary(workspace.last_capture) || "Nothing from the extension yet" %>" data-live-target="status">
         <span class="relative flex size-2 shrink-0" aria-hidden="true">
           <span class="absolute inline-flex size-full rounded-full bg-grok opacity-0" data-live-target="ping"></span>
           <span class="relative inline-flex size-2 rounded-full <%= workspace.captured_at && workspace.captured_at > 10.minutes.ago ? "bg-grok" : "bg-muted-foreground" %>" data-live-target="dot"></span>
         </span>
-        <span class="min-w-0 grow rail:sr-only" role="status">
+        <span class="min-w-0 grow lc-rail:sr-only" role="status">
           <span class="block truncate text-caption text-muted-foreground">Extension · <time data-live-target="time" datetime="<%= workspace.captured_at&.iso8601 %>"><%= workspace.captured_at ? "#{time_ago_in_words(workspace.captured_at)} ago" : "nothing yet" %></time></span>
           <span class="block truncate text-caption" data-live-target="summary"><%= capture_summary(workspace.last_capture) %></span>
         </span>
@@ -39,22 +39,11 @@
       </template>
       </div>
     <% end %>
-    <% connection = X::Connection.current unless demo? %>
-    <% handle = Current.user&.x_handle %>
-    <%= lc_menu id: "account-menu", label: "Account", align: :start, wrapper_attributes: { class: "flex w-full" } do |menu| %>
-      <% menu.trigger(class: "flex w-full cursor-pointer items-center gap-related rounded-xl px-heading py-related text-start transition-colors hover:bg-accent/40 rail:justify-center rail:px-0", title: "@#{handle}") do |attrs| %>
-        <%= tag.button(type: "button", **attrs) do %>
-          <%= connection ? owner_avatar(size: :sm) : lc_icon("signal-slash", options: { class: "size-4 text-muted-foreground", "aria-hidden": true }) %>
-          <span class="min-w-0 grow rail:sr-only">
-            <span class="block truncate text-label">@<%= handle %></span>
-            <span class="block text-caption text-muted-foreground"><%= connection ? "X connected" : (demo? ? "Demo data" : "X not connected") %></span>
-          </span>
-          <%= lc_icon "ellipsis-horizontal", options: { class: "size-4 shrink-0 text-muted-foreground rail:hidden", "aria-hidden": true } %>
-        <% end %>
-      <% end %>
+    <%= sidebar.account "@#{handle}", detail: (connection ? "X connected" : (demo? ? "Demo data" : "X not connected")),
+          avatar: (connection ? owner_avatar(size: :sm) : lc_icon("signal-slash", options: { class: "size-4 text-muted-foreground", "aria-hidden": true })), id: "account-menu" do %>
       <% unless demo? %><%= lc_menu_option "Your profile on X", icon: "arrow-up-right", href: "https://x.com/#{handle}", target: "_blank", rel: "noopener noreferrer" %><% end %>
       <%= lc_menu_option "Settings", icon: "cog-6-tooth", href: settings_path %>
       <%= lc_menu_option "Sign out @#{handle}", icon: "arrow-right-start-on-rectangle", href: session_path, method: :delete %>
     <% end %>
-  </div>
-</aside>
+  <% end %>
+<% end %>

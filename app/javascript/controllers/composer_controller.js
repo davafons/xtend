@@ -3,7 +3,6 @@ import { Controller } from "@hotwired/stimulus"
 // An X-style composer: one growing textarea per post, a thread line between them, and X's
 // weighted character count shown as a ring for the post being edited.
 const LIMIT = 280
-const WARN_AT = 20
 const URL = /https?:\/\/\S+/g
 
 function weight(char) {
@@ -18,7 +17,7 @@ export function weightedLength(text) {
 }
 
 export default class extends Controller {
-  static targets = ["list", "part", "input", "template", "ring", "ringValue", "remaining", "divider", "summary", "intent", "submit"]
+  static targets = ["list", "part", "input", "template", "divider", "summary", "intent", "submit"]
   static values = { required: Boolean }
 
   connect() {
@@ -79,17 +78,9 @@ export default class extends Controller {
     }
   }
 
-  // The ring fills toward the limit, turns amber in the last 20 characters and red past the limit,
-  // and shows the characters left once you are close, like X.
+  // lc_char_counter draws the ring from X's weighted count of the post being edited.
   renderRing(length) {
-    if (!this.hasRingTarget) return
-    const left = LIMIT - length
-    const circumference = 2 * Math.PI * 9
-    this.ringValueTarget.style.strokeDasharray = `${Math.min(length / LIMIT, 1) * circumference} ${circumference}`
-    this.ringTarget.dataset.state = left < 0 ? "over" : left <= WARN_AT ? "near" : "ok"
-    this.ringTarget.toggleAttribute("hidden", length === 0)
+    this.dispatch("count", { detail: { count: length } })
     if (this.hasDividerTarget) this.dividerTarget.toggleAttribute("hidden", length === 0)
-    this.remainingTarget.textContent = left <= WARN_AT ? left : ""
-    this.ringTarget.setAttribute("aria-label", `${length} of ${LIMIT} characters`)
   }
 }

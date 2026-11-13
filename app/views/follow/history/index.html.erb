@@ -21,7 +21,7 @@
   <%= render "changes", changes: @follower_changes, graph: @graph %>
 <% elsif @periods.empty? %>
   <% title, text = { "new" => [ "No new followers yet.", "The first complete list is a baseline; later ones show who started following." ], "lost" => [ "No losses yet.", "A loss shows when a later complete list no longer includes someone." ], "not_followed_back" => [ "You follow back everyone who follows you.", nil ], "current" => [ "No complete follower list yet.", "Scroll your Followers page on x.com to the end with the extension on." ] }.fetch(@view) %>
-  <%= empty_state title, text, icon: "user-group" %>
+  <%= lc_empty_state title: title, text: text, icon: "user-group", card: true %>
 <% else %>
   <%= lc_card padding: :none, class: "overflow-hidden" do %>
     <div class="overflow-x-auto" tabindex="0" role="region" aria-label="<%= Follow::HistoryController::VIEWS.fetch(@view) %>">

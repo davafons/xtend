@@ -44,9 +44,9 @@
 
 <% if @people.empty? %>
   <% if people_filter_params.except(:sort).any? %>
-    <%= empty_state "Nobody matches these filters.", icon: "funnel" do %><%= lc_button_link_to "Clear filters", people_path, variant: :secondary, icon: "x-mark" %><% end %>
+    <%= lc_empty_state title: "Nobody matches these filters.", icon: "funnel", card: true do %><%= lc_button_link_to "Clear filters", people_path, variant: :secondary, icon: "x-mark" %><% end %>
   <% else %>
-    <%= empty_state "Build your circle, one conversation at a time.", "People appear as replies, captures, and follow checks come in.", icon: "users" do %>
+    <%= lc_empty_state title: "Build your circle, one conversation at a time.", text: "People appear as replies, captures, and follow checks come in.", icon: "users", card: true do %>
       <%= lc_button_link_to "Add your first person", new_person_path, variant: :secondary, icon: "plus" %>
     <% end %>
   <% end %>

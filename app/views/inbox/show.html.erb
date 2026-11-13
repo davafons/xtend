@@ -7,7 +7,7 @@
   </div>
 
   <% if @inbox.items.empty? %>
-    <%= empty_state "Nothing waiting on you.", "Every collected reply from the last #{@days} days has an answer or was set aside.", icon: "inbox" %>
+    <%= lc_empty_state title: "Nothing waiting on you.", text: "Every collected reply from the last #{@days} days has an answer or was set aside.", icon: "inbox", card: true %>
   <% else %>
     <ul class="flex flex-col divide-y divide-border border-y border-border">
       <% @inbox.items.each do |item| %>

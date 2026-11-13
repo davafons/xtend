@@ -13,7 +13,7 @@
     <%= lc_alert "No billing cycle recorded yet. X API reads stay locked until you record one below.", tone: :warning %>
   <% end %>
 
-  <div class="gap-section lg:columns-2 *:mb-section *:break-inside-avoid">
+  <div class="<%= lc_columns_class %>">
   <% if @cycle %>
     <%= lc_list_section "This cycle", footnote: "X enforces the cap account-wide, so other apps' usage is unknown. Update the observation at least daily before collecting." do %>
       <%= lc_list_group do %>

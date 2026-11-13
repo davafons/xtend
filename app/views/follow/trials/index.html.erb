@@ -14,10 +14,10 @@
 </div>
 
 <% if !trials.available? %>
-  <%= empty_state "Needs a first complete following list.", "Scroll your Following page on x.com to the end with the extension on; later follows start a trial here.", icon: "beaker" %>
+  <%= lc_empty_state title: "Needs a first complete following list.", text: "Scroll your Following page on x.com to the end with the extension on; later follows start a trial here.", icon: "beaker", card: true %>
 <% elsif trials.list.empty? %>
   <% title, text = { "due" => [ "Nobody is overdue.", "No one has gone #{trials.days} days without following you back." ], "followed_back" => [ "No follow-backs yet.", nil ], "waiting" => [ "No trial running.", "Everyone you followed recently is past #{trials.days} days or followed back." ], "all" => [ "No new follows.", "None since #{trials.baseline.observed_at.strftime("%-d %b")} that the capture has seen." ] }.fetch(trials.view) %>
-  <%= empty_state title, text, icon: "beaker" %>
+  <%= lc_empty_state title: title, text: text, icon: "beaker", card: true %>
 <% else %>
   <%= lc_card padding: :none, class: "overflow-hidden" do %>
     <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Follow trials">
