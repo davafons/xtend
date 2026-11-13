@@ -9,7 +9,7 @@ The app runs on the server at `https://xtend.example.com` and deploys with Kamal
 | Container | Kamal runs `xtend` on the server (`config/deploy.yml`). kamal-proxy listens on `127.0.0.1:23010` only, because Caddy owns ports 80 and 443. |
 | Image | Built for amd64 from the working copy on this Mac and pushed to Kamal's local registry (`localhost:5555`). the server pulls it through the SSH tunnel. No public registry is involved. |
 | Edge | In `../infra`, the `xtend` entry in `terraform/cloudflare-service-access.tf` defines the DNS record, the server tunnel route, and Cloudflare Access with the owner's GitHub login. |
-| `/mcp` | Bypasses Access and skips the browser integrity check, so Grok Bot can reach it. The app authenticates it with the workspace's connector token. |
+| `/mcp`, `/x/captures` | Bypass Access (`api_prefix` and `extra_bypass_prefixes` in that entry), so Grok Bot and the browser extension can reach them. `/mcp` also skips the browser integrity check. The app authenticates `/mcp` with the workspace's connector token and `/x/captures` with its capture token. |
 | Data | `xtend_data` on the server, mounted at `/data`. It holds `production.sqlite3`, `production_queue.sqlite3`, and `x-token.key`, which encrypts saved X tokens. The appdata restic backup covers it. A database backup without the key can't decrypt X tokens. |
 | Secrets | `SECRET_KEY_BASE`, `X_CLIENT_ID`, and `X_CLIENT_SECRET` live in SSM under `/xtend/`, and `.kamal/secrets` reads them. Keep `SECRET_KEY_BASE` stable: changing it signs everyone out and invalidates connector tokens. |
 
@@ -17,7 +17,7 @@ The app runs on the server at `https://xtend.example.com` and deploys with Kamal
 
 Two gates, in order:
 
-1. Cloudflare Access with the owner's GitHub login covers every path except `/mcp`.
+1. Cloudflare Access with the owner's GitHub login covers every path except `/mcp` and `/x/captures`.
 2. The app's own sign-in is "Sign in with X" only. Only handles allowed with `users:allow` get in; the first sign-in pins the X user ID, and the same sign-in saves the workspace's read-only X tokens. There is no signup and there are no passwords.
 
 Each sign-in costs one X user read, which is recorded on Spending.
@@ -50,7 +50,7 @@ X reads run in Solid Queue inside the same Puma process, so there is one contain
 
 ## What is public
 
-- Cloudflare Access protects everything except `/mcp`. Behind Access, every page still requires an app session, except `/session/new`, the X sign-in start and callback, and `/up`.
-- `/mcp` is authenticated by the workspace's connector token and allows 120 requests per minute per IP. Starting X sign-in allows 10 attempts per 3 minutes per IP.
+- Cloudflare Access protects everything except `/mcp` and `/x/captures`. Behind Access, every page still requires an app session, except `/session/new`, the X sign-in start and callback, and `/up`.
+- `/mcp` is authenticated by the workspace's connector token and allows 120 requests per minute per IP. `/x/captures` is authenticated by the capture token, accepts only browser-extension origins, and allows 60 requests per minute per IP. Starting X sign-in allows 10 attempts per 3 minutes per IP.
 - The port is bound to the server's loopback, so nothing can bypass the tunnel. Rails trusts private proxies, so `X-Forwarded-For` gives the visitor's IP (`test/integration/proxy_test.rb`).
 - The Content Security Policy only allows scripts from the app's own origin.
