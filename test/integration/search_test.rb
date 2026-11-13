@@ -26,9 +26,24 @@ class SearchTest < ActionDispatch::IntegrationTest
     end
     assert_select "[aria-label=Posts] a[href='https://x.com/i/status/5001'][target=_blank]", text: /Ada Ruby.*Ruby 4 is out/m
     assert_select "a[href='#{people_path(q: "ruby")}']"
+    assert_select "[aria-label=Posts] mark", text: "Ruby"
     get search_path(q: "netw"), headers: { "Sec-Fetch-Mode" => "cors" }
     assert_select "[aria-label='Go to'] a[href='#{network_path}']"
     assert_select "[aria-label=People]", count: 0
+  end
+
+  test "people you talked with rank first, a bio match says where it matched, and a named person gets quick actions" do
+    quiet = Person.resolve_profile!(profile(x_id: "8", handle: "bigname", name: "Big Name").merge(followers_count: 90_000, description: "I love sqlite"))
+    friend = Person.resolve_profile!(profile(x_id: "9", handle: "friend", name: "Friend").merge(followers_count: 10, description: "sqlite fan"))
+    ingest(x_id: "7001", target_x_id: "8001", person_profile: profile(x_id: "9", handle: "friend", name: "Friend"))
+    get search_path(q: "sqlite"), headers: { "Sec-Fetch-Mode" => "cors" }
+    assert_equal [ person_path(friend), person_path(quiet) ], css_select("[aria-label=People] a").map { _1["href"] }
+    assert_select "[aria-label=People] a[href='#{person_path(friend)}'] mark", text: "sqlite"
+    assert_select "[aria-label=People] a", text: /Bio:/
+
+    get search_path(q: "@friend"), headers: { "Sec-Fetch-Mode" => "cors" }
+    assert_select "[aria-label=Friend] a[href='#{person_path(friend, anchor: "reminders")}']"
+    assert_select "[aria-label=Friend] a[href='https://x.com/friend'][target=_blank]"
   end
 
   test "a plain form submit gets a full page" do

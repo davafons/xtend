@@ -1,7 +1,7 @@
 <%# Reminders on this person: open ones first, then a form to add one. %>
 <%# locals: (person:) %>
 <% open = person.reminders.select { |reminder| reminder.completed_at.nil? } %>
-<%= lc_card padding: :sm do %>
+<%= lc_card padding: :sm, id: "reminders", class: "scroll-mt-6" do %>
   <div class="flex flex-col gap-related">
     <h2 class="flex items-center gap-tight text-small text-muted-foreground"><%= lc_icon "bell", options: { class: "size-4", "aria-hidden": true } %>Reminders</h2>
     <% if open.any? %>

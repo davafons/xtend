@@ -10,10 +10,17 @@
      [ "Record X spend", x_billing_cycles_path, "banknotes", "billing cycle budget allowance" ]
    ] %>
 <% unless search.blank? %>
+  <% if (person = search.named_person) %>
+    <%= lc_search_group person.name do %>
+      <%= lc_search_result "Set a reminder for #{person.name}", person_path(person, anchor: "reminders"), detail: "Pick a day and what to bring up", icon: "bell" %>
+      <%= lc_search_result "Their posts and your replies", person_path(person), detail: "Everything saved between you and @#{person.handle}", icon: "chat-bubble-left-right" %>
+      <% unless demo? %><%= lc_search_result "Open @#{person.handle} on X", person.profile_url, detail: "x.com profile, in a new tab", icon: "arrow-up-right", target: "_blank", rel: "noopener noreferrer" %><% end %>
+    <% end %>
+  <% end %>
   <% if search.people.any? %>
     <%= lc_search_group "People" do %>
       <% search.people.each do |person| %>
-        <%= person_search_result person, graph: search.follow_graph %>
+        <%= person_search_result person, graph: search.follow_graph, match: search.match_in(person), query: search.query %>
       <% end %>
     <% end %>
   <% end %>
@@ -29,7 +36,7 @@
   <% end %>
   <% if search.posts.any? %>
     <%= lc_search_group "Posts" do %>
-      <% search.posts.each do |post| %><%= post_search_result post, search.post_authors[post.author_x_id] %><% end %>
+      <% search.posts.each do |post| %><%= post_search_result post, search.post_authors[post.author_x_id], query: search.query %><% end %>
     <% end %>
   <% end %>
   <%= lc_search_group "Everywhere" do %>

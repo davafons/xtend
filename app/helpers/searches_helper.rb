@@ -3,7 +3,7 @@ module SearchesHelper
   # Matches the library's icon badges, so avatar rows and icon rows line up.
   SEARCH_AVATAR = "shrink-0 [--lc-avatar-size:--spacing(10)]"
 
-  def person_search_result(person, graph:, detail: nil)
+  def person_search_result(person, graph:, detail: nil, match: nil, query: nil)
     state = person.follow_state(graph)
     marks = safe_join([
       (lc_icon("bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" }) if person.pin),
@@ -17,7 +17,10 @@ module SearchesHelper
     ].compact
     tags = person.tags.first(3).map { |label| lc_badge("##{label.name}", shape: :pill, class: tag_hue(label.name)) }
     search_row(person.name, person_path(person), leading: person_avatar(person, ring: state, class: SEARCH_AVATAR), marks: marks,
-      detail: safe_join(facts, " · "), extra: (tag.span(safe_join(tags), class: "flex flex-wrap gap-tight") if tags.any?))
+      detail: safe_join(facts, " · "), extra: safe_join([
+        (tag.span(safe_join([ tag.span("#{match.first}: ", class: "font-medium"), search_snippet(match.last, query) ]), class: Lostcoords::Ui::SearchHelper::RESULT_DETAIL) if match),
+        (tag.span(safe_join(tags), class: "flex flex-wrap gap-tight") if tags.any?)
+      ].compact).presence)
   end
 
   def tag_search_result(label, people)
@@ -38,7 +41,7 @@ module SearchesHelper
       detail: detail)
   end
 
-  def post_search_result(post, author)
+  def post_search_result(post, author, query: nil)
     owner = post.author_x_id == Current.workspace.owner_x_id
     name = owner ? "You" : author&.name || "Unknown account"
     avatar =
@@ -49,7 +52,21 @@ module SearchesHelper
       end
     title = safe_join([ name, (tag.span("@#{author.handle}", class: "font-normal text-muted-foreground") if author && !owner), tag.span("· #{time_ago_in_words(post.published_at)} ago", class: "font-normal text-muted-foreground") ].compact, " ")
     search_row(title, "https://x.com/i/status/#{post.x_id}", leading: tag.span(avatar, class: SEARCH_AVATAR),
-      detail: CGI.unescapeHTML(post.body).squish.truncate(160), target: "_blank", rel: "noopener noreferrer")
+      detail: search_snippet(CGI.unescapeHTML(post.body), query, length: 160), target: "_blank", rel: "noopener noreferrer")
+  end
+
+  # Text around the first match of query, with the match marked. Without a match it is the start of the text.
+  def search_snippet(text, query, length: 110)
+    text = text.to_s.squish
+    at = query.present? ? text.downcase.index(query.downcase) : nil
+    return text.truncate(length) unless at
+    start = [ at - length / 3, 0 ].max
+    # Start at a word, not inside one, when a space comes before the match.
+    space = text.index(" ", start) if start.positive? && text[start - 1] != " "
+    start = space + 1 if space && space < at
+    window = text[start, length]
+    before, found, after = window[0, at - start], window[at - start, query.size], window[(at - start + query.size)..]
+    safe_join([ ("…" if start.positive?), before, tag.mark(found), after, ("…" if start + length < text.size) ].compact)
   end
 
   private

@@ -17,9 +17,24 @@ class Search
   def people
     return Person.none if blank?
 
-    @people ||= Person.where("name LIKE :q OR handle LIKE :q OR description LIKE :q OR notes LIKE :q", q: pattern)
-      .order(Arel.sql("CASE WHEN handle LIKE #{Person.connection.quote(prefix)} OR name LIKE #{Person.connection.quote(prefix)} THEN 0 ELSE 1 END"), followers_count: :desc)
+    @people ||= Person.where("name LIKE :q OR handle LIKE :q OR description LIKE :q OR notes LIKE :q", q: pattern(handle_term))
+      .order(Arel.sql("CASE WHEN handle LIKE #{Person.connection.quote(prefix(handle_term))} OR name LIKE #{Person.connection.quote(prefix(handle_term))} THEN 0 ELSE 1 END"),
+        Arel.sql("EXISTS (SELECT 1 FROM reply_events WHERE reply_events.person_id = people.id) DESC"), followers_count: :desc)
       .includes(:pin, :follow_protection, :tags).limit(LIMIT).to_a
+  end
+
+  # The person the query names outright, by handle or full name, for the palette's quick actions.
+  def named_person
+    return if blank?
+    wanted = handle_term.downcase
+    people.find { |person| person.handle.downcase == wanted || person.name.downcase == wanted }
+  end
+
+  # Where the query matched a person, when it wasn't their name or handle: their bio or your notes.
+  def match_in(person)
+    term = handle_term.downcase
+    return if [ person.name, person.handle ].any? { |field| field.to_s.downcase.include?(term) }
+    [ [ "Notes", person.notes ], [ "Bio", person.description ] ].find { |_, text| text.to_s.downcase.include?(term) }
   end
 
   def tags
@@ -69,11 +84,16 @@ class Search
     X::SourcePost.where(repost: false).where("body LIKE ?", pattern)
   end
 
-  def pattern
-    "%#{ActiveRecord::Base.sanitize_sql_like(query)}%"
+  # "@ada" finds the handle "ada"; a lone "@" stays as typed.
+  def handle_term
+    query.delete_prefix("@").presence || query
   end
 
-  def prefix
-    "#{ActiveRecord::Base.sanitize_sql_like(query)}%"
+  def pattern(term = query)
+    "%#{ActiveRecord::Base.sanitize_sql_like(term)}%"
+  end
+
+  def prefix(term = query)
+    "#{ActiveRecord::Base.sanitize_sql_like(term)}%"
   end
 end
