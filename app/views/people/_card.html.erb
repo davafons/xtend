@@ -1,0 +1,36 @@
+<%# The hover preview of a person: who they are, where you stand, and your own notes. Everything here is also on their page. %>
+<%# locals: (person:, graph:) %>
+<% state = person.follow_state(graph) %>
+<% reminder = person.reminders.open.first %>
+<div class="flex flex-col gap-related">
+  <div class="flex items-center gap-heading">
+    <%= person_avatar person, size: :lg, ring: state %>
+    <div class="flex min-w-0 flex-col">
+      <span class="flex min-w-0 items-center gap-tight">
+        <%= link_to person.name, person, class: "truncate text-label font-semibold hover:underline" %>
+        <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
+        <% if person.follow_protection %><%= lc_icon "shield-check", variant: :solid, options: { class: "size-3.5 shrink-0 text-success", "aria-label": "Kept" } %><% end %>
+      </span>
+      <span class="truncate text-small text-muted-foreground">@<%= person.handle %><% if person.followers_count %> · <%= compact_count person.followers_count %> followers<% end %></span>
+    </div>
+  </div>
+  <div class="flex flex-wrap items-center gap-tight">
+    <% if state_meaning(state) != :neutral %><%= relationship_badge state %><% end %>
+    <% if person.reply_events.any? %>
+      <span class="text-small text-muted-foreground"><span class="text-you"><%= person.outgoing_count %></span> from you · <%= person.incoming_count %> from them · <%= relative_day person.last_interaction_at %></span>
+    <% end %>
+  </div>
+  <% if person.description.present? %><p class="line-clamp-3 text-small"><%= person.description %></p><% end %>
+  <% if person.notes.present? %>
+    <p class="line-clamp-2 rounded-xl bg-tile px-related py-tight text-small"><span class="text-muted-foreground">Your notes: </span><%= person.notes %></p>
+  <% end %>
+  <% if person.tags.any? %>
+    <div class="flex flex-wrap gap-tight"><% person.tags.first(4).each do |tag| %><%= lc_badge "##{tag.name}", shape: :pill, class: tag_hue(tag.name) %><% end %></div>
+  <% end %>
+  <% if reminder %>
+    <p class="flex items-center gap-tight text-caption <%= reminder.due? ? "text-warning" : "text-muted-foreground" %>">
+      <%= lc_icon "bell", options: { class: "size-3.5 shrink-0", "aria-hidden": true } %>
+      <span class="truncate"><%= reminder.reason %> · <%= reminder.due_on.strftime("%-d %b") %></span>
+    </p>
+  <% end %>
+</div>

@@ -34,7 +34,7 @@
       <ol class="flex flex-col divide-y divide-border">
         <% questions.each do |post| %>
           <% author = @ideas.authors[post.author_x_id] %>
-          <% author_name = author ? link_to(author.name, author, class: "hover:underline") : "Someone" %>
+          <% author_name = author ? person_link(author, class: "hover:underline") : "Someone" %>
           <%= render layout: "drafts/post", locals: { avatar: (author ? person_avatar(author, size: 11) : lc_avatar("?", size: 11)), name: author_name, handle: author&.handle, time: lc_time(post.published_at) } do %>
             <p class="whitespace-pre-line break-words"><%= @ideas.strip_mentions(post.body) %></p>
             <div class="-ms-2 mt-tight flex items-center gap-related text-muted-foreground">

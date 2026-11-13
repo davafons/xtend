@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     resource :follow_protection, only: [ :create, :destroy ], controller: "follow/protections"
     resources :tags, only: [ :create, :destroy ], controller: "person_tags"
     resources :reminders, only: :create
+    resource :card, only: :show, controller: "people/cards"
   end
   resources :drafts, except: :show do
     get :ideas, on: :collection

@@ -73,4 +73,13 @@ module PeopleHelper
     end
     safe_join([ pin, keep ])
   end
+
+  # A link to a person that previews them on hover: their card loads the first time it opens.
+  # Pass the link text, or a block for richer content such as an avatar and name.
+  def person_link(person, name = nil, **options, &block)
+    lc_hovercard(src: person_card_path(person), class: options.delete(:wrapper_class)) do |card|
+      attributes = options.merge(data: (options[:data] || {}).merge(card[:data]))
+      block ? link_to(person, **attributes, &block) : link_to(name || person.name, person, **attributes)
+    end
+  end
 end

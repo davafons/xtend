@@ -13,7 +13,7 @@
             <div class="flex items-center gap-heading">
               <%= person_avatar proposal.person, size: :sm %>
               <div class="min-w-0 grow">
-                <p class="text-small"><%= link_to proposal.person.name, proposal.person, class: "font-semibold hover:underline" %> <span class="text-muted-foreground">@<%= proposal.person.handle %></span></p>
+                <p class="text-small"><%= person_link proposal.person, class: "font-semibold hover:underline" %> <span class="text-muted-foreground">@<%= proposal.person.handle %></span></p>
                 <div class="mt-tight flex flex-wrap gap-tight">
                   <% proposal.person.tags.each do |tag| %><%= tag_chip tag.name %><% end %>
                   <% proposal.payload["tags"].each do |name| %><%= tag_chip name %><% end %>

@@ -10,7 +10,7 @@
   <div class="<%= lc_stack_class(gap: :related) %> max-w-2xl">
     <div class="min-w-0">
       <div class="flex min-w-0 items-center gap-tight">
-        <%= link_to person.name, person, class: "truncate font-semibold hover:underline" %>
+        <%= person_link person, class: "truncate font-semibold hover:underline" %>
         <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
         <% if cleanup.mutual?(person) %><%= relationship_badge "Mutual" %><% end %>
       </div>

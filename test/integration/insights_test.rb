@@ -39,8 +39,8 @@ class InsightsPageTest < ActionDispatch::IntegrationTest
     get people_path(from: from, to: to)
     assert_response :success
     assert_select "a[aria-label^='Remove the date filter']"
-    assert_select "main a[title$='@alice']"
-    assert_select "main a[title$='@bob']", 0
+    assert_select "main tbody th", text: /@alice/
+    assert_select "main tbody th", text: /@bob/, count: 0
 
     get insights_path(from: "nonsense", to: to)
     assert_select "a[aria-label^='Remove the date range']", 0

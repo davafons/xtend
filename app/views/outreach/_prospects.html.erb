@@ -24,7 +24,7 @@
           <div class="shrink-0"><%= outreach_avatar(person || prospect.account, prospects.graph) %></div>
           <div class="flex min-w-0 grow flex-col gap-tight">
             <p class="flex min-w-0 items-center gap-1 text-muted-foreground">
-              <% if person %><%= link_to prospect.name, person, class: "truncate font-semibold text-foreground hover:underline" %><% else %><span class="truncate font-semibold text-foreground"><%= prospect.name %></span><% end %>
+              <% if person %><%= person_link person, prospect.name, class: "truncate font-semibold text-foreground hover:underline" %><% else %><span class="truncate font-semibold text-foreground"><%= prospect.name %></span><% end %>
               <span class="min-w-0 truncate text-small">@<%= prospect.handle %></span>
               <% if person&.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
             </p>

@@ -12,7 +12,7 @@
   </div>
   <div class="min-w-0 <%= thread ? 'pb-5' : '' %>">
     <p class="flex min-w-0 items-center gap-1 text-muted-foreground">
-      <% if name_url %><%= link_to name, name_url, class: "truncate font-bold text-foreground hover:underline" %><% else %><span class="truncate font-bold text-foreground"><%= name %></span><% end %>
+      <% if name_url.is_a?(Person) %><%= person_link name_url, name, class: "truncate font-bold text-foreground hover:underline" %><% elsif name_url %><%= link_to name, name_url, class: "truncate font-bold text-foreground hover:underline" %><% else %><span class="truncate font-bold text-foreground"><%= name %></span><% end %>
       <% if handle %><span class="min-w-0 truncate">@<%= handle %></span><% end %>
       <%= cue %>
       <% if at %><span aria-hidden="true">·</span><span class="shrink-0"><%= lc_time at, detail: detail %></span><% end %>
