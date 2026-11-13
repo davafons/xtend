@@ -6,11 +6,12 @@ require "uri"
 class Oauth::Client < ApplicationRecord
   EXTENSION = "xtend-capture".freeze
   PASTED = "xtend-pasted-token".freeze
+  # The extension's manifest key fixes its ID, so only it can receive codes for this client; any other extension
+  # in the browser gets its own chromiumapp.org host and is refused.
+  EXTENSION_ID = "mlbeocefhmhknhobkkkhnlkamdoojjpi".freeze
   FIRST_PARTY = {
-    # The browser makes the redirect origin per install (https://<id>.chromiumapp.org/ in Chrome and
-    # https://<uuid>.extensions.allizom.org/ in Firefox), so the extension is matched by pattern.
-    EXTENSION => { name: "Xtend Capture extension", redirect_uris: [], scopes: %w[capture],
-      redirect_uri_pattern: '[a-z0-9-]+\.(?:chromiumapp\.org|extensions\.allizom\.org)' },
+    EXTENSION => { name: "Xtend Capture extension", redirect_uris: [ "https://#{EXTENSION_ID}.chromiumapp.org/oauth" ],
+      scopes: %w[capture], redirect_uri_pattern: nil },
     PASTED => { name: "Pasted token", redirect_uris: [], scopes: %w[mcp capture], redirect_uri_pattern: nil }
   }.freeze
   MAX_REDIRECT_URIS = 5
@@ -28,10 +29,13 @@ class Oauth::Client < ApplicationRecord
   scope :dynamic, -> { where(registered_via: "dynamic") }
 
   def self.first_party(client_id)
-    find_or_create_by!(client_id: client_id) { |client| client.assign_attributes(FIRST_PARTY.fetch(client_id)) }
+    client = find_or_initialize_by(client_id: client_id)
+    client.assign_attributes(FIRST_PARTY.fetch(client_id))
+    client.tap { |record| record.save! if record.changed? }
   end
 
-  # First-party clients exist from their first use, so a fresh database needs no seeding.
+  # First-party clients exist from their first use, so a fresh database needs no seeding, and their settings
+  # follow the code: changing FIRST_PARTY updates the row on its next use.
   def self.lookup(client_id)
     client_id = client_id.to_s
     FIRST_PARTY.key?(client_id) ? first_party(client_id) : find_by(client_id: client_id)

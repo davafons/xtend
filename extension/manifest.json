@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Xtend Capture",
-  "version": "0.7.0",
+  "version": "0.7.1",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsFd4d86fqmiWGSo+ytGhW008vbDrLyf+s6n/+e4UdXRtlG/OkUtP5zytVv9Hs9vIcbIsWt7t09gc71HB2HxZdzW5e/szEysmnF+xm47PsszAbo99Kb0PKUmZlceCJMeWbWtOAvJj1C2fZtRb+BLjLKX+SugnWqOhi277wKZdJsF2OAHj55zSEqGsMAB2X6gy2KZKmiW6abqdK6eA5wkxJiatovh41je9/u9M+Jpml2W8b0ELtAth0FIm2JfD4DtcQrlQeXySCWL1H+uAdbVkm2wFtnuxpvQ8oqFLk/4Xtng2iBqWXioC0TLBEkXPZNgIeTGH2xy95+JdKyM4Aop7LwIDAQAB",
   "description": "Forwards what x.com already loaded while you browse to Xtend. Sends no requests to X.",
   "permissions": ["storage", "unlimitedStorage", "alarms", "cookies", "identity"],
   "host_permissions": ["https://x.com/*", "https://xtend.example.com/*", "https://xtend.localhost/*"],

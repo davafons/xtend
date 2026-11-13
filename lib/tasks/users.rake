@@ -16,7 +16,7 @@ namespace :users do
     puts "Allowed @#{user.x_handle} in workspace #{user.workspace.id} (#{user.workspace.name}). Their first X sign-in pins the account."
   end
 
-  desc "Remove an X account's access and sign out its sessions. Workspace data stays. HANDLE=..."
+  desc "Remove an X account's access, sign out its sessions, and disconnect the apps it linked. Workspace data stays. HANDLE=..."
   task revoke: :environment do
     user = User.find_by!(x_handle: ENV["HANDLE"].to_s)
     user.destroy!

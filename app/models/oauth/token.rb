@@ -44,6 +44,8 @@ class Oauth::Token < ApplicationRecord
         return
       end
       update!(consumed_at: Time.current)
+      # The access tokens issued before this refresh are superseded; ending them keeps a copy from outliving it.
+      grant.tokens.where(kind: "access").delete_all
       grant.issue_tokens!
     end
   end

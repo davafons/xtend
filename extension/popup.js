@@ -17,7 +17,7 @@ function render({ settings, state, raw }) {
     : settings.rawDebug ? "Logging. Browse x.com, then download." : "Off.";
   $("rawDownload").disabled = !raw.count;
   $("rawClear").disabled = !raw.count;
-  $("badge").textContent = !settings.token ? "Not set up" : settings.paused ? "Paused" : "Capturing";
+  $("badge").textContent = !settings.connected ? "Not set up" : settings.paused ? "Paused" : "Capturing";
   $("pending").textContent = `${state.pending} page${state.pending === 1 ? "" : "s"} waiting`;
   const counts = {};
   for (const [operation, count] of Object.entries(state.byOperation)) {
@@ -42,7 +42,7 @@ function render({ settings, state, raw }) {
     : "";
   $("auto").checked = settings.auto;
   $("paused").checked = settings.paused;
-  $("send").disabled = !state.pending || !settings.token;
+  $("send").disabled = !state.pending || !settings.connected;
 }
 
 const refresh = async () => render(await send("status"));

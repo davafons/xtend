@@ -5,6 +5,7 @@ class Oauth::GrantsController < ApplicationController
     scope = params.require(:scope)
     return head(:unprocessable_entity) unless scope.in?(Oauth::Grant::SCOPES)
     @grant, @token = Oauth::Grant.paste!(workspace: Current.workspace, user: Current.user, scope: scope)
+    response.headers["Cache-Control"] = "no-store"
     render :show
   end
 

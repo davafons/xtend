@@ -5,6 +5,8 @@ class User < ApplicationRecord
   belongs_to :workspace
   has_many :sessions, dependent: :destroy
   has_many :oauth_grants, class_name: "Oauth::Grant", dependent: :nullify
+  # Revoking a user (users:revoke) also ends every app and pasted token they linked.
+  before_destroy(prepend: true) { oauth_grants.active.each(&:revoke!) }
   has_many :oauth_authorization_codes, class_name: "Oauth::AuthorizationCode", dependent: :delete_all
   # Dim: X's blue-grey.
   THEMES = %w[dim].freeze

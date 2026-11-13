@@ -8,7 +8,10 @@
     <div class="flex flex-col gap-inset py-content">
       <div class="flex items-center gap-related">
         <%= image_tag "/icon.png", alt: "", class: "size-10" %>
-        <p class="text-heading font-bold">Connect <%= @client.name %> to Xtend?</p>
+        <div>
+          <p class="text-heading font-bold">Connect <%= @client.name %> to Xtend?</p>
+          <p class="text-small text-muted-foreground">Access goes to <span class="font-mono text-foreground"><%= host %></span></p>
+        </div>
       </div>
       <%= lc_list_group do %>
         <%= lc_list_row "Account", icon: "user", subtitle: "@#{Current.user.x_handle}" %>

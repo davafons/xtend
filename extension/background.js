@@ -266,8 +266,14 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id === chrome.runtime.id && sender.tab && typeof message.entry?.body === "string") recordRaw(message.entry, sender.tab);
     return false;
   }
+  // Everything else comes from the popup and options page. Content scripts run in x.com's renderer, so they get
+  // nothing here, and the tokens never leave this worker.
+  if (sender.id !== chrome.runtime.id || sender.tab || !sender.url?.startsWith(chrome.runtime.getURL(""))) return false;
   const actions = {
-    status: async () => ({ settings: await settings(), state: await state(), raw: await rawState() }),
+    status: async () => {
+      const { token, refreshToken, ...visible } = await settings();
+      return { settings: { ...visible, connected: Boolean(token) }, state: await state(), raw: await rawState() };
+    },
     "clear-raw": () => clearRaw(),
     flush: () => flush().then(state),
     clear: () => clearQueue(),

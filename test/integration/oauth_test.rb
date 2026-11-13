@@ -3,7 +3,7 @@ require "test_helper"
 # Linking clients with OAuth 2.1: an AI assistant that only knows the MCP URL, and the browser extension.
 class OauthTest < ActionDispatch::IntegrationTest
   CLAUDE_REDIRECT = "https://claude.ai/api/mcp/auth_callback".freeze
-  EXTENSION_REDIRECT = "https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/oauth".freeze
+  EXTENSION_REDIRECT = "https://#{Oauth::Client::EXTENSION_ID}.chromiumapp.org/oauth".freeze
 
   setup do
     @verifier = SecureRandom.urlsafe_base64(48)
@@ -154,6 +154,27 @@ class OauthTest < ActionDispatch::IntegrationTest
       headers: { "Content-Type" => "application/json", "Origin" => "chrome-extension://abcdefghijklmnop", "Authorization" => "Bearer #{access}" }
     assert_response :success
     mcp_ping(access)
+    assert_response :unauthorized
+  end
+
+  test "another extension can't link as the Xtend extension" do
+    get oauth_authorize_path, params: authorize_params("xtend-capture", redirect_uri: "https://abcdefghijklmnopabcdefghijklmnop.chromiumapp.org/oauth",
+      scope: "capture", resource: "http://www.example.com/x/captures")
+    assert_response :bad_request
+  end
+
+  test "revoking a user disconnects what they linked, and refreshing ends the old access token" do
+    client_id, tokens = link_claude
+    post oauth_token_path, params: { grant_type: "refresh_token", client_id: client_id, refresh_token: tokens["refresh_token"] }
+    renewed = response.parsed_body.fetch("access_token")
+    sign_out
+    mcp_ping(tokens["access_token"])
+    assert_response :unauthorized
+    mcp_ping(renewed)
+    assert_response :success
+
+    @user.destroy!
+    mcp_ping(renewed)
     assert_response :unauthorized
   end
 
