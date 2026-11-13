@@ -2,7 +2,7 @@
 # message text is never read into storage and encrypted chat contents stay encrypted.
 class X::ArchiveImport < ApplicationRecord
   include WorkspaceScoped
-  self.table_name = "archive_imports"
+  self.table_name = "x_archive_imports"
   class Invalid < StandardError; end
   MAX_ENTRY_BYTES = 200.megabytes
   FILE_NAME = %r{\Adata/[a-z0-9-]+\.js\z}

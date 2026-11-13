@@ -4,7 +4,7 @@
 # a follow after an unfollow starts again.
 class X::FollowEdge < ApplicationRecord
   include WorkspaceScoped
-  self.table_name = "x_follows"
+  self.table_name = "x_follow_edges"
 
   def self.record!(follower:, followed:, seen_on:, at: Time.current, followed_at: nil)
     return if follower.blank? || followed.blank? || follower == followed

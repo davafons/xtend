@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_072000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_073000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -24,19 +24,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_072000) do
     t.integer "workspace_id", null: false
     t.index ["person_id", "kind", "status"], name: "index_ai_proposals_on_person_id_and_kind_and_status"
     t.index ["workspace_id"], name: "index_ai_proposals_on_workspace_id"
-  end
-
-  create_table "archive_imports", force: :cascade do |t|
-    t.string "owner_x_id", null: false
-    t.datetime "generated_at", null: false
-    t.datetime "account_created_at", null: false
-    t.boolean "partial", default: false, null: false
-    t.integer "direct_messages_count", default: 0, null: false
-    t.integer "skipped_count", default: 0, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "workspace_id", null: false
-    t.index ["workspace_id"], name: "index_archive_imports_on_workspace_id"
   end
 
   create_table "direct_messages", force: :cascade do |t|
@@ -353,6 +340,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_072000) do
     t.index ["workspace_id", "x_id"], name: "index_x_accounts_on_workspace_id_and_x_id", unique: true
   end
 
+  create_table "x_archive_imports", force: :cascade do |t|
+    t.string "owner_x_id", null: false
+    t.datetime "generated_at", null: false
+    t.datetime "account_created_at", null: false
+    t.boolean "partial", default: false, null: false
+    t.integer "direct_messages_count", default: 0, null: false
+    t.integer "skipped_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workspace_id", null: false
+    t.index ["workspace_id"], name: "index_x_archive_imports_on_workspace_id"
+  end
+
   create_table "x_billing_cycles", force: :cascade do |t|
     t.date "starts_on", null: false
     t.date "ends_on", null: false
@@ -381,7 +381,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_072000) do
     t.index ["workspace_id"], name: "index_single_owner_x_connection", unique: true
   end
 
-  create_table "x_follows", force: :cascade do |t|
+  create_table "x_follow_edges", force: :cascade do |t|
     t.integer "workspace_id", null: false
     t.string "follower_x_id", null: false
     t.string "followed_x_id", null: false
@@ -389,8 +389,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_072000) do
     t.datetime "first_seen_at", null: false
     t.datetime "last_seen_at", null: false
     t.datetime "followed_at"
-    t.index ["workspace_id", "followed_x_id"], name: "index_x_follows_on_workspace_id_and_followed_x_id"
-    t.index ["workspace_id", "follower_x_id", "followed_x_id"], name: "idx_on_workspace_id_follower_x_id_followed_x_id_dc37aec6a3", unique: true
+    t.index ["workspace_id", "followed_x_id"], name: "index_x_follow_edges_on_workspace_id_and_followed_x_id"
+    t.index ["workspace_id", "follower_x_id", "followed_x_id"], name: "idx_on_workspace_id_follower_x_id_followed_x_id_61e80dd9a0", unique: true
   end
 
   create_table "x_interactions", force: :cascade do |t|
@@ -508,7 +508,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_072000) do
 
   add_foreign_key "ai_proposals", "people"
   add_foreign_key "ai_proposals", "workspaces"
-  add_foreign_key "archive_imports", "workspaces"
   add_foreign_key "direct_messages", "workspaces"
   add_foreign_key "direct_messages", "x_sync_runs"
   add_foreign_key "draft_alternatives", "drafts"
@@ -548,9 +547,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_072000) do
   add_foreign_key "tags", "workspaces"
   add_foreign_key "users", "workspaces"
   add_foreign_key "x_accounts", "workspaces"
+  add_foreign_key "x_archive_imports", "workspaces"
   add_foreign_key "x_billing_cycles", "workspaces"
   add_foreign_key "x_connections", "workspaces"
-  add_foreign_key "x_follows", "workspaces"
+  add_foreign_key "x_follow_edges", "workspaces"
   add_foreign_key "x_interactions", "workspaces"
   add_foreign_key "x_post_observations", "workspaces"
   add_foreign_key "x_reads", "workspaces"
