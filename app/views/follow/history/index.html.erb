@@ -9,13 +9,18 @@
 
 <div class="flex flex-wrap items-center justify-between gap-heading">
   <%= view_tabs "Follower views", Follow::HistoryController::VIEWS.map { |key, label| [ "#{label} · #{@counts[key]}", follower_history_path(view: key), @view == key ] } %>
-  <p class="text-small text-muted-foreground">
-    <% if @checks.any? %>Checks: <%= @checks.map { |check| check.observed_at.strftime("%-d %b, %H:%M") }.join(" and ") %><% else %>No complete follower check yet<% end %>
-  </p>
+  <div class="flex flex-wrap items-center gap-related">
+    <p class="text-small text-muted-foreground">
+      <% if @checks.any? %>Lists: <%= @checks.map { |check| check.observed_at.strftime("%-d %b, %H:%M") }.join(" and ") %><% else %>No complete follower list yet<% end %>
+    </p>
+    <% if (url = own_list_url("followers")) %><%= lc_button_link_to "Scroll your followers on X", url, variant: :secondary, size: :sm, icon: "arrow-up-right", target: "_blank", rel: "noopener noreferrer", title: "Scrolling to the end with the extension on saves a new complete list" %><% end %>
+  </div>
 </div>
 
-<% if @periods.empty? %>
-  <% empty = { "new" => "No new followers detected yet. The first complete check is a baseline; a later check reveals who started following.", "lost" => "No losses detected yet. A loss appears when a later complete check no longer includes someone.", "not_followed_back" => "You follow back everyone who follows you.", "current" => "No complete follower check yet. Run one from X data." } %>
+<% if @view == "changes" %>
+  <%= render "changes", changes: @follower_changes, graph: @graph %>
+<% elsif @periods.empty? %>
+  <% empty = { "new" => "No new followers detected yet. The first complete check is a baseline; a later check reveals who started following.", "lost" => "No losses detected yet. A loss appears when a later complete check no longer includes someone.", "not_followed_back" => "You follow back everyone who follows you.", "current" => "No complete follower list yet. Scroll your Followers page on x.com to the end with the extension on." } %>
   <%= empty_state empty.fetch(@view), icon: "user-group" %>
 <% else %>
   <%= lc_card padding: :none, class: "overflow-hidden" do %>
@@ -94,7 +99,7 @@
   <%= lc_card do %>
     <div class="flex flex-col gap-heading">
       <%= lc_heading "Reading the dates", level: 2, size: :subheading %>
-      <%= lc_text "A follow or unfollow happened somewhere between two checks, so dates are ranges. Follows that start and end between checks stay invisible. A disappearance can be a suspension or deactivation, not only an unfollow. A follower check costs about $0.17 at owned rates.", size: :small, tone: :muted %>
+      <%= lc_text "A follow or unfollow happened somewhere between two checks, so dates are ranges. Follows that start and end between checks stay invisible. A disappearance can be a suspension or deactivation, not only an unfollow. Scrolling your Followers page on x.com to the end with the extension on saves a list for free; an X API check costs about $0.17.", size: :small, tone: :muted %>
     </div>
   <% end %>
 </div>

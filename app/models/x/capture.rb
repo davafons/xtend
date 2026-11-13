@@ -13,6 +13,8 @@
 # - Your relationships: every account x.com shows says whether you follow it and whether it follows you. The
 #   newest sighting per person corrects the latest follow snapshot for that person (see Follow::Graph), and your
 #   own follow and unfollow clicks count the moment they happen. An unfollow is recorded in Follow review.
+# - Your follow lists: scrolling your own Followers or Following page to the end builds a complete list, the
+#   same as an X API check (see Follow::Snapshot.capture_page!). Your profile's counts tell whether pages are missing.
 # - Your actions: likes, reposts, and bookmarks x.com marks on posts you were shown, and the ones you make.
 class X::Capture
   class Rejected < StandardError; end
@@ -20,7 +22,8 @@ class X::Capture
   MAX_RESPONSE_BYTES = 4.megabytes
   ENGAGEMENT_KINDS = { likes: "like", bookmarks: "bookmark" }.freeze
   LISTED_PURPOSES = %i[discovery context likes bookmarks].freeze
-  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows relationships unfollows].freeze
+  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows relationships unfollows list_pages lists_completed].freeze
+  OWN_LISTS = { "Followers" => "followers", "Following" => "following" }.freeze
   CLOCK_SKEW = 5.minutes
 
   Parsed = Struct.new(:payload, :purpose, :variables, :at)
@@ -41,6 +44,7 @@ class X::Capture
     @result = Hash.new(0).merge(responses: responses.size, ignored: responses.size - @parsed.size)
     @runs = {}
     @counts = Hash.new(0)
+    @lists = {}
   end
 
   def ingest!
@@ -58,12 +62,23 @@ class X::Capture
       save_engagement_lists(posts)
       save_follow_edges
       save_relationships(profiles)
+      save_owner_counts(profiles)
+      save_follow_lists(profiles)
       save_viewer_actions(posts)
       reconcile(saved)
       Draft.link_published! if posts.each_value.any? { |row| row["author_id"] == @owner }
       @runs.each { |key, run| run.update!(resource_count: @counts[key], page_limit: @counts[key].clamp(1, 1000)) }
     end
-    [ :responses, :ignored, :skipped, :conflicts, *RESULT_KEYS ].index_with { |key| @result[key] }
+    result = [ :responses, :ignored, :skipped, :conflicts, *RESULT_KEYS ].index_with { |key| @result[key] }.merge(lists: @lists.values)
+    announce(result)
+    result
+  end
+
+  # Open CRM pages poll this to refresh themselves when a batch changed something.
+  def announce(result)
+    return if @parsed.empty?
+    summary = result.slice(*RESULT_KEYS).select { |_, count| count.positive? }.merge(lists: result[:lists])
+    Current.workspace.update_columns(captured_at: @now, last_capture: summary)
   end
 
   private
@@ -252,6 +267,35 @@ class X::Capture
       next if changes.empty?
       person.update_columns(changes)
       @result[:relationships] += 1
+    end
+  end
+
+  # Your follower and following totals, from your own profile wherever x.com showed it.
+  def save_owner_counts(profiles)
+    row = profiles[@owner]
+    return unless row
+    at = @parsed.select { |item| item.payload.profiles.key?(@owner) }.map(&:at).max
+    workspace = Current.workspace
+    return if workspace.owner_counts_seen_at && workspace.owner_counts_seen_at > at
+    workspace.update_columns(owner_followers_count: row["followers_count"] || workspace.owner_followers_count,
+      owner_following_count: row["following_count"] || workspace.owner_following_count, owner_counts_seen_at: at)
+  end
+
+  def save_follow_lists(profiles)
+    pages = @parsed.select { |item| OWN_LISTS.key?(item.payload.operation) && item.variables["userId"].to_s == @owner }
+    pages.sort_by(&:at).each do |item|
+      direction = OWN_LISTS.fetch(item.payload.operation)
+      people = item.payload.entry_user_ids.filter_map do |id|
+        Person.find_by(x_id: id) || (row = profiles[id]) && Person.resolve_profile!(Person.profile_from_x(row))
+      end
+      expected = Current.workspace.public_send(:"owner_#{direction}_count")
+      state = Follow::Snapshot.capture_page!(direction: direction, cursor: item.variables["cursor"], people: people,
+        next_cursor: item.payload.bottom_cursor, last: item.payload.list_end?, at: item.at, expected: expected)
+      next if state == :unchained
+      @result[:list_pages] += 1
+      @result[:lists_completed] += 1 if state == :completed
+      snapshot = Follow::Snapshot.where(direction: direction, source: Follow::Snapshot::CAPTURE).order(:id).last
+      @lists[direction] = { direction: direction, state: state.to_s, seen: snapshot.follow_memberships.count, expected: snapshot.expected_count }
     end
   end
 

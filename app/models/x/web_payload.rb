@@ -29,7 +29,7 @@ class X::WebPayload
   TIME_FORMAT = "%a %b %d %H:%M:%S %z %Y".freeze
 
   attr_reader :operation, :purpose, :posts, :profiles, :entry_post_ids, :entry_user_ids, :skipped, :details, :verified_ids,
-    :relationships, :viewer_actions
+    :relationships, :viewer_actions, :bottom_cursor
 
   def initialize(operation, document)
     @operation = operation
@@ -56,6 +56,11 @@ class X::WebPayload
     SURFACES.fetch(operation, "other")
   end
 
+  # A follow list page that is the last one: no accounts, a cursor that points nowhere, or X saying the list ends.
+  def list_end?
+    @terminated || entry_user_ids.empty? || bottom_cursor.nil? || bottom_cursor.start_with?("0|")
+  end
+
   private_class_method def self.count(value)
     number = value.is_a?(String) && value.match?(/\A\d+\z/) ? value.to_i : value
     number if number.is_a?(Integer) && COUNT_LIMIT.cover?(number)
@@ -68,6 +73,9 @@ class X::WebPayload
     when Array then node.each { |child| walk(child) }
     when Hash
       collect_entry(node["itemContent"]) if node["itemContent"].is_a?(Hash)
+      # Where the next page of a list starts. X ends a list with a cursor that starts with "0|".
+      @bottom_cursor = node["value"] if node["cursorType"] == "Bottom" && node["value"].is_a?(String)
+      @terminated = true if node["type"] == "TimelineTerminateTimeline" && node["direction"] == "Bottom"
       case node["__typename"]
       when "Tweet" then add_post(node)
       when "User" then add_profile(node)

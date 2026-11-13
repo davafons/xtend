@@ -5,8 +5,8 @@ module ApplicationHelper
 
   def navigation_sections
     [
-      [ "Work", [ [ "People", people_path, "users" ], [ "Compose", drafts_path, "pencil-square" ] ] ],
-      [ "Relationships", [ [ "Network", network_path, "share" ], [ "Timeline", timeline_path, "queue-list" ], [ "Follow review", follow_reviews_path, "user-minus" ], [ "Followers", follower_history_path, "chart-bar" ], [ "Insights", insights_path, "presentation-chart-line" ] ] ],
+      [ "Work", [ [ "People", people_path, "users" ], [ "Replies to you", inbox_path, "inbox-arrow-down" ], [ "Compose", drafts_path, "pencil-square" ] ] ],
+      [ "Relationships", [ [ "Network", network_path, "share" ], [ "Timeline", timeline_path, "queue-list" ], [ "Follow review", follow_reviews_path, "user-minus" ], [ "Follow trials", follow_trials_path, "beaker" ], [ "Followers", follower_history_path, "chart-bar" ], [ "Insights", insights_path, "presentation-chart-line" ] ] ],
       [ "Data", [ [ "X data", x_sources_path, "circle-stack" ], [ "Grok", grok_connector_path, "sparkles" ], [ "Spending", x_billing_cycles_path, "banknotes" ] ] ]
     ]
   end

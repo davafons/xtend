@@ -30,6 +30,13 @@ export default class extends Controller {
     this.chart = null
   }
 
+  // A page refresh that morphs in new numbers redraws the chart.
+  configValueChanged(value, previous) {
+    if (!this.chart || !previous || JSON.stringify(value) === JSON.stringify(previous)) return
+    this.chart.destroy()
+    this.chart = new Chart(this.canvasTarget, this.options())
+  }
+
   toggle({ params: { index }, currentTarget }) {
     const visible = !this.chart.isDatasetVisible(index)
     this.chart.setDatasetVisibility(index, visible)

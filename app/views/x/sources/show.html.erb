@@ -2,14 +2,10 @@
 <h1 class="sr-only">X data</h1>
 <div class="grid grid-cols-2 items-start gap-section">
   <div class="<%= lc_stack_class(gap: :section) %>">
-    <%= lc_list_section "What's saved", id: "health", footnote: "Reply history has limited coverage: an empty direction doesn't mean no replies ever happened." do %>
+    <%= lc_list_section "What's saved", id: "health", footnote: "Follow lists refresh for free when you scroll your own Followers or Following page on x.com to the end with the extension on. Reply history has limited coverage: an empty direction doesn't mean no replies ever happened." do %>
       <%= lc_list_group do %>
-        <%= lc_list_row "Followers", icon: "user-group", subtitle: (@followers ? "#{@followers.person_ids.size} #{@followers.completed_at ? 'complete' : 'partial'} records · #{@followers.observed_at.strftime('%-d %b, %H:%M')} · #{@followers.source.humanize}" : "No complete snapshot collected") do %>
-          <%= lc_badge @followers&.fresh? ? "Current" : "Unavailable", tone: @followers&.fresh? ? :success : :neutral %>
-        <% end %>
-        <%= lc_list_row "Following", icon: "user-plus", subtitle: (@following ? "#{@following.person_ids.size} #{@following.completed_at ? 'complete' : 'partial'} records · #{@following.observed_at.strftime('%-d %b, %H:%M')} · #{@following.source.humanize}" : "No complete snapshot collected") do %>
-          <%= lc_badge @following&.completed_at ? "Snapshot available" : "Incomplete" %>
-        <% end %>
+        <%= render "follow/lists/status", direction: "followers" %>
+        <%= render "follow/lists/status", direction: "following" %>
         <%= lc_list_row "Follower changes and timing", icon: "chart-bar", href: follower_history_path do %>
           <%= lc_icon "chevron-right", options: { class: "size-4 text-muted-foreground", "aria-hidden": true } %>
         <% end %>

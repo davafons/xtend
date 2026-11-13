@@ -20,6 +20,30 @@
     <%= lc_nav_list label: "Account" do |nav| %>
       <%= nav.link "Settings", settings_path, icon: "cog-6-tooth", current: navigation_active?(settings_path), title: "Settings" %>
     <% end %>
+    <% unless demo? %>
+      <% workspace = Current.workspace %>
+      <div data-controller="live" data-live-url-value="<%= x_capture_status_path %>" data-live-captured-at-value="<%= workspace.captured_at&.iso8601(3) %>">
+      <div class="flex items-center gap-related px-heading rail:justify-center rail:px-0"
+        title="<%= capture_summary(workspace.last_capture) || "Nothing from the extension yet" %>" data-live-target="status">
+        <span class="relative flex size-2 shrink-0" aria-hidden="true">
+          <span class="absolute inline-flex size-full rounded-full bg-grok opacity-0" data-live-target="ping"></span>
+          <span class="relative inline-flex size-2 rounded-full <%= workspace.captured_at && workspace.captured_at > 10.minutes.ago ? "bg-grok" : "bg-muted-foreground" %>" data-live-target="dot"></span>
+        </span>
+        <span class="min-w-0 grow rail:sr-only" role="status">
+          <span class="block truncate text-caption text-muted-foreground">Extension · <time data-live-target="time" datetime="<%= workspace.captured_at&.iso8601 %>"><%= workspace.captured_at ? "#{time_ago_in_words(workspace.captured_at)} ago" : "nothing yet" %></time></span>
+          <span class="block truncate text-caption" data-live-target="summary"><%= capture_summary(workspace.last_capture) %></span>
+        </span>
+      </div>
+      <template data-live-target="notice">
+        <div class="fixed end-inset bottom-inset z-50 flex items-center gap-related rounded-2xl bg-popover px-content py-related text-small shadow-lg" role="status" data-live-notice>
+          <%= lc_icon "arrow-down-tray", options: { class: "size-4 text-grok", "aria-hidden": true } %>
+          <span>New data from x.com</span>
+          <%= lc_button "Refresh", size: :sm, variant: :secondary, data: { action: "live#refreshNow" } %>
+          <%= lc_icon_button "Dismiss", icon: "x-mark", size: :sm, data: { action: "live#dismiss" } %>
+        </div>
+      </template>
+      </div>
+    <% end %>
     <% connection = X::Connection.current unless demo? %>
     <div class="flex items-center gap-related px-heading rail:justify-center rail:px-0" title="@<%= Current.user&.x_handle %>">
       <%= connection ? owner_avatar(size: :sm) : lc_icon("signal-slash", options: { class: "size-4 text-muted-foreground", "aria-hidden": true }) %>

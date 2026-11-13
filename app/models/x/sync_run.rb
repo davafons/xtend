@@ -168,7 +168,7 @@ class X::SyncRun < ApplicationRecord
       terminal = (next_cursor.blank? || reached_known) && !partial_error
       if follow_snapshot && terminal
         follow_snapshot.update!(completed_at: Time.current)
-        Follow::FollowerPeriod.observe!(follow_snapshot)
+        follow_snapshot.completed!
       end
       update!(cursor: next_cursor, page_number: page_number + 1, resource_count: resource_count + read.resource_count,
         status: terminal ? "completed" : (partial_error ? "paused" : "partial"), finished_at: terminal ? Time.current : nil,

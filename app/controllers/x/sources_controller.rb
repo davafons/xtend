@@ -7,7 +7,5 @@ class X::SourcesController < ApplicationController
     @capture_totals = { posts: X::SourcePost.where(x_sync_run_id: captures).count,
       likes: Engagement.where(kind: "like", x_sync_run_id: captures).count,
       bookmarks: Engagement.where(kind: "bookmark", x_sync_run_id: captures).count }
-    @followers = Follow::Snapshot.latest("followers")
-    @following = Follow::Snapshot.latest("following")
   end
 end

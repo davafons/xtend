@@ -1,21 +1,26 @@
 class Follow::ReviewsController < ApplicationController
   BATCH_SIZES = [ 5, 10, 25, 50 ].freeze
-  FILTERS = %i[reason inactive quiet mutuals sort batch].freeze
+  FILTERS = %i[reason inactive quiet mutuals sort batch tag].freeze
 
   def index
     @cleanup = Follow::Cleanup.new(reason: params[:reason], inactive_days: params[:inactive], quiet_days: params[:quiet],
-      mutuals: params[:mutuals], sort: params[:sort])
+      mutuals: params[:mutuals], sort: params[:sort], tag: params[:tag])
     @batch = BATCH_SIZES.include?(params[:batch].to_i) ? params[:batch].to_i : BATCH_SIZES.first
     if @cleanup.ready?
       @counts = @cleanup.counts
       @candidates = @cleanup.candidates(@batch)
+      @recent_posts = @cleanup.recent_posts(@candidates)
+      @proposals = Grok::Proposal.pending.where(kind: "tags", person: @candidates).index_by(&:person_id)
     else
       @counts = {}
       @candidates = []
+      @recent_posts = {}
+      @proposals = {}
     end
     @coverage = Person::Interactions.coverage
     @reviews = Follow::Review.where(reviewed_on: Date.current).includes(:person).order(updated_at: :desc)
     @tally = @reviews.group_by(&:decision).transform_values(&:size)
+    @progress = Follow::Progress.new
   end
 
   def create
@@ -27,7 +32,7 @@ class Follow::ReviewsController < ApplicationController
     Follow::Review.record!(person, decision)
     notice = { "keep" => "Keeping #{person.name}.", "defer" => "Deferred #{person.name} until tomorrow.",
       "reported_unfollow" => "Unfollow of #{person.name} reported. With the browser capture on, unfollowing on X records itself." }.fetch(decision)
-    redirect_to follow_reviews_path(review_filters), notice: notice
+    redirect_to (params[:return_to] == "trials" ? follow_trials_path(params.permit(:days, :view).to_h.compact_blank) : follow_reviews_path(review_filters)), notice: notice
   end
 
   private

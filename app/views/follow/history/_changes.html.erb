@@ -1,0 +1,59 @@
+<% sightings = changes.sightings %>
+<% if sightings.any? %>
+  <%= lc_card padding: :none, class: "overflow-hidden" do %>
+    <div class="px-inset pt-content">
+      <%= lc_heading "Seen on x.com since the last full list", level: 2, size: :subheading %>
+      <%= lc_text "x.com said so while you browsed. Scroll your Followers page to the end to confirm it and date the change.", size: :small, tone: :muted %>
+    </div>
+    <ul class="mt-content flex flex-col divide-y divide-border border-t border-border">
+      <% sightings.each do |sighting| %>
+        <li class="flex items-center gap-heading px-inset py-heading">
+          <div class="min-w-0 grow"><%= render "people/identity", person: sighting.person %></div>
+          <%= lc_badge sighting.gained? ? "Follows you now" : "Stopped following you", tone: sighting.gained? ? :success : :warning %>
+          <span class="whitespace-nowrap text-caption text-muted-foreground"><%= relative_day sighting.seen_at %></span>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+<% end %>
+
+<% if changes.changes.empty? %>
+  <%= empty_state "No changes between complete lists yet.", "The first complete follower list is a baseline. Each later one, from the X API or from scrolling your Followers page on x.com to the end, shows who started or stopped following you in between.", icon: "user-group" %>
+<% else %>
+  <%= lc_card padding: :none, class: "overflow-hidden" do %>
+    <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Follower changes">
+      <%= lc_table do %>
+        <caption class="sr-only">Who started or stopped following you</caption>
+        <thead>
+          <tr>
+            <th scope="col">Person</th>
+            <th scope="col">Change</th>
+            <th scope="col">When</th>
+            <th scope="col">You follow them</th>
+            <th scope="col">Replies</th>
+            <th scope="col" class="text-end max-xl:hidden">Followers</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% changes.changes.each do |change| %>
+            <% person = change.person %>
+            <tr>
+              <th scope="row" class="font-normal"><%= render "people/identity", person: person %></th>
+              <td>
+                <%= lc_badge change.gained? ? "Followed you" : "Stopped following", tone: change.gained? ? :success : :warning %>
+                <% if !change.gained? && change.period.baseline? %><span class="block text-caption text-muted-foreground">had followed since before <%= change.period.first_seen_at.strftime("%-d %b") %></span><% end %>
+              </td>
+              <td class="whitespace-nowrap text-small"><%= change.after.strftime("%-d %b") %>–<%= change.by.strftime("%-d %b %Y") %></td>
+              <td><%= graph.following?(person) ? relationship_badge("Mutual") : lc_badge("No") %></td>
+              <td>
+                <%= relationship_badge person.reply_state %>
+                <% if person.reply_events.any? %><span class="ms-tight text-caption tabular-nums text-muted-foreground">↗<%= person.outgoing_count %> ↙<%= person.incoming_count %></span><% end %>
+              </td>
+              <td class="whitespace-nowrap text-end text-small tabular-nums max-xl:hidden"><%= compact_count person.followers_count %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

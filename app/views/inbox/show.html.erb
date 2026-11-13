@@ -1,0 +1,39 @@
+<% content_for :title, "Replies to you" %>
+<h1 class="sr-only">Replies to you</h1>
+<div class="flex flex-wrap items-center justify-between gap-heading">
+  <%= view_tabs "Period", InboxController::PERIODS.map { |days| [ "Last #{days} days", inbox_path(days: days), @days == days ] } %>
+  <p class="text-small text-muted-foreground"><%= pluralize(@inbox.count, "reply", plural: "replies") %> you haven't answered</p>
+</div>
+
+<% if @inbox.items.empty? %>
+  <%= empty_state "Nothing waiting on you.", "Every collected reply to you in the last #{@days} days has an answer from you or was set aside. Replies only show up once the capture or a mentions read saw them.", icon: "inbox" %>
+<% else %>
+  <%= lc_card padding: :none, class: "overflow-hidden" do %>
+    <ul class="flex flex-col divide-y divide-border">
+      <% @inbox.items.each do |item| %>
+        <li class="flex items-start gap-heading px-inset py-heading" id="<%= dom_id(item.event, :inbox) %>">
+          <div class="min-w-0 grow <%= lc_stack_class(gap: :related) %>">
+            <%= render "people/identity", person: item.person %>
+            <div class="ps-11 <%= lc_stack_class(gap: :tight) %>">
+              <% if item.post %>
+                <p class="whitespace-pre-line text-small"><%= item.post.body.sub(/\A(@\w+\s+)+/, "") %></p>
+              <% else %>
+                <p class="text-small text-muted-foreground">The reply's text wasn't saved.</p>
+              <% end %>
+              <p class="flex flex-wrap items-center gap-related text-caption text-muted-foreground">
+                <%= relative_day item.occurred_at %>
+                <% if item.liked %><span class="flex items-center gap-tight text-like"><%= lc_icon "heart", options: { class: "size-3.5", "aria-hidden": true } %>You liked it</span><% end %>
+                <%= relationship_badge item.person.reply_state %>
+              </p>
+            </div>
+          </div>
+          <div class="flex shrink-0 items-center gap-tight">
+            <%= lc_button_link_to "Reply on X", item.url, variant: :secondary, size: :sm, icon: "arrow-up-right", target: "_blank", rel: "noopener noreferrer" %>
+            <%= lc_icon_button_to "Set aside the reply from #{item.person.name}", reply_event_dismissal_path(item.event), icon: "archive-box", size: :sm, title: "Set aside without answering" %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+  <%= lc_text "Answered means you replied to it directly or replied to them later in the same thread. Your reply shows up here once the capture sees it, usually as soon as you post it.", size: :caption, tone: :muted %>
+<% end %>

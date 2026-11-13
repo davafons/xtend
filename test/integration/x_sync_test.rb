@@ -28,7 +28,7 @@ class XSyncTest < ActionDispatch::IntegrationTest
         assert_equal "completed", X::SyncRun.last.status
         get x_sources_path
         assert_response :success
-        assert_includes response.body, "1 complete records"
+        assert_includes response.body, "1 account · "
         get follower_history_path
         assert_response :success
         assert_includes response.body, "Current followers · 1"

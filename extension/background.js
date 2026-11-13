@@ -1,9 +1,14 @@
-// Queues captured responses in extension storage and sends them to the CRM in batches, on demand or every minute.
+// Queues captured responses in extension storage and sends them to the CRM in batches: a few seconds after you stop
+// scrolling, on demand, or every minute as a fallback. After each batch it tells open CRM tabs to refresh and shows
+// follow-list progress on x.com.
 const DEFAULT_SETTINGS = { crmUrl: "https://xtend.example.com", token: "", auto: true, paused: false };
 const MAX_QUEUE = 2000;
 const MAX_BATCH_RESPONSES = 50;
 const MAX_BATCH_BYTES = 6 * 1024 * 1024;
 const ITEM_PREFIX = "q:";
+const SEND_DELAY_MS = 4000;
+const CRM_TABS = ["https://xtend.example.com/*", "https://twitter-crm.localhost/*"];
+let sendTimer = null;
 
 // Storage updates run one at a time so concurrent captures can't overwrite each other's counters.
 let chain = Promise.resolve();
@@ -49,8 +54,37 @@ function enqueue(message) {
     await setState({ pending, byOperation });
   }).then(async () => {
     const [{ auto }, { pending }] = await Promise.all([settings(), state()]);
-    if (auto && pending >= MAX_BATCH_RESPONSES) flush();
+    if (!auto) return;
+    clearTimeout(sendTimer);
+    if (pending >= MAX_BATCH_RESPONSES) flush();
+    else sendTimer = setTimeout(flush, SEND_DELAY_MS);
   });
+}
+
+// What a batch means for the follow list you are scrolling, in words for the x.com toast.
+function listMessages(result) {
+  return (result.lists || []).map((list) => {
+    const name = list.direction === "followers" ? "Followers" : "Following";
+    const of = list.expected ? ` of ${list.expected}` : "";
+    if (list.state === "completed") return `${name} list saved to the CRM: ${list.seen} accounts.`;
+    if (list.state === "short") return `${name} list ended at ${list.seen}${of}. Some pages were missed; scroll it again from the top.`;
+    return `${name} list: ${list.seen}${of} saved. Keep scrolling to the end.`;
+  });
+}
+
+async function announce(result) {
+  const crmTabs = await chrome.tabs.query({ url: CRM_TABS }).catch(() => []);
+  for (const tab of crmTabs) chrome.tabs.sendMessage(tab.id, { type: "captured" }).catch(() => {});
+  const messages = listMessages(result);
+  if (result.unfollows) messages.push(`Unfollow recorded in the CRM.`);
+  if (!messages.length) return;
+  const xTabs = await chrome.tabs.query({ url: "https://x.com/*", active: true }).catch(() => []);
+  for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "toast", text: messages.join(" ") }).catch(() => {});
+}
+
+async function toastError(text) {
+  const xTabs = await chrome.tabs.query({ url: "https://x.com/*", active: true }).catch(() => []);
+  for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "toast", text: `CRM: ${text}`, tone: "error" }).catch(() => {});
 }
 
 async function viewerId() {
@@ -100,11 +134,13 @@ function flush() {
       try {
         result = await post({ batch_key: crypto.randomUUID(), viewer_x_id: ready.viewer, responses });
       } catch {
+        toastError("not reachable. Captures stay queued.");
         return setState({ lastError: "The CRM isn't reachable. Captures stay queued." });
       }
       // A single response the CRM refuses as too large would otherwise block the queue forever.
       const tooLarge = result.status === 413 && batchKeys.length === 1;
       if (!result.ok && !tooLarge) {
+        toastError(result.body.error || `answered ${result.status}. Captures stay queued.`);
         return setState({ lastError: result.body.error || `The CRM answered ${result.status}. Captures stay queued.` });
       }
       await chrome.storage.local.remove(batchKeys);
@@ -112,12 +148,13 @@ function flush() {
       const byOperation = { ...current.byOperation };
       for (const item of responses) byOperation[item.operation] = Math.max((byOperation[item.operation] || 1) - 1, 0);
       const totals = { ...current.totals };
-      for (const field of ["posts", "people_added", "people_updated", "likes", "bookmarks", "accounts", "interactions", "follows", "observations", "relationships", "unfollows"]) {
+      for (const field of ["posts", "people_added", "people_updated", "likes", "bookmarks", "accounts", "interactions", "follows", "observations", "relationships", "unfollows", "lists_completed"]) {
         totals[field] = (totals[field] || 0) + (result.body[field] || 0);
       }
       await setState({ pending: Math.max(current.pending - batchKeys.length, 0), byOperation, totals,
         lastSentAt: new Date().toISOString(), lastResult: tooLarge ? { dropped: 1 } : result.body, lastError: null });
       keys = keys.filter((key) => !batchKeys.includes(key));
+      if (result.ok) announce(result.body);
     }
   });
 }

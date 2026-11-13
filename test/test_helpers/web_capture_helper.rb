@@ -37,14 +37,24 @@ module WebCaptureHelper
     tweet
   end
 
-  def web_user_list(users)
-    web_timeline([], users: users)
+  def web_user_list(users, bottom: nil)
+    web_timeline([], users: users, bottom: bottom)
   end
 
-  def web_timeline(tweets, promoted: [], users: [])
+  # One page of the owner's own Followers or Following list, as x.com loads it while scrolling.
+  def own_list_page(operation, users, cursor: nil, bottom:, at: nil)
+    response = web_response(operation, web_user_list(users, bottom: bottom), variables: { "userId" => Current.workspace.owner_x_id, "count" => 20, "cursor" => cursor }.compact)
+    at ? response.merge("at" => at) : response
+  end
+
+  def web_timeline(tweets, promoted: [], users: [], bottom: nil)
     entries = tweets.map { |tweet| entry("tweet-#{tweet['rest_id']}", "itemType" => "TimelineTweet", "tweet_results" => { "result" => tweet }) }
     entries += promoted.map { |tweet| entry("promoted-tweet-#{tweet['rest_id']}", "itemType" => "TimelineTweet", "promotedMetadata" => {}, "tweet_results" => { "result" => tweet }) }
     entries += users.map { |user| entry("user-#{user['rest_id']}", "itemType" => "TimelineUser", "user_results" => { "result" => user }) }
+    if bottom
+      entries << { "entryId" => "cursor-top-1", "content" => { "entryType" => "TimelineTimelineCursor", "value" => "-1|top", "cursorType" => "Top" } }
+      entries << { "entryId" => "cursor-bottom-1", "content" => { "entryType" => "TimelineTimelineCursor", "value" => bottom, "cursorType" => "Bottom" } }
+    end
     { "data" => { "timeline" => { "instructions" => [ { "type" => "TimelineAddEntries", "entries" => entries } ] } } }
   end
 

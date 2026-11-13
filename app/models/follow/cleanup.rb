@@ -14,31 +14,44 @@ class Follow::Cleanup
     "reason" => "Best match first",
     "largest" => "Most followers",
     "smallest" => "Fewest followers",
-    "name" => "Name"
+    "name" => "Name",
+    "off_topic" => "Off-topic first"
   }.freeze
 
-  attr_reader :reason, :inactive_days, :quiet_days, :sort
+  attr_reader :reason, :inactive_days, :quiet_days, :sort, :tag
 
-  def initialize(reason: nil, inactive_days: nil, quiet_days: nil, mutuals: nil, sort: nil)
+  def initialize(reason: nil, inactive_days: nil, quiet_days: nil, mutuals: nil, sort: nil, tag: nil)
     @reason = REASONS.key?(reason) ? reason : "inactive"
     @inactive_days = INACTIVE_PERIODS.include?(inactive_days.to_i) ? inactive_days.to_i : 180
     @quiet_days = QUIET_PERIODS.include?(quiet_days.to_i) ? quiet_days.to_i : Person::CLEANUP_QUIET_PERIOD.in_days.to_i
     @mutuals = mutuals.to_s != "0"
     @sort = SORTS.key?(sort) ? sort : "reason"
+    @tag = Tag.normalize(tag).presence
   end
 
   def mutuals? = @mutuals
 
   def following = @following ||= Follow::Snapshot.latest_complete("following")
-  def followers = @followers ||= Follow::Snapshot.latest("followers")
+  def followers = @followers ||= Follow::Snapshot.latest_complete("followers")
 
   # Leaving mutuals out needs a fresh follower list; including them only labels them.
   def ready?
     following.present? && (mutuals? || followers&.fresh?)
   end
 
+  # With a tag, only people carrying it; "untagged" means people with no tags at all.
   def pool
-    @pool ||= Person.cleanup_pool(mutuals: mutuals?).includes(:pin).to_a
+    @pool ||= begin
+      people = Person.cleanup_pool(mutuals: mutuals?)
+      people = tag == "untagged" ? people.untagged : people.tagged(tag) if tag
+      people.includes(:pin, :tags).to_a
+    end
+  end
+
+  # Tags carried by anyone in the unfiltered pool, most used first, for the filter menu.
+  def tag_options
+    Tag.joins(:person_tags).where(person_tags: { person_id: Person.cleanup_pool(mutuals: mutuals?).select(:id) })
+      .group(:id).order(Arel.sql("COUNT(*) DESC"), :name).limit(40).pluck(:name)
   end
 
   def interactions
@@ -79,9 +92,20 @@ class Follow::Cleanup
     when "largest" then people.sort_by { |person| [ person.followers_count ? 0 : 1, -person.followers_count.to_i, person.id ] }
     when "smallest" then people.sort_by { |person| [ person.followers_count ? 0 : 1, person.followers_count.to_i, person.id ] }
     when "name" then people.sort_by { |person| [ person.name.downcase, person.id ] }
+    when "off_topic" then people.each_with_index.sort_by { |person, index| [ person.tags.any? { |t| t.name == Grok::Classification::OFF_TOPIC } ? 0 : 1, index ] }.map(&:first)
     else people
     end
     people.first(limit)
+  end
+
+  # The latest posts the capture saved from each person, newest first, so a decision doesn't need a trip to X.
+  # Reposts are left out: they show what someone shares, not what they write.
+  def recent_posts(people, per_person: 2)
+    ids = people.filter_map(&:x_id)
+    return {} if ids.empty?
+    ranked = X::SourcePost.where(author_x_id: ids, repost: false)
+      .select("x_source_posts.*, ROW_NUMBER() OVER (PARTITION BY author_x_id ORDER BY published_at DESC) AS position")
+    X::SourcePost.from(ranked, :x_source_posts).where("position <= ?", per_person).order(published_at: :desc).group_by(&:author_x_id)
   end
 
   def counts

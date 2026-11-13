@@ -25,7 +25,8 @@ function render({ settings, state }) {
   const result = state.lastResult;
   $("last").textContent = state.lastSentAt
     ? `Last sent ${new Date(state.lastSentAt).toLocaleTimeString()}` +
-      (result && result.posts !== undefined ? `: ${result.posts} posts, ${result.interactions || 0} interactions, ${result.follows || 0} follow edges, ${result.people_added} new people` : "")
+      (result && result.posts !== undefined ? `: ${result.posts} posts, ${result.interactions || 0} interactions, ${result.follows || 0} follow edges, ${result.people_added} new people` : "") +
+      ((result && result.lists || []).map((list) => ` · ${list.direction} list ${list.state === "completed" ? "complete" : "so far"}: ${list.seen}${list.expected ? ` of ${list.expected}` : ""}`).join(""))
     : "Nothing sent yet.";
   const totals = state.totals;
   $("totals").textContent = totals.posts || totals.people_added

@@ -25,7 +25,7 @@
     <%= lc_button_link_to "Set up browser capture", x_sources_path(anchor: "capture"), variant: :secondary %>
   <% end %>
 <% else %>
-  <div class="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-inset" data-controller="network" data-network-url-value="<%= network_path(request.query_parameters.merge(format: :json)) %>">
+  <div class="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-inset" data-live="manual" data-controller="network" data-network-url-value="<%= network_path(request.query_parameters.merge(format: :json)) %>">
     <%= lc_card padding: :none, class: "relative overflow-hidden" do %>
       <div class="relative h-[40rem]">
         <canvas class="absolute inset-0 size-full cursor-grab touch-none" data-network-target="canvas" role="img" aria-label="Network graph of <%= pluralize(@graph.nodes.size, "account") %> and <%= pluralize(@graph.links.size, "connection") %>"></canvas>

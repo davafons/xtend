@@ -19,6 +19,10 @@ Rails.application.routes.draw do
       end
     end
   end
+  resource :inbox, only: :show, controller: "inbox"
+  resources :reply_events, only: [] do
+    resource :dismissal, only: :create, controller: "reply_events/dismissals"
+  end
   resource :network, only: :show, controller: "network"
   resource :timeline, only: :show, controller: "timeline"
   resource :insights, only: :show
@@ -29,6 +33,7 @@ Rails.application.routes.draw do
   # Follower snapshots and cleanup
   namespace :follow do
     resources :reviews, only: [ :index, :create ]
+    resources :trials, only: :index
   end
   get "/follow/history", to: "follow/history#index", as: :follower_history
 
@@ -40,6 +45,7 @@ Rails.application.routes.draw do
     resources :archive_imports, only: :create
     resources :captures, only: :create
     resource :capture_token, only: [ :create, :destroy ]
+    resource :capture_status, only: :show
     resource :connection, only: [ :create, :update, :destroy ] do
       get :callback
     end

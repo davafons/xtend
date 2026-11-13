@@ -5,7 +5,7 @@ class Follow::Graph
   attr_reader :following, :followers
 
   def self.latest
-    new(Follow::Snapshot.latest("following"), Follow::Snapshot.latest("followers"))
+    new(Follow::Snapshot.latest_complete("following"), Follow::Snapshot.latest_complete("followers"))
   end
 
   def initialize(following, followers)

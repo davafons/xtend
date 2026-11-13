@@ -1,0 +1,78 @@
+<% content_for :title, "Follow trials" %>
+<h1 class="sr-only">Follow trials</h1>
+<% trials = @trials %>
+<% counts = trials.counts %>
+<%= stat_cards [
+  [ "Followed since #{trials.baseline&.observed_at&.strftime("%-d %b") || "—"}", counts["all"] ],
+  [ "Followed you back", counts["all"].positive? ? "#{counts["followed_back"]} · #{(counts["followed_back"] * 100.0 / counts["all"]).round}%" : "—" ],
+  [ "No follow-back after #{trials.days} days", counts["due"] ],
+  [ "Still in trial", counts["waiting"] ]
+] %>
+
+<div class="flex flex-wrap items-center gap-related">
+  <%= view_tabs "Trial views", Follow::Trials::VIEWS.map { |key, label| [ "#{label} · #{counts[key]}", follow_trials_path(view: key, days: trials.days), trials.view == key ] } %>
+  <%= form_with url: follow_trials_path, method: :get, class: "ms-auto", data: { controller: "auto-submit", turbo_action: "replace" } do %>
+    <%= hidden_field_tag :view, trials.view, id: nil %>
+    <%= lc_select Follow::Trials::PERIODS.map { |days| [ "Trial: #{days} days", days ] }, name: "days", selected: trials.days, size: :sm, aria: { label: "Trial length" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+  <% end %>
+</div>
+
+<% if !trials.available? %>
+  <%= empty_state "Needs a first complete following list.", "Scroll your Following page on x.com to the end with the extension on. Accounts you follow after that start a trial here.", icon: "beaker" %>
+<% elsif trials.list.empty? %>
+  <% empty = { "due" => "Nobody has gone #{trials.days} days without following you back. Accounts you keep following are left out.", "followed_back" => "Nobody you followed recently has followed back yet.", "waiting" => "No trial is running: everyone you followed recently is past #{trials.days} days or followed back.", "all" => "You haven't followed anyone since #{trials.baseline.observed_at.strftime("%-d %b")}, or the capture hasn't seen it yet." } %>
+  <%= empty_state empty.fetch(trials.view), icon: "beaker" %>
+<% else %>
+  <%= lc_card padding: :none, class: "overflow-hidden" do %>
+    <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Follow trials">
+      <%= lc_table do %>
+        <caption class="sr-only">People you followed recently</caption>
+        <thead>
+          <tr>
+            <th scope="col">Account</th>
+            <th scope="col">You followed</th>
+            <th scope="col">Follows you</th>
+            <th scope="col">You, last</th>
+            <th scope="col">Them, last</th>
+            <th scope="col" class="text-end">Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% trials.list.each do |trial| %>
+            <% person = trial.person %>
+            <% mine = trial.interactions.signals.find { |signal| signal.direction == "outgoing" } %>
+            <% theirs = trial.interactions.signals.find { |signal| signal.direction == "incoming" } %>
+            <tr>
+              <th scope="row" class="font-normal">
+                <%= render "people/identity", person: person %>
+                <% if trial.kept %><span class="ms-11 text-caption text-muted-foreground">You chose to keep following</span><% end %>
+              </th>
+              <td class="whitespace-nowrap text-small">
+                <span class="block font-medium"><%= pluralize(trial.days, "day") %> ago</span>
+                <span class="block text-caption text-muted-foreground"><%= trial.after.strftime("%-d %b") %>–<%= trial.by.strftime("%-d %b") %></span>
+              </td>
+              <td class="whitespace-nowrap">
+                <% if trial.follows_back %>
+                  <%= relationship_badge "Mutual" %>
+                  <% if trial.back_since %><span class="block text-caption text-muted-foreground">seen <%= trial.back_since.strftime("%-d %b") %></span><% end %>
+                <% else %>
+                  <%= lc_badge "Not yet" %>
+                <% end %>
+              </td>
+              <td class="text-small"><%= mine ? interaction_label(mine) : tag.span("Nothing observed", class: "text-muted-foreground") %></td>
+              <td class="text-small"><%= theirs ? interaction_label(theirs) : tag.span("Nothing observed", class: "text-muted-foreground") %></td>
+              <td>
+                <div class="flex flex-wrap items-center justify-end gap-tight">
+                  <%= lc_icon_button_link_to "Open @#{person.handle} on X", person.profile_url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open on X" %>
+                  <% unless trial.kept %><%= lc_button_to "Keep", follow_reviews_path(person_id: person.id, decision: "keep", return_to: "trials", view: trials.view, days: trials.days), variant: :secondary, size: :sm, icon: "shield-check" %><% end %>
+                  <%= lc_button_to "I unfollowed", follow_reviews_path(person_id: person.id, decision: "reported_unfollow", return_to: "trials", view: trials.view, days: trials.days), variant: :secondary, size: :sm, icon: "user-minus", class: "whitespace-nowrap" %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>
+<%= lc_text "Follow dates are ranges: between the last complete following list without them and the first time the capture or a list saw you following them. People on your first list (#{trials.baseline&.observed_at&.strftime("%-d %b %Y") || "none yet"}) have unknown start dates and aren't trials. Unfollowing on X records itself with the extension on. X treats rapid follow-and-unfollow cycles as platform manipulation, so keep the people who followed back and talk with you.", size: :caption, tone: :muted %>

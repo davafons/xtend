@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_08_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_13_120000) do
   create_table "archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -161,6 +161,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_110000) do
     t.datetime "updated_at", null: false
     t.datetime "follower_tracking_completed_at"
     t.integer "workspace_id", null: false
+    t.string "next_cursor"
+    t.integer "expected_count"
+    t.datetime "last_page_at"
     t.index ["workspace_id"], name: "index_follow_snapshots_on_workspace_id"
   end
 
@@ -308,6 +311,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_110000) do
     t.datetime "updated_at", null: false
     t.boolean "outreach_eligible", default: true, null: false
     t.integer "workspace_id", null: false
+    t.datetime "dismissed_at"
     t.index ["person_id"], name: "index_reply_events_on_person_id"
     t.index ["workspace_id", "x_id"], name: "index_reply_events_on_workspace_id_and_x_id", unique: true
     t.index ["workspace_id"], name: "index_reply_events_on_workspace_id"
@@ -369,6 +373,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_08_110000) do
     t.datetime "capture_token_created_at"
     t.datetime "capture_token_used_at"
     t.text "posting_notes", default: "", null: false
+    t.integer "owner_followers_count"
+    t.integer "owner_following_count"
+    t.datetime "owner_counts_seen_at"
+    t.datetime "captured_at"
+    t.json "last_capture"
     t.index ["capture_token_digest"], name: "index_workspaces_on_capture_token_digest", unique: true
     t.index ["mcp_token_digest"], name: "index_workspaces_on_mcp_token_digest", unique: true
   end

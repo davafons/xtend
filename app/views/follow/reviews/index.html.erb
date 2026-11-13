@@ -13,6 +13,9 @@
     <% elsif cleanup.reason == "quiet" %>
       <%= lc_select Follow::Cleanup::QUIET_PERIODS.map { |days| [ "Quiet #{days}+ days", days ] }, name: "quiet", selected: cleanup.quiet_days, size: :sm, aria: { label: "Quiet period" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
     <% end %>
+    <% if (tags = cleanup.tag_options).any? || cleanup.tag %>
+      <%= lc_select [ [ "Any tag", "" ], [ "No tags", "untagged" ], *tags.map { |name| [ "##{name}", name ] } ], name: "tag", selected: cleanup.tag.to_s, size: :sm, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+    <% end %>
     <%= lc_select Follow::Cleanup::SORTS.map { |key, label| [ label, key ] }, name: "sort", selected: cleanup.sort, size: :sm, aria: { label: "Sort" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
     <%= lc_select Follow::ReviewsController::BATCH_SIZES.map { |size| [ "#{size} at a time", size ] }, name: "batch", selected: @batch, size: :sm, aria: { label: "Batch size" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
     <%= hidden_field_tag "mutuals", "0", id: nil %><%= lc_toggle "Include mutuals", name: "mutuals", value: "1", active: cleanup.mutuals?, size: :sm, input: { type: "checkbox", data: { action: "auto-submit#submit" } } %>
@@ -20,18 +23,20 @@
 </div>
 
 <% refresh_following = capture do %>
-  <%= lc_button_to "Refresh following", x_sync_runs_path, params: { dataset: "following", mode: "refresh", request_key: SecureRandom.uuid, return_to: "follow_reviews" }, variant: :secondary, size: :sm, icon: "arrow-path", disabled: demo? || !X::Connection.current %>
+  <% if (url = own_list_url("following")) %><%= lc_button_link_to "Scroll your following on X", url, size: :sm, icon: "arrow-up-right", target: "_blank", rel: "noopener noreferrer" %><% end %>
+  <%= lc_button_to "Refresh with the X API", x_sync_runs_path, params: { dataset: "following", mode: "refresh", request_key: SecureRandom.uuid, return_to: "follow_reviews" }, variant: :secondary, size: :sm, icon: "arrow-path", disabled: demo? || !X::Connection.current %>
 <% end %>
 <% if !cleanup.following %>
-  <%= empty_state "Your following list comes first.", "Read the accounts you follow once; suggestions only come from a complete list.", icon: "user-plus" do %><%= refresh_following %><% end %>
+  <%= empty_state "Your following list comes first.", "Scroll your Following page on x.com to the end with the extension on; suggestions only come from a complete list.", icon: "user-plus" do %><%= refresh_following %><% end %>
 <% elsif !cleanup.ready? %>
-  <%= empty_state "Leaving mutuals out needs a fresh follower list.", "Your follower list is older than 24 hours, so it can't show who still follows you. Include mutuals, or refresh followers on X data.", icon: "shield-check" do %>
+  <%= empty_state "Leaving mutuals out needs a fresh follower list.", "Your follower list is older than 24 hours, so it can't show who still follows you. Scroll your Followers page on x.com to the end, or include mutuals.", icon: "shield-check" do %>
+    <% if (url = own_list_url("followers")) %><%= lc_button_link_to "Scroll your followers on X", url, icon: "arrow-up-right", target: "_blank", rel: "noopener noreferrer" %><% end %>
     <%= lc_button_link_to "Include mutuals", follow_reviews_path(review_filters.merge("mutuals" => "1")), variant: :secondary %>
   <% end %>
 <% else %>
   <% unknown = cleanup.unknown_activity_count %>
   <% if cleanup.reason == "inactive" && unknown.positive? %>
-    <%= lc_alert "X hasn't reported when #{pluralize(unknown, "account")} you follow last posted, so #{unknown == 1 ? "it" : "they"} can't show up here yet. One following refresh reads that for everyone.", tone: :warning do %><%= refresh_following %><% end %>
+    <%= lc_alert "X hasn't reported when #{pluralize(unknown, "account")} you follow last posted, so #{unknown == 1 ? "it" : "they"} can't show up here yet. Visiting their profiles with the extension on fills it in, or one API following refresh reads it for everyone.", tone: :warning do %><%= refresh_following %><% end %>
   <% end %>
 <% end %>
 <% if cleanup.ready? && @candidates.empty? %>
@@ -54,7 +59,7 @@
           <% @candidates.each do |person| %>
             <tr id="<%= dom_id(person, :review) %>">
               <th scope="row" class="align-top font-normal">
-                <div class="<%= lc_stack_class(gap: :related) %> max-w-xs">
+                <div class="<%= lc_stack_class(gap: :related) %> max-w-md">
                   <%= render "people/identity", person: person %>
                   <div class="<%= lc_stack_class(gap: :tight) %> ps-11">
                     <span class="flex flex-wrap items-center gap-related text-caption text-muted-foreground">
@@ -62,7 +67,29 @@
                       <%= safe_join([ ("Joined #{person.joined_x_at.strftime('%b %Y')}" if person.joined_x_at), (person.location.truncate(24) if person.location.present?) ].compact, " · ") %>
                     </span>
                     <span class="line-clamp-2 text-small <%= "text-muted-foreground" if person.description.blank? %>"><%= person.description.presence || "No bio collected." %></span>
+                    <% proposal = @proposals[person.id] %>
+                    <% if person.tags.any? || proposal %>
+                      <div class="flex flex-wrap items-center gap-tight">
+                        <% person.tags.each do |tag| %><%= tag_chip tag.name, href: follow_reviews_path(review_filters.merge("tag" => tag.name)) %><% end %>
+                        <% if proposal %>
+                          <span class="flex items-center gap-tight text-caption text-grok" title="<%= proposal.payload["reason"] %>"><%= lc_icon "sparkles", options: { class: "size-3.5", "aria-hidden": true } %>Grok suggests</span>
+                          <% proposal.payload["tags"].each do |name| %><%= tag_chip name, href: follow_reviews_path(review_filters.merge("tag" => name)) %><% end %>
+                          <%= lc_icon_button_to "Accept Grok's tags for #{person.name}", grok_proposal_path(proposal), method: :patch, params: { decision: "accept" }, icon: "check", size: :sm, title: "Accept tags" %>
+                          <%= lc_icon_button_to "Dismiss Grok's tags for #{person.name}", grok_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, icon: "x-mark", size: :sm, title: "Dismiss tags" %>
+                        <% end %>
+                      </div>
+                    <% end %>
                     <% if person.notes.present? %><span class="line-clamp-2 text-caption"><strong>Your note:</strong> <%= person.notes %></span><% end %>
+                    <% if (posts = @recent_posts[person.x_id]).present? %>
+                      <ul class="<%= lc_stack_class(gap: :tight) %> mt-tight" aria-label="Latest saved posts from @<%= person.handle %>">
+                        <% posts.each do |post| %>
+                          <li class="rounded-xl bg-tile px-related py-tight text-caption">
+                            <span class="line-clamp-3"><%= post.body %></span>
+                            <span class="text-muted-foreground"><%= post.reply_to_x_id ? "Reply · " : "" %><%= relative_day post.published_at %></span>
+                          </li>
+                        <% end %>
+                      </ul>
+                    <% end %>
                   </div>
                 </div>
               </th>
@@ -106,6 +133,18 @@
     </div>
   <% end %>
   <%= lc_text "#{reason_hints.fetch(cleanup.reason)}. #{pluralize(@counts.fetch(cleanup.reason), "account")} match. Kept accounts#{" and mutuals" unless cleanup.mutuals?} are left out#{"; mutuals are marked" if cleanup.mutuals?}#{" (follower list from #{cleanup.followers.observed_at.strftime("%-d %b")})" if cleanup.mutuals? && cleanup.followers}. Interaction coverage: #{@coverage.map { |label, value| "#{label} #{value}" }.join(" · ")}. Likes and reposts have no time of their own, so they use the post date or when the capture saw them.", size: :caption, tone: :muted %>
+  <% prompt = Grok::Classification.relevance_prompt(@candidates) %>
+  <%= lc_collapsible title: "Ask Grok which of these #{@candidates.size} fit your interests", card: true, indicator: :chevron do %>
+    <div class="flex flex-col gap-content">
+      <%= lc_text "Grok tags each account and adds ##{Grok::Classification::OFF_TOPIC} when nothing they post relates to your interests in Settings. Suggestions show up in the rows above and apply only when you accept them; then sort by \"Off-topic first\".", size: :small, tone: :muted %>
+      <div><%= lc_copy_button "Copy prompt for this batch", value: prompt, variant: :secondary, size: :sm %></div>
+      <%= form_with url: grok_intakes_path, class: "flex flex-col gap-content" do %>
+        <%= hidden_field_tag :return_to, "follow_reviews" %>
+        <%= lc_field label: "Grok results", id: "grok-relevance-output", hint: "Paste Grok's whole answer; only its JSON block is read." do |field| %><%= lc_textarea "", name: "grok_output", rows: 4, maxlength: 100_000, required: true, **field %><% end %>
+        <div><%= lc_button "Import suggestions", type: :submit, size: :sm, icon: "arrow-down-tray" %></div>
+      <% end %>
+    </div>
+  <% end %>
 <% end %>
 
 <% if @reviews.any? %>
@@ -120,7 +159,10 @@
             <tr>
               <th scope="row" class="font-normal"><%= link_to review.person, class: "flex items-center gap-heading" do %><%= person_avatar review.person, size: :sm %><span class="font-semibold"><%= review.person.name %></span><span class="text-caption text-muted-foreground">@<%= review.person.handle %></span><% end %></th>
               <td>
-                <% label, icon, tone = { "keep" => ["Keep following", "shield-check", :success], "defer" => ["Deferred", "clock", :neutral], "reported_unfollow" => ["Unfollow reported · unverified", "user-minus", :warning], "unfollowed" => ["Unfollowed on X", "user-minus", :neutral] }.fetch(review.decision) %>
+                <% label, icon, tone = { "keep" => ["Keep following", "shield-check", :success], "defer" => ["Deferred", "clock", :neutral], "reported_unfollow" => ["Unfollow reported · confirmed by your next Following scroll", "user-minus", :warning], "unfollowed" => ["Unfollowed on X", "user-minus", :neutral] }.fetch(review.decision) %>
+                <% if review.decision == "reported_unfollow" && (list = cleanup.following) && list.observed_at > review.updated_at && list.follow_memberships.exists?(person_id: review.person_id) %>
+                  <% label, tone = "Still following on X", :warning %>
+                <% end %>
                 <%= lc_badge(tone: tone) { safe_join([lc_icon(icon, options: { class: "size-3.5", "aria-hidden": true }), label]) } %>
               </td>
               <td class="text-end text-caption tabular-nums text-muted-foreground"><%= review.updated_at.strftime("%H:%M") %></td>
@@ -128,6 +170,38 @@
           <% end %>
         </tbody>
       <% end %>
+    <% end %>
+  </div>
+<% end %>
+
+<% if @progress.decisions.any? || @progress.following.size > 1 %>
+  <div class="grid grid-cols-2 gap-inset">
+    <%= lc_card do %>
+      <div class="flex flex-col gap-content">
+        <%= lc_heading "Accounts you follow", level: 2, size: :subheading %>
+        <% points = @progress.following %>
+        <% if points.size < 2 %>
+          <%= lc_text "Needs two complete following lists. Scroll your Following page on x.com to add a point.", size: :small, tone: :muted %>
+        <% else %>
+          <%= chart :line, label: "Accounts you follow at each complete list", ticks: "date",
+            x: points.map { |at, _| at.to_i * 1000 }, labels: points.map { |at, _, source| "#{at.strftime("%-d %b %Y, %H:%M")} · #{source}" },
+            series: [ { name: "Following", meaning: :you, values: points.map { |_, count| count } } ] %>
+          <%= lc_text "#{points.first[1]} → #{points.last[1]} since #{points.first[0].strftime("%-d %b")}. Points are complete lists and your profile's own count; between them the number is unknown.", size: :small, tone: :muted %>
+        <% end %>
+      </div>
+    <% end %>
+    <%= lc_card do %>
+      <div class="flex flex-col gap-content">
+        <%= lc_heading "Decisions per day", level: 2, size: :subheading %>
+        <% days = @progress.decisions %>
+        <%= chart :bar, label: "Unfollows and keeps per day", stacked: true,
+          labels: days.map { |day, _| day.strftime("%-d %b") }, titles: days.map { |day, _| day.strftime("%a %-d %b %Y") },
+          series: [
+            { name: "Unfollowed", meaning: :you, values: days.map { |_, unfollowed, _| unfollowed } },
+            { name: "Kept", meaning: :both, values: days.map { |_, _, kept| kept } }
+          ] %>
+        <%= lc_text "An unfollow you reported counts once, even after the capture confirms it.", size: :small, tone: :muted %>
+      </div>
     <% end %>
   </div>
 <% end %>
