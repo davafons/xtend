@@ -39,7 +39,7 @@ class X::ContextsController < ActionController::API
       latest: latest && { label: ApplicationController.helpers.interaction_label(latest), at: latest.at.iso8601, channel: latest.channel,
         direction: latest.direction, url: person_url(person, show: HISTORY[latest.channel]) },
       pinned: person.pin.present?, kept: person.follow_protection.present?,
-      tags: person.tags.map { |tag| { name: tag.name, hue: ApplicationController.helpers.tag_hue(tag.name)[/bg-(\w+)-/, 1] } },
+      tags: person.tags.map { |tag| { name: tag.name, hue: ApplicationController.helpers.tag_hue(tag.name)[/bg-(\w+)-/, 1], url: people_url(tag: tag.name) } },
       notes: person.notes.presence,
       reminder: reminder && { reason: reminder.reason, due_on: reminder.due_on.iso8601, due: reminder.due? }
     }

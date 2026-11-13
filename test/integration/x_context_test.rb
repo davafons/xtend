@@ -28,6 +28,7 @@ class XContextTest < ActionDispatch::IntegrationTest
     assert_equal person_url(ada, show: "conversation"), context.dig("latest", "url")
     assert_equal "Met at RubyKaigi", context["notes"]
     assert_equal "ruby", context.dig("tags", 0, "name")
+    assert_equal people_url(tag: "ruby"), context.dig("tags", 0, "url")
     assert_equal [ "Ask about the talk", true ], context["reminder"].values_at("reason", "due")
     assert_equal person_url(ada), context["url"]
   end

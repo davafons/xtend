@@ -52,6 +52,7 @@
       background: color-mix(in oklab, currentColor 15%, transparent); }
     .facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
     .facts dt { color: ${COLORS.muted}; } .facts dd { margin: 0; }
+    a.tag { font-size: 12px; } a.tag:hover { text-decoration: underline; }
     .tag { padding: 1px 8px; border-radius: 999px; font-size: 12px; background: color-mix(in oklab, currentColor 15%, transparent); }
     .notes { margin: 0; padding: 6px 10px; border-radius: 10px; font-size: 13px; white-space: pre-line;
       background: color-mix(in oklab, currentColor 7%, transparent); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
@@ -201,7 +202,9 @@
   function tags(person) {
     if (!person.tags.length) return null;
     return el("div", "row", ...person.tags.slice(0, 6).map((tag) => {
-      const node = el("span", "tag", `#${tag.name}`);
+      // Everyone else with the tag, in Xtend.
+      const node = el(tag.url ? "a" : "span", "tag", `#${tag.name}`);
+      if (tag.url) Object.assign(node, { href: tag.url, target: "_blank", rel: "noopener", title: `Everyone tagged #${tag.name} in Xtend` });
       node.style.color = TAG_HUES[tag.hue] || COLORS.muted;
       return node;
     }));
