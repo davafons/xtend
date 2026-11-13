@@ -2,7 +2,7 @@
 <% filters = request.query_parameters.except("page") %>
 <h1 class="sr-only"><%= @timeline.person ? "#{@timeline.person.name}'s posts" : "Timeline" %></h1>
 
-<div class="grid grid-cols-[minmax(0,37.5rem)_20rem] items-start justify-center gap-section">
+<div class="grid items-start gap-section lg:grid-cols-[minmax(0,1fr)_20rem]">
   <section class="flex min-w-0 flex-col" aria-label="Posts">
     <div class="pb-content">
       <% if @timeline.person %>

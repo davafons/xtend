@@ -1,6 +1,6 @@
 <% content_for :title, "Settings" %>
 <h1 class="sr-only">Settings</h1>
-<div class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl") %>">
+<div class="gap-section lg:columns-2 *:mb-section *:break-inside-avoid">
   <%= render "x_connection" %>
 
   <%= lc_list_section "Workspace", footnote: "Interests take one topic per line. They're editable, not a public biography." do %>

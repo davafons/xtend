@@ -1,5 +1,5 @@
 <% value = ->(text) { tag.span(text, class: "text-small tabular-nums text-muted-foreground") } %>
-<div id="billing" class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl scroll-mt-section") %>">
+<div id="billing" class="<%= lc_stack_class(gap: :section, extra: "scroll-mt-section") %>">
   <div class="flex items-end justify-between gap-content px-content sm:px-inset">
     <p class="text-3xl font-semibold tabular-nums"><%= number_to_currency(@workspace.monthly_budget_cents / 100.0) %><span class="text-body font-normal text-muted-foreground"> / billing cycle</span></p>
     <%= lc_button_link_to "X console", "https://console.x.com/", target: "_blank", rel: "noopener noreferrer", variant: :ghost, size: :sm, icon: "arrow-up-right", aria: { label: "Open X billing" } %>
@@ -9,6 +9,12 @@
     <% uncertain = X::Read.where(status: "uncertain").count %>
     <% if @cycle.remaining_micros <= @cycle.allowance_micros / 5 %><%= lc_alert "Less than 20% of the local allowance remains. Prefer cached context and relationship updates.", tone: :warning %><% end %>
     <% if uncertain.positive? %><%= lc_alert "#{uncertain} request reservations have uncertain outcomes. Their full cost remains held.", tone: :warning %><% end %>
+  <% else %>
+    <%= lc_alert "No billing cycle recorded yet. X API reads stay locked until you record one below.", tone: :warning %>
+  <% end %>
+
+  <div class="gap-section lg:columns-2 *:mb-section *:break-inside-avoid">
+  <% if @cycle %>
     <%= lc_list_section "This cycle", footnote: "X enforces the cap account-wide, so other apps' usage is unknown. Update the observation at least daily before collecting." do %>
       <%= lc_list_group do %>
         <%= lc_list_row "Observed account spend", icon: "eye", subtitle: "Checked #{time_ago_in_words(@cycle.observed_at)} ago" do %><%= value.(microdollars(@cycle.provider_spend_micros)) %><% end %>
@@ -18,8 +24,6 @@
         <%= lc_list_row "Cycle", icon: "calendar" do %><%= value.("#{@cycle.starts_on.strftime("%-d %b")} – #{@cycle.ends_on.strftime("%-d %b %Y")}") %><% end %>
       <% end %>
     <% end %>
-  <% else %>
-    <%= lc_alert "No billing cycle recorded yet. X API reads stay locked until you record one below.", tone: :warning %>
   <% end %>
 
   <%= lc_list_section "Record console observation", footnote: "Spend from the X console, not credit balance: 73 cents means $0.73. The end date is exclusive. This app cannot verify or change your X billing cap." do %>
@@ -76,4 +80,5 @@
       <% end %>
     <% end %>
   <% end %>
+  </div>
 </div>

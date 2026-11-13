@@ -1,6 +1,6 @@
 <% content_for :title, "Add a person" %>
 <h1 class="sr-only">Add a person</h1>
-<div class="max-w-xl">
+<div class="mx-auto w-full max-w-xl">
   <%= lc_card do %>
     <%= form_with model: @person, class: "flex flex-col gap-inset" do %>
       <% if @person.errors.any? %>

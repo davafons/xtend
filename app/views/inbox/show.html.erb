@@ -1,6 +1,6 @@
 <% content_for :title, "Replies to you" %>
 <h1 class="sr-only">Replies to you</h1>
-<div class="mx-auto flex w-full max-w-[37.5rem] flex-col">
+<div class="flex w-full flex-col">
   <div class="flex items-center justify-between gap-heading pb-content">
     <%= view_tabs "Period", InboxController::PERIODS.map { |days| [ "#{days} days", inbox_path(days: days), @days == days ] } %>
     <span class="text-small tabular-nums text-muted-foreground" title="Answered means you replied to it directly, or replied to them later in the same thread, as soon as the capture sees it."><%= @inbox.count %> unanswered</span>

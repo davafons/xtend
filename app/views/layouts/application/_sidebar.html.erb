@@ -2,7 +2,7 @@
     cookie so the server renders it the same way on every page. %>
 <% collapsed = cookies[:sidebar] == "collapsed" %>
 <% expanded = cookies[:sidebar] == "expanded" %>
-<aside class="crm-sidebar group/sidebar sticky top-0 flex h-dvh w-60 shrink-0 flex-col gap-content overflow-y-auto px-related py-inset rail:w-16" aria-label="Sidebar" data-controller="sidebar lc-scroll-keeper" data-lc-scroll-keeper-key-value="sidebar" <%= "data-collapsed" if collapsed %><%= "data-expanded" if expanded %>>
+<aside class="crm-sidebar group/sidebar sticky top-0 flex h-dvh w-60 shrink-0 flex-col gap-content overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-related py-inset rail:w-16" aria-label="Sidebar" data-controller="sidebar lc-scroll-keeper" data-lc-scroll-keeper-key-value="sidebar" <%= "data-collapsed" if collapsed %><%= "data-expanded" if expanded %>>
   <div class="flex items-center justify-between gap-related ps-heading rail:flex-col rail:ps-0">
     <%= link_to root_path, class: "crm-signature-text text-subheading font-bold", aria: { label: "Twitter CRM" } do %><span class="rail:hidden">Twitter CRM</span><span class="hidden rail:inline" aria-hidden="true">TC</span><% end %>
     <%= lc_icon_button (collapsed ? "Expand sidebar" : "Collapse sidebar"), icon: "chevron-double-left", size: :sm, class: "rail:[&_svg]:rotate-180", aria: { expanded: !collapsed }, data: { action: "sidebar#toggle", sidebar_target: "toggle" } %>
@@ -20,9 +20,6 @@
     <% end %>
   <% end %>
   <div class="<%= lc_stack_class(gap: :related) %>">
-    <%= lc_nav_list label: "Account" do |nav| %>
-      <%= nav.link "Settings", settings_path, icon: "cog-6-tooth", current: navigation_active?(settings_path), title: "Settings" %>
-    <% end %>
     <% unless demo? %>
       <% workspace = Current.workspace %>
       <div data-controller="live" data-live-url-value="<%= x_capture_status_path %>" data-live-captured-at-value="<%= workspace.captured_at&.iso8601(3) %>">
@@ -48,13 +45,21 @@
       </div>
     <% end %>
     <% connection = X::Connection.current unless demo? %>
-    <div class="flex items-center gap-related px-heading rail:justify-center rail:px-0" title="@<%= Current.user&.x_handle %>">
-      <%= connection ? owner_avatar(size: :sm) : lc_icon("signal-slash", options: { class: "size-4 text-muted-foreground", "aria-hidden": true }) %>
-      <span class="min-w-0 grow rail:sr-only">
-        <span class="block truncate text-label">@<%= Current.user&.x_handle %></span>
-        <span class="block text-caption text-muted-foreground"><%= connection ? "X connected" : (demo? ? "Demo data" : "X not connected") %></span>
-      </span>
-      <%= lc_icon_button_to "Sign out", session_path, icon: "arrow-right-start-on-rectangle", method: :delete, size: :sm, class: "rail:hidden" %>
-    </div>
+    <% handle = Current.user&.x_handle %>
+    <%= lc_menu id: "account-menu", label: "Account", align: :start, wrapper_attributes: { class: "flex w-full" } do |menu| %>
+      <% menu.trigger(class: "flex w-full cursor-pointer items-center gap-related rounded-xl px-heading py-related text-start transition-colors hover:bg-accent/40 rail:justify-center rail:px-0", title: "@#{handle}") do |attrs| %>
+        <%= tag.button(type: "button", **attrs) do %>
+          <%= connection ? owner_avatar(size: :sm) : lc_icon("signal-slash", options: { class: "size-4 text-muted-foreground", "aria-hidden": true }) %>
+          <span class="min-w-0 grow rail:sr-only">
+            <span class="block truncate text-label">@<%= handle %></span>
+            <span class="block text-caption text-muted-foreground"><%= connection ? "X connected" : (demo? ? "Demo data" : "X not connected") %></span>
+          </span>
+          <%= lc_icon "ellipsis-horizontal", options: { class: "size-4 shrink-0 text-muted-foreground rail:hidden", "aria-hidden": true } %>
+        <% end %>
+      <% end %>
+      <% unless demo? %><%= lc_menu_option "Your profile on X", icon: "arrow-up-right", href: "https://x.com/#{handle}", target: "_blank", rel: "noopener noreferrer" %><% end %>
+      <%= lc_menu_option "Settings", icon: "cog-6-tooth", href: settings_path %>
+      <%= lc_menu_option "Sign out @#{handle}", icon: "arrow-right-start-on-rectangle", href: session_path, method: :delete %>
+    <% end %>
   </div>
 </aside>

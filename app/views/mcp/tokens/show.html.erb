@@ -1,6 +1,6 @@
 <% content_for :title, "Connector token" %>
 <h1 class="sr-only">Your connector token</h1>
-<div class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl") %>">
+<div class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl mx-auto w-full") %>">
   <%= lc_alert "Copy it now. It's shown only once; creating another token revokes this one.", tone: :warning %>
   <%= lc_list_section "Connector token", footnote: "Never paste this token anywhere public. Revoke it on the Grok page if it leaks." do %>
     <div class="<%= lc_stack_class(gap: :content) %>">

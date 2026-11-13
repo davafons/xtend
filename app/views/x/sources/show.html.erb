@@ -1,6 +1,6 @@
 <% content_for :title, "X data" %>
 <h1 class="sr-only">X data</h1>
-<div class="<%= lc_stack_class(gap: :section, extra: "max-w-3xl") %>">
+<div class="gap-section lg:columns-2 *:mb-section *:break-inside-avoid">
   <%= lc_list_section "Saved", id: "health", footnote: "Reply history covers only what was collected; an empty direction doesn't mean no replies." do %>
     <%= lc_list_group do %>
       <%= render "follow_list", direction: "followers" %>

@@ -1,5 +1,5 @@
 <% content_for :title, @person.name %>
-<div class="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-section">
+<div class="grid items-start gap-section lg:grid-cols-[minmax(0,1fr)_20rem]">
   <%= lc_card padding: :none, class: "overflow-hidden" do %>
     <div class="flex items-center gap-content px-related py-tight">
       <%= lc_icon_button_link_to "All people", people_path, icon: "arrow-left", title: "All people" %>
