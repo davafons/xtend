@@ -3,6 +3,7 @@ class InboxController < ApplicationController
 
   def show
     @days = PERIODS.include?(params[:days].to_i) ? params[:days].to_i : 30
-    @inbox = ReplyInbox.new(days: @days)
+    @follow_ups = params[:show] == "follow_ups"
+    @inbox = ReplyInbox.new(days: @days, follow_ups: @follow_ups)
   end
 end

@@ -69,4 +69,24 @@ class CleanupAndInboxTest < ActiveSupport::TestCase
     ReplyEvent.find_by!(x_id: "4004").update!(dismissed_at: Time.current)
     assert_equal %w[fan], ReplyInbox.new.items.map { |item| item.person.handle }
   end
+
+  test "a reply to your answer is a follow-up, but a reply to your outreach still waits" do
+    owner = owner_user
+    friend, builder = web_user("42", "friend"), web_user("44", "builder")
+    capture!(web_response("TweetDetail", web_timeline([
+      web_tweet("4000", owner, text: "Shipping today"),
+      web_tweet("4002", friend, text: "How?", reply_to: { post: "4000", user: owner["rest_id"] }, created: 40.minutes.ago),
+      web_tweet("4003", owner, text: "Like this", reply_to: { post: "4002", user: "42", conversation: "4000" }, created: 30.minutes.ago),
+      web_tweet("4005", friend, text: "Thanks!", reply_to: { post: "4003", user: owner["rest_id"], conversation: "4000" }, created: 20.minutes.ago)
+    ])))
+    capture!(web_response("TweetDetail", web_timeline([
+      web_tweet("5000", builder, text: "My first launch", created: 2.hours.ago),
+      web_tweet("5001", owner, text: "Congrats!", reply_to: { post: "5000", user: "44" }, created: 90.minutes.ago),
+      web_tweet("5002", builder, text: "Thank you!", reply_to: { post: "5001", user: owner["rest_id"], conversation: "5000" }, created: 80.minutes.ago)
+    ])))
+
+    assert_equal %w[builder], ReplyInbox.new.items.map { |item| item.person.handle }
+    assert_equal %w[friend], ReplyInbox.new(follow_ups: true).items.map { |item| item.person.handle }
+    assert_equal [ 1, 1 ], ReplyInbox.new.then { |inbox| [ inbox.waiting_count, inbox.follow_up_count ] }
+  end
 end

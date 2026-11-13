@@ -6,8 +6,24 @@ class X::BillingCycle < ApplicationRecord
   validates :provider_spend_micros, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validate { errors.add(:ends_on, "must follow the start date") if starts_on && ends_on && ends_on <= starts_on }
 
+  # The cycle covering today. Once a recorded cycle ends, the next one starts on its own: same day of the
+  # month, spend back at zero as X resets it, and the same owned-pricing evidence. Local estimates, which run
+  # above actual billing, keep counting against the allowance until you record a console observation.
   def self.current
-    where("starts_on <= ? AND ends_on > ?", Date.current, Date.current).order(starts_on: :desc).first
+    where("starts_on <= ? AND ends_on > ?", Date.current, Date.current).order(starts_on: :desc).first || roll_forward
+  end
+
+  def self.roll_forward
+    last = order(starts_on: :desc).first or return
+    transaction do
+      while last.ends_on <= Date.current
+        months = ((last.ends_on.year * 12 + last.ends_on.month) - (last.starts_on.year * 12 + last.starts_on.month)).clamp(1, 12)
+        last = create!(starts_on: last.ends_on, ends_on: last.ends_on.advance(months: months), provider_spend_micros: 0,
+          observed_at: Time.current, observed_through_read_id: X::Read.maximum(:id).to_i,
+          pricing_evidence: last.pricing_evidence, owned_configuration_digest: last.owned_configuration_digest)
+      end
+    end
+    last
   end
 
   def allowance_micros
@@ -41,7 +57,6 @@ class X::BillingCycle < ApplicationRecord
   def reserve!(dataset:, limit:, run: nil)
     with_lock do
       raise LimitExceeded, "Review the current X billing cycle on Spending before reading X." unless starts_on <= Date.current && ends_on > Date.current
-      raise LimitExceeded, "Update the X console spend observation on Spending before collecting more data." if observed_at < 24.hours.ago
       basis = owned_pricing? && %w[followers following own_posts mentions liked_posts bookmarks].include?(dataset) ? "owned" : "standard"
       rate = basis == "owned" ? 1000 : (%w[own_posts mentions posts search liked_posts bookmarks].include?(dataset) ? 5000 : 10_000)
       reservation = limit * rate

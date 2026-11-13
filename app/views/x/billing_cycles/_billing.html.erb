@@ -15,7 +15,7 @@
 
   <div class="<%= lc_columns_class %>">
   <% if @cycle %>
-    <%= lc_list_section "This cycle", footnote: "X enforces the cap account-wide, so other apps' usage is unknown. Update the observation at least daily before collecting." do %>
+    <%= lc_list_section "This cycle", footnote: "Cycles roll over on their own. Estimates run above actual billing; record the console spend to tighten them." do %>
       <%= lc_list_group do %>
         <%= lc_list_row "Observed account spend", icon: "eye", subtitle: "Checked #{time_ago_in_words(@cycle.observed_at)} ago" do %><%= value.(microdollars(@cycle.provider_spend_micros)) %><% end %>
         <%= lc_list_row "Later estimates and holds", icon: "clock" do %><%= value.(microdollars(@cycle.pending_micros)) %><% end %>

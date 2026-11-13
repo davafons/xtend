@@ -2,14 +2,21 @@
 <h1 class="sr-only">Replies to you</h1>
 <div class="flex w-full flex-col">
   <div class="flex items-center justify-between gap-heading pb-content">
-    <%= view_tabs "Period", InboxController::PERIODS.map { |days| [ "#{days} days", inbox_path(days: days), @days == days ] } %>
-    <span class="text-small tabular-nums text-muted-foreground" title="Answered means you replied to it directly, or replied to them later in the same thread, as soon as the capture sees it."><%= @inbox.count %> unanswered</span>
+    <%= view_tabs "Period", InboxController::PERIODS.map { |days| [ "#{days} days", inbox_path(days: days, show: (@follow_ups ? "follow_ups" : nil)), @days == days ] } %>
   </div>
+  <%= lc_tab_bar label: "Replies", fill: true do |bar| %>
+    <%= bar.link "Waiting", inbox_path(days: @days), current: !@follow_ups, count: @inbox.waiting_count, title: "Answered means you replied to it directly, or replied to them later in the same thread." %>
+    <%= bar.link "Follow-ups", inbox_path(days: @days, show: "follow_ups"), current: @follow_ups, count: @inbox.follow_up_count, title: "They replied to your answer. Fine to leave these as the end of the exchange." %>
+  <% end %>
 
   <% if @inbox.items.empty? %>
-    <%= lc_empty_state title: "Nothing waiting on you.", text: "Every collected reply from the last #{@days} days has an answer or was set aside.", icon: "inbox", card: true %>
+    <% if @follow_ups %>
+      <%= lc_empty_state title: "No open follow-ups.", icon: "chat-bubble-left-right", card: true %>
+    <% else %>
+      <%= lc_empty_state title: "Nothing waiting on you.", text: "Every collected reply from the last #{@days} days has an answer or was set aside.", icon: "inbox", card: true %>
+    <% end %>
   <% else %>
-    <ul class="flex flex-col divide-y divide-border border-y border-border">
+    <ul class="flex flex-col divide-y divide-border border-b border-border">
       <% @inbox.items.each do |item| %>
         <% person = item.person %>
         <% post = item.post %>
