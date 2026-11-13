@@ -104,6 +104,11 @@ class Mcp::Tools
         stage: { type: "string", enum: Draft::STATUSES.keys, description: "Defaults to every stage except posted." },
         limit: { type: "integer", minimum: 1, maximum: 25 } } },
       annotations: { readOnlyHint: true } },
+    { name: "get_post_performance", title: "How the owner's posts did",
+      description: "Counts the capture last saw on the owner's own top-level posts: medians by format and the posts that went furthest. Only posts whose counts were seen at least two days after posting are compared. Use it to ground post ideas in what worked; it is not a complete analytics export.",
+      inputSchema: { type: "object", properties: {
+        days: { type: "integer", minimum: 7, maximum: 365, description: "How far back to look. Defaults to 90." } } },
+      annotations: { readOnlyHint: true } },
     { name: "save_post_idea", title: "Save a post idea",
       description: "Save an idea for one of the owner's own posts in Compose, optionally with variations. The first text becomes the main draft and the rest are kept as alternatives. Separate posts in a thread with a line containing only ---. Saving never posts anything.",
       inputSchema: { type: "object", required: %w[texts], properties: {
@@ -313,6 +318,15 @@ class Mcp::Tools
     raise Invalid, "stage must be one of #{Draft::STATUSES.keys.join(", ")}." if stage && !Draft::STATUSES.key?(stage)
     drafts = (stage ? Draft.in_status(stage) : Draft.where.not(status: "posted")).recent.includes(:alternatives).limit(bounded(args["limit"], 10, 25))
     { drafts: drafts.map { |draft| draft_summary(draft) } }
+  end
+
+  def get_post_performance(args)
+    performance = Network::PostPerformance.new(since: bounded(args["days"], 90, 365).days.ago)
+    { compared: performance.settled.size, too_fresh: performance.fresh_count, without_counts: performance.uncounted_count,
+      by_format: performance.by_format.map { |row| { format: row.format, posts: row.posts, median_views: row.views, median_likes: row.likes, median_replies: row.replies, people_who_replied: row.people } },
+      top_posts: performance.top(10).map { |post| { url: post.url, text: CGI.unescapeHTML(post.body), published_at: post.published_at.iso8601, format: post.format,
+        views: post.view_count, likes: post.like_count, replies: post.reply_count, reposts: post.repost_count, people_who_replied: post.people } },
+      coverage: "Counts as last seen by the browser capture; posts never seen with counts are left out." }
   end
 
   def save_post_idea(args)

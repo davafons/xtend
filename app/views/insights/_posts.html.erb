@@ -1,0 +1,64 @@
+<%# How your own posts did: medians by format and the posts that went furthest, from counts the capture saw. %>
+<%# locals: (performance:) %>
+<% stat = ->(value) { value.nil? ? "—" : compact_count(value.round) } %>
+<%= lc_card do %>
+  <div class="flex flex-col gap-content">
+    <h2 class="<%= lc_text_class(size: :label) %>">How your posts did</h2>
+    <% if performance.empty? %>
+      <%= lc_text "No counts seen on your own posts in this period. Open your profile on x.com with the capture extension on to collect them.", size: :small, tone: :muted %>
+    <% else %>
+      <% if performance.by_format.any? %>
+        <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Posts by format">
+          <%= lc_table do %>
+            <caption class="sr-only">Median counts per post, by format</caption>
+            <thead>
+              <tr>
+                <th scope="col">Format</th>
+                <th scope="col" class="text-end">Posts</th>
+                <th scope="col" class="text-end" title="Median per post">Views</th>
+                <th scope="col" class="text-end" title="Median per post">Likes</th>
+                <th scope="col" class="text-end" title="Median per post">Replies</th>
+                <th scope="col" class="text-end" title="Distinct people whose direct replies to these posts were saved">People who replied</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% performance.by_format.each do |row| %>
+                <tr>
+                  <td><%= row.label %></td>
+                  <td class="text-end tabular-nums"><%= row.posts %></td>
+                  <td class="text-end tabular-nums"><%= stat.(row.views) %></td>
+                  <td class="text-end tabular-nums text-like"><%= stat.(row.likes) %></td>
+                  <td class="text-end tabular-nums"><%= stat.(row.replies) %></td>
+                  <td class="text-end tabular-nums text-warning"><%= row.people %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          <% end %>
+        </div>
+      <% end %>
+      <% if (top = performance.top).any? %>
+        <div class="flex flex-col gap-related">
+          <h3 class="text-small text-muted-foreground">Went furthest</h3>
+          <ol class="flex flex-col divide-y divide-border">
+            <% top.each do |post| %>
+              <li class="flex items-center gap-heading py-related">
+                <%= tag.public_send(demo? ? :span : :a, href: (post.url unless demo?), target: ("_blank" unless demo?), rel: ("noopener noreferrer" unless demo?), class: "min-w-0 grow truncate text-small hover:text-you", title: "Open on X") do %><%= CGI.unescapeHTML(post.body).squish %><% end %>
+                <span class="flex shrink-0 items-center gap-heading text-caption tabular-nums text-muted-foreground">
+                  <span title="Views"><%= lc_icon "chart-bar", options: { class: "inline size-3.5 align-text-bottom", "aria-hidden": true } %> <%= stat.(post.view_count) %></span>
+                  <span class="text-like" title="Likes"><%= lc_icon "heart", options: { class: "inline size-3.5 align-text-bottom", "aria-hidden": true } %> <%= stat.(post.like_count) %></span>
+                  <span class="text-warning" title="People whose direct replies were saved"><%= lc_icon "users", options: { class: "inline size-3.5 align-text-bottom", "aria-hidden": true } %> <%= post.people %></span>
+                  <span><%= post.published_at.strftime("%-d %b") %></span>
+                </span>
+              </li>
+            <% end %>
+          </ol>
+        </div>
+      <% end %>
+      <p class="text-caption text-muted-foreground">
+        <%= pluralize(performance.settled.size, "post") %> compared, using counts seen at least <%= pluralize(Network::PostPerformance::SETTLED.in_days.to_i, "day") %> after posting.
+        <%= [ ("#{pluralize(performance.fresh_count, 'post')} too fresh to compare" if performance.fresh_count.positive?),
+              ("#{pluralize(performance.uncounted_count, 'post')} with no counts seen" if performance.uncounted_count.positive?) ].compact.to_sentence.then { |left| "Left out: #{left}." if left.present? } %>
+      </p>
+    <% end %>
+  </div>
+<% end %>

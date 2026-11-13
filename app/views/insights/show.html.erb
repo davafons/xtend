@@ -39,6 +39,8 @@
 
 <%= render "insights/answers", answers: @answers, outreach: @outreach_answers, follow_backs: @follow_backs %>
 
+<%= render "insights/posts", performance: @posts %>
+
 <% compared = @changes.select { |_, gained| gained } %>
 <% unchanged = compared.any? && compared.all? { |_, gained, lost| gained.zero? && lost.zero? } %>
 <div class="grid <%= "grid-cols-2" if compared.any? && !unchanged %> gap-inset">

@@ -179,6 +179,18 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_equal 0, X::Read.count
   end
 
+  test "an assistant reads how the owner's posts did, settled counts only" do
+    run = X::SyncRun.create!(dataset: "posts", mode: "capture", owner_x_id: "999", request_key: SecureRandom.uuid, page_limit: 1, upper_bound: Time.current)
+    X::SourcePost.create!(x_id: "6001", author_x_id: "999", body: "Shipped it", published_at: 5.days.ago, x_sync_run: run, view_count: 900, like_count: 20, media_kinds: "photo", metrics_observed_at: 1.day.ago)
+    X::SourcePost.create!(x_id: "6002", author_x_id: "999", body: "Just now", published_at: 2.hours.ago, x_sync_run: run, view_count: 50, metrics_observed_at: 1.hour.ago)
+    X::SourcePost.create!(x_id: "6003", author_x_id: "999", body: "Never seen", published_at: 3.days.ago, x_sync_run: run)
+    result = tool("get_post_performance").fetch("structuredContent")
+    assert_equal [ 1, 1, 1 ], result.values_at("compared", "too_fresh", "without_counts")
+    assert_equal [ "photo" ], result["by_format"].map { _1["format"] }
+    assert_equal [ "https://x.com/i/status/6001" ], result["top_posts"].map { _1["url"] }
+    assert tool("get_post_performance", { "days" => 0 })["isError"]
+  end
+
   test "an assistant reads network posts with counts and the network around a person" do
     alice = Person.resolve_profile!(profile(x_id: "401", handle: "alice"))
     Person.resolve_profile!(profile(x_id: "402", handle: "bob"))
