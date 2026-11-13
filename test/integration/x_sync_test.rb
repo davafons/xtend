@@ -28,10 +28,10 @@ class XSyncTest < ActionDispatch::IntegrationTest
         assert_equal "completed", X::SyncRun.last.status
         get x_sources_path
         assert_response :success
-        assert_includes response.body, "1 account · "
+        assert_includes response.body, "1 account | "
         get follower_history_path
         assert_response :success
-        assert_includes response.body, "Current followers · 1"
+        assert_includes response.body, "Current followers | 1"
       end
     end
   end
@@ -44,7 +44,7 @@ class XSyncTest < ActionDispatch::IntegrationTest
     ingest(occurred_at: 14.days.ago)
     get follower_history_path(view: "lost")
     assert_response :success
-    assert_includes response.body, "Lost · 1"
+    assert_includes response.body, "Lost | 1"
     assert_includes response.body, "#{10.days.ago.strftime('%-d %b')}–#{5.days.ago.strftime('%-d %b %Y')}"
     get follower_history_path(view: "new")
     assert_includes response.body, "1.0–6.0 days"

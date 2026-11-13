@@ -15,7 +15,7 @@
         <% if cleanup.mutual?(person) %><%= relationship_badge "Mutual" %><% end %>
       </div>
       <p class="truncate text-small text-muted-foreground">
-        <%= safe_join([ "@#{person.handle}", ("#{compact_count person.followers_count} followers" if person.followers_count), ("Joined #{person.joined_x_at.strftime('%b %Y')}" if person.joined_x_at), (person.location.truncate(24) if person.location.present?) ].compact, " · ") %>
+        <%= safe_join([ "@#{person.handle}", ("#{compact_count person.followers_count} followers" if person.followers_count), ("Joined #{person.joined_x_at.strftime('%b %Y')}" if person.joined_x_at), (person.location.truncate(24) if person.location.present?) ].compact, " | ") %>
       </p>
     </div>
 
@@ -28,7 +28,7 @@
       </span>
       <span class="flex items-center gap-tight" title="<%= latest ? interaction_label(latest) : "Nothing observed in collected history" %>">
         <%= lc_icon "chat-bubble-left-right", options: { class: "size-4", "aria-hidden": true } %>
-        <% if latest %>Quiet for <%= "up to " if latest.approximate? %><%= pluralize((Date.current - latest.at.to_date).to_i, "day") %> · <%= interaction_label(latest) %><% else %>No interaction observed<% end %>
+        <% if latest %>Quiet for <%= "up to " if latest.approximate? %><%= pluralize((Date.current - latest.at.to_date).to_i, "day") %> | <%= interaction_label(latest) %><% else %>No interaction observed<% end %>
       </span>
       <% if interactions.awaiting_dm_reply? %><%= lc_badge "They sent the last DM", tone: :warning %><% end %>
     </p>
@@ -45,7 +45,7 @@
       </div>
     <% end %>
 
-    <% if person.notes.present? %><p class="line-clamp-2 text-small"><span class="text-muted-foreground">Note ·</span> <%= person.notes %></p><% end %>
+    <% if person.notes.present? %><p class="line-clamp-2 text-small"><span class="text-muted-foreground">Note |</span> <%= person.notes %></p><% end %>
 
     <% if posts.present? %>
       <ul class="<%= lc_stack_class(gap: :tight) %>" aria-label="Latest saved posts from @<%= person.handle %>">
@@ -54,7 +54,7 @@
             <p class="flex min-w-0 items-center gap-tight text-small">
               <%= person_avatar person, size: :xs %>
               <span class="truncate font-semibold"><%= person.name %></span>
-              <span class="shrink-0 text-muted-foreground">· <%= relative_day post.published_at %><%= " · reply" if post.reply_to_x_id %></span>
+              <span class="shrink-0 text-muted-foreground">| <%= relative_day post.published_at %><%= " | reply" if post.reply_to_x_id %></span>
             </p>
             <p class="mt-tight line-clamp-3 text-body"><%= post.body %></p>
           </li>

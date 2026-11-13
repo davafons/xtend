@@ -1,7 +1,7 @@
 <% content_for :title, "Followers" %>
 <h1 class="sr-only">Followers</h1>
 <div class="flex flex-wrap items-center gap-related">
-  <%= view_tabs "Follower views", Follow::HistoryController::VIEWS.map { |key, label| [ "#{label} · #{@counts[key]}", follower_history_path(view: key), @view == key ] } %>
+  <%= view_tabs "Follower views", Follow::HistoryController::VIEWS.map { |key, label| [ "#{label} | #{@counts[key]}", follower_history_path(view: key), @view == key ] } %>
   <div class="ms-auto flex items-center gap-tight">
     <p class="text-small text-muted-foreground" title="Complete follower lists compared">
       <% if @checks.any? %><%= @checks.map { |check| check.observed_at.strftime("%-d %b, %H:%M") }.join(" vs ") %><% else %>No complete follower list yet<% end %>

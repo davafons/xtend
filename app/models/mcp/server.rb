@@ -45,7 +45,7 @@ class Mcp::Server
       requested = params["protocolVersion"]
       { protocolVersion: PROTOCOL_VERSIONS.include?(requested) ? requested : PROTOCOL_VERSIONS.first,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "twitter-crm", title: "Twitter CRM", version: "0.1.0" },
+        serverInfo: { name: "twitter-crm", title: "Xtend", version: "0.1.0" },
         instructions: INSTRUCTIONS }
     when "ping" then {}
     when "tools/list" then { tools: Mcp::Tools.definitions }

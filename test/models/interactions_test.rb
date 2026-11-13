@@ -134,7 +134,7 @@ class InteractionsTest < ActiveSupport::TestCase
       collect("dm_events", {"data" => [dm("81", sender: "101"), dm("80", sender: "999", created_at: 1.day.ago - 1.minute)], "meta" => {}, "partial_errors" => false})
       collect("liked_posts", {"data" => [liked("90")], "meta" => {}, "partial_errors" => false})
       titles = Person.find(person.id).timeline.map(&:title)
-      assert_includes titles, "Direct messages · 1 from you, 1 from them"
+      assert_includes titles, "Direct messages | 1 from you, 1 from them"
       assert_includes titles, "You liked their post"
     end
   end

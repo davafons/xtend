@@ -1,4 +1,4 @@
-# Twitter CRM
+# Xtend
 
 ## Product and scope
 

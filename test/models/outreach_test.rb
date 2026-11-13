@@ -40,11 +40,11 @@ class OutreachTest < ActiveSupport::TestCase
 
     prospects = Outreach::Prospects.new
     assert_equal [ "reach_back" ], reasons(prospects, "101")
-    assert_equal "2 from them · none seen from you", prospects.find("101").reasons.first.detail
+    assert_equal "2 from them | none seen from you", prospects.find("101").reasons.first.detail
     assert_equal [ "quiet" ], reasons(prospects, "102")
-    assert_match(/Two-way · quiet 29d/, prospects.find("102").reasons.first.detail)
+    assert_match(/Two-way | quiet 29d/, prospects.find("102").reasons.first.detail)
     assert_equal [ "posting" ], reasons(prospects, "103")
-    assert_equal "Mutual · 1 new post", prospects.find("103").reasons.first.detail
+    assert_equal "Mutual | 1 new post", prospects.find("103").reasons.first.detail
     assert_equal [ "network" ], reasons(prospects, "104")
     assert_equal "2 of your people talk to them", prospects.find("104").reasons.first.detail
     assert_equal "101", prospects.to_a.first.x_id, "reaching out ranks above other reasons"
@@ -82,7 +82,7 @@ class OutreachTest < ActiveSupport::TestCase
 
     prospects = Outreach::Prospects.new
     assert_equal [ "3001" ], prospects.find("103").recent_posts.map(&:x_id)
-    assert_equal "Pinned · 1 new post", prospects.find("103").reasons.first.detail
+    assert_equal "Pinned | 1 new post", prospects.find("103").reasons.first.detail
     assert carol.reload.pin, "ranking never touches manual preferences"
   end
 

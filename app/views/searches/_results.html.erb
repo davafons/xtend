@@ -13,7 +13,7 @@
   <% if search.people.any? %>
     <%= lc_search_group "People" do %>
       <% search.people.each do |person| %>
-        <%= lc_search_result person.name, person_path(person), detail: [ "@#{person.handle}", person.description.presence&.truncate(70) ].compact.join(" · "), icon: "user" %>
+        <%= lc_search_result person.name, person_path(person), detail: [ "@#{person.handle}", person.description.presence&.truncate(70) ].compact.join(" | "), icon: "user" %>
       <% end %>
     <% end %>
   <% end %>

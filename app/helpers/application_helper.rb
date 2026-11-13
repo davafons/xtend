@@ -40,7 +40,7 @@ module ApplicationHelper
   def state_meaning(state)
     case state
     when "Two-way", "Mutual" then :both
-    when "You replied only", "You follow", "You follow · follow-back unknown" then :you
+    when "You replied only", "You follow", "You follow | follow-back unknown" then :you
     when "They replied only", "Follows you", "Observed follower" then :them
     else :neutral
     end
@@ -93,7 +93,7 @@ module ApplicationHelper
   def relationship_icon(state)
     case state
     when "Two-way", "Mutual" then "arrows-right-left"
-    when "You replied only", "You follow", "You follow · follow-back unknown" then "arrow-up-right"
+    when "You replied only", "You follow", "You follow | follow-back unknown" then "arrow-up-right"
     when "They replied only", "Follows you", "Observed follower" then "arrow-down-left"
     when "No observed replies" then "chat-bubble-left-ellipsis"
     when "Neither" then "user"

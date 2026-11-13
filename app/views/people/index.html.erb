@@ -7,7 +7,7 @@
   <%= lc_select [["Any replies", ""], *["Two-way", "You replied only", "They replied only", "No observed replies"].map { |state| [state, state] }], name: "state", selected: params[:state], size: :sm, aria: { label: "Reply state" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <%= lc_select [["Everyone", ""], ["Pinned", "pinned"], ["Kept", "kept"], ["With notes", "notes"], ["Untagged", "untagged"]], name: "filter", selected: params[:filter], size: :sm, aria: { label: "Your markers" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% if @tags.any? %>
-    <%= lc_select [["Any tag", ""], *@tags.map { |tag| ["##{tag.name} · #{tag.people_count}", tag.name] }], name: "tag", selected: params[:tag], size: :sm, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+    <%= lc_select [["Any tag", ""], *@tags.map { |tag| ["##{tag.name} | #{tag.people_count}", tag.name] }], name: "tag", selected: params[:tag], size: :sm, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% end %>
   <% if @talked %>
     <%= hidden_field_tag :from, params[:from] %>
@@ -32,7 +32,7 @@
               <span class="truncate"><%= person.name %></span>
               <% if person.pin %><%= lc_icon "bookmark", variant: :solid, options: { class: "size-3.5 shrink-0 text-you", "aria-label": "Pinned" } %><% end %>
             </span>
-            <span class="block truncate text-caption text-muted-foreground" title="Last reply · @<%= person.handle %>"><%= relative_day person.last_interaction_at %></span>
+            <span class="block truncate text-caption text-muted-foreground" title="Last reply | @<%= person.handle %>"><%= relative_day person.last_interaction_at %></span>
           </span>
         </span>
       <% end %>

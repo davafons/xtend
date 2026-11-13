@@ -60,7 +60,7 @@
               <li class="flex flex-col gap-tight py-heading first:pt-0 last:pb-0">
                 <div class="flex h-7 items-center gap-related text-caption text-muted-foreground">
                   <span><%= revision.source == "ai" ? "AI" : "You" %></span>
-                  <span aria-hidden="true">·</span>
+                  <span aria-hidden="true">|</span>
                   <%= lc_time(revision.updated_at) %>
                   <% if index.zero? %>
                     <span class="ms-auto">Current</span>

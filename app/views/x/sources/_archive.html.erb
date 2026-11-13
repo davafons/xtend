@@ -5,7 +5,7 @@
       <%= lc_list_row "Last import", icon: "archive-box" do %>
         <span class="text-small tabular-nums text-muted-foreground">
           <% if last_import %>
-            <%= relative_day last_import.created_at %> · <%= pluralize(last_import.direct_messages_count, "new DM") %><%= " · partial, coverage not claimed" if last_import.partial %>
+            <%= relative_day last_import.created_at %> | <%= pluralize(last_import.direct_messages_count, "new DM") %><%= " | partial, coverage not claimed" if last_import.partial %>
           <% else %>
             Never
           <% end %>

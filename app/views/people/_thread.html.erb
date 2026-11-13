@@ -2,7 +2,7 @@
 <% meaning = thread.authors.size > 1 ? :both : (thread.authors.first == :you ? :you : :them) %>
 <p class="mb-1 grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-3 text-[0.8125rem] font-bold <%= ApplicationHelper::MEANING_TEXT.fetch(meaning) %>">
   <span class="flex justify-end"><%= lc_icon "chat-bubble-left-right", options: { class: "size-4", "aria-hidden": true } %></span>
-  <span>Conversation · <%= pluralize(thread.posts.size, "reply", plural: "replies") %></span>
+  <span>Conversation | <%= pluralize(thread.posts.size, "reply", plural: "replies") %></span>
 </p>
 <% first = thread.posts.first %>
 <% if first.parent && thread.posts.none? { |post| post.x_id == first.parent.x_id } %>

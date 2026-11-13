@@ -27,7 +27,7 @@
             <%= link_to edit_draft_path(draft), class: "flex flex-col gap-tight hover:opacity-80" do %>
               <% if draft.parts.any? %>
                 <span class="line-clamp-6 whitespace-pre-line break-words"><%= draft.parts.first %></span>
-                <% if draft.thread? %><span class="text-you">Show this thread · <%= draft.parts.size %> posts</span><% end %>
+                <% if draft.thread? %><span class="text-you">Show this thread | <%= draft.parts.size %> posts</span><% end %>
               <% else %>
                 <span class="text-muted-foreground"><%= draft.topic.presence || draft.notes.to_s.truncate(200) %></span>
               <% end %>

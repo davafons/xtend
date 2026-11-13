@@ -8,7 +8,7 @@ module PostsHelper
     return if !mine && !counted
     title = if mine then "You #{label.delete_suffix('s').sub(/e?\z/, 'ed')} this"
     elsif count.nil? then "#{label.capitalize} not collected"
-    else [ "#{number_with_delimiter(count)} #{label}", note ].compact.join(" · ")
+    else [ "#{number_with_delimiter(count)} #{label}", note ].compact.join(" | ")
     end
     tag.span(class: [ "inline-flex items-center", (tone if mine), ("opacity-40" if count.nil? && !mine) ], title: title) do
       safe_join([

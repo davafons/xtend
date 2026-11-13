@@ -60,7 +60,7 @@
         <dt class="text-muted-foreground">Last DM</dt>
         <dd class="text-end">
           <% if dm %>
-            <%= relative_day dm.at %> · <%= dm.direction == "outgoing" ? "you" : "them" %>
+            <%= relative_day dm.at %> | <%= dm.direction == "outgoing" ? "you" : "them" %>
           <% else %>
             <span class="text-muted-foreground">None observed</span>
           <% end %>
@@ -111,7 +111,7 @@
     <%= lc_collapsible title: "About this data", card: false, indicator: :chevron, summary_class: "text-small font-normal text-muted-foreground" do %>
       <div class="flex flex-col gap-related text-caption text-muted-foreground">
         <p>Built from collected replies, posts, DM metadata, likes, bookmarks, and complete follow checks. Follow dates fall between checks.</p>
-        <p>Coverage: <%= safe_join(Person::Interactions.coverage.map { |label, value| "#{label} #{value}" }, " · ") %>.</p>
+        <p>Coverage: <%= safe_join(Person::Interactions.coverage.map { |label, value| "#{label} #{value}" }, " | ") %>.</p>
         <p>Mutuals are protected from cleanup automatically; the shield keeps anyone else.</p>
       </div>
     <% end %>

@@ -1,4 +1,4 @@
-# Twitter CRM
+# Xtend
 
 A Rails app for finding useful builder conversations, remembering people, and reviewing follows. It started as a local POC and now has sign-in and per-workspace data so it can be deployed (see [deploy](docs/deploy.md) and [architecture plan](docs/architecture-plan.md)). The shared components come directly from the sibling `lostcoords-ui` gem. Project structure follows WariWari: Rails models and REST controllers, ERB, Hotwire, Importmap, Propshaft, SQLite, and standalone Tailwind.
 

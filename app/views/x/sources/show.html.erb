@@ -12,7 +12,7 @@
         <span class="text-small tabular-nums text-muted-foreground"><%= pluralize(ReplyEvent.count, "event") %></span>
       <% end %>
       <% since = DirectMessage.covered_since %>
-      <%= lc_list_row "Private messages", icon: "envelope", subtitle: (since ? "Since #{since.strftime("%-d %b %Y")} · sender and time only, never sent to AI unless you share it" : "Never sent to AI unless you share it") do %>
+      <%= lc_list_row "Private messages", icon: "envelope", subtitle: (since ? "Since #{since.strftime("%-d %b %Y")} | sender and time only, never sent to AI unless you share it" : "Never sent to AI unless you share it") do %>
         <span class="text-small tabular-nums text-muted-foreground"><%= since ? pluralize(DirectMessage.count, "message") : "Not collected" %></span>
       <% end %>
     <% end %>

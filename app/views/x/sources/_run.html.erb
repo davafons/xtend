@@ -1,5 +1,5 @@
-<% detail = [ "#{pluralize(run.resource_count, "resource")} · #{pluralize(run.page_number, "page")} · #{run.created_at.strftime("%-d %b, %H:%M")}", (run.message.presence unless run.status == "completed") ].compact.join(" · ") %>
-<%= lc_list_row "#{run.dataset.humanize} · #{run.mode.humanize}", subtitle: detail, id: dom_id(run), data: { request_key: run.request_key } do %>
+<% detail = [ "#{pluralize(run.resource_count, "resource")} | #{pluralize(run.page_number, "page")} | #{run.created_at.strftime("%-d %b, %H:%M")}", (run.message.presence unless run.status == "completed") ].compact.join(" | ") %>
+<%= lc_list_row "#{run.dataset.humanize} | #{run.mode.humanize}", subtitle: detail, id: dom_id(run), data: { request_key: run.request_key } do %>
   <% if X::SyncRun::ACTIVE_STATUSES.include?(run.status) %>
     <%= lc_button_to "Recover", x_sync_run_path(run), method: :patch, params: {recover: "1"}, variant: :ghost, size: :sm, disabled: run.updated_at > 2.minutes.ago, aria: { label: "Recover interrupted page" } %>
   <% elsif run.status == "partial" || run.status == "ready" || (run.status == "paused" && run.page_number.zero?) || run.x_reads.where(status: "received").exists? %>

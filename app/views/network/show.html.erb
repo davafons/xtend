@@ -26,22 +26,21 @@
     <%= lc_button_link_to "Set up browser capture", x_sources_path(anchor: "capture"), variant: :secondary %>
   <% end %>
 <% else %>
-  <div class="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-inset" data-live="manual" data-controller="network" data-network-url-value="<%= network_path(request.query_parameters.merge(format: :json)) %>">
+  <div class="flex flex-col gap-inset" data-live="manual" data-controller="network" data-network-url-value="<%= network_path(request.query_parameters.merge(format: :json)) %>">
     <%= lc_card padding: :none, class: "relative overflow-hidden" do %>
-      <div class="relative h-[40rem]">
+      <div class="relative h-[calc(100dvh-10rem)] min-h-[32rem]">
         <canvas class="absolute inset-0 size-full cursor-grab touch-none" title="Scroll to zoom, drag to move, select someone to see their connections" data-network-target="canvas" role="img" aria-label="Network graph of <%= pluralize(@graph.nodes.size, "account") %> and <%= pluralize(@graph.links.size, "connection") %>"></canvas>
         <div class="pointer-events-none absolute start-4 top-4 rounded-lg bg-tile px-related py-tight text-small font-medium" data-network-target="tooltip" hidden></div>
+        <%= lc_card padding: :sm, class: "absolute end-4 top-4 max-h-[calc(100%-2rem)] w-80 overflow-y-auto bg-card/85 backdrop-blur" do %>
+          <div class="flex flex-col gap-heading" data-network-target="panel">
+            <h2 class="<%= lc_text_class(size: :label) %>">Connections</h2>
+            <%= lc_text "Select someone in the graph.", size: :small, tone: :muted %>
+          </div>
+        <% end %>
       </div>
     <% end %>
-    <aside class="flex flex-col gap-content">
-      <%= lc_card do %>
-        <div class="flex flex-col gap-heading" data-network-target="panel">
-          <h2 class="<%= lc_text_class(size: :label) %>">Connections</h2>
-          <%= lc_text "Select someone in the graph.", size: :small, tone: :muted %>
-        </div>
-      <% end %>
-      <%= lc_card do %>
-        <div class="flex flex-col gap-content text-small">
+    <%= lc_card do %>
+        <div class="grid gap-section text-small md:grid-cols-2">
           <section class="flex flex-col gap-related" aria-labelledby="network-key">
             <h2 id="network-key" class="text-caption text-muted-foreground">Key</h2>
             <ul class="grid grid-cols-2 gap-x-related gap-y-tight">
@@ -69,8 +68,7 @@
             <% if @graph.isolated_count.positive? %><p class="text-caption text-muted-foreground"><%= pluralize(@graph.isolated_count, "person") %> here <%= @graph.isolated_count == 1 ? "has" : "have" %> no connection yet.</p><% end %>
           </section>
         </div>
-      <% end %>
-    </aside>
+    <% end %>
   </div>
 
   <% top = @graph.nodes.reject { |node| node[:owner] }.sort_by { |node| -node[:weight] }.first(12) %>
@@ -84,7 +82,7 @@
               <% if node[:avatar] && !demo? %><%= lc_avatar src: node[:avatar], alt: "", size: :md, referrerpolicy: "no-referrer", loading: "lazy" %><% else %><%= lc_avatar node[:name].to_s.first(2).upcase %><% end %>
               <span class="min-w-0 grow">
                 <% if node[:person_id] %><%= link_to node[:name], person_path(node[:person_id]), class: "block truncate font-semibold hover:underline" %><% else %><span class="block truncate font-semibold"><%= node[:name] %></span><% end %>
-                <span class="block truncate text-caption text-muted-foreground">@<%= node[:handle] %><%= " · outside your CRM" if node[:outside] %></span>
+                <span class="block truncate text-caption text-muted-foreground">@<%= node[:handle] %><%= " | outside your CRM" if node[:outside] %></span>
               </span>
               <span class="text-small tabular-nums text-muted-foreground" title="Interactions in this view"><%= node[:weight] %></span>
             </li>

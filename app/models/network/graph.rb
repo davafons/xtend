@@ -131,7 +131,7 @@ class Network::Graph
   def relation(state)
     case state
     when "Mutual" then "both"
-    when "You follow", "You follow · follow-back unknown" then "you"
+    when "You follow", "You follow | follow-back unknown" then "you"
     when "Follows you", "Observed follower" then "them"
     else "none"
     end

@@ -1,7 +1,7 @@
 <% workspace = Current.workspace %>
 <%= lc_list_section "Browser extension", id: "capture", class: "scroll-mt-section", footnote: "Free. Saves what x.com already loaded while you browse." do %>
   <%= lc_list_group do %>
-    <%= lc_list_row "Token", icon: "key", subtitle: (workspace.capture_token_digest ? "Created #{time_ago_in_words(workspace.capture_token_created_at)} ago · #{workspace.capture_token_used_at ? "last batch #{time_ago_in_words(workspace.capture_token_used_at)} ago" : "no batch yet"}" : "None yet; the extension can't send anything") do %>
+    <%= lc_list_row "Token", icon: "key", subtitle: (workspace.capture_token_digest ? "Created #{time_ago_in_words(workspace.capture_token_created_at)} ago | #{workspace.capture_token_used_at ? "last batch #{time_ago_in_words(workspace.capture_token_used_at)} ago" : "no batch yet"}" : "None yet; the extension can't send anything") do %>
       <% if workspace.capture_token_digest %>
         <%= lc_badge "Token active", tone: :success %>
         <%= lc_icon_button_to "Replace token", x_capture_token_path, icon: "arrow-path", size: :sm, title: "Replace token", data: { turbo: false } %>
@@ -12,7 +12,7 @@
     <% end %>
     <% if @capture_totals.values.any?(&:positive?) %>
       <%= lc_list_row "Last 7 days", icon: "arrow-down-tray" do %>
-        <span class="text-small tabular-nums text-muted-foreground"><%= pluralize(@capture_totals[:posts], "post") %> · <%= pluralize(@capture_totals[:likes], "like") %> · <%= pluralize(@capture_totals[:bookmarks], "bookmark") %></span>
+        <span class="text-small tabular-nums text-muted-foreground"><%= pluralize(@capture_totals[:posts], "post") %> | <%= pluralize(@capture_totals[:likes], "like") %> | <%= pluralize(@capture_totals[:bookmarks], "bookmark") %></span>
       <% end %>
     <% end %>
   <% end %>

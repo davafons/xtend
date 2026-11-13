@@ -3,7 +3,7 @@
 <% handle = Current.user&.x_handle %>
 <%= lc_sidebar cookie: "sidebar", class: "crm-sidebar" do |sidebar| %>
   <%= sidebar.header do %>
-    <%= link_to root_path, class: "crm-signature-text text-subheading font-bold", aria: { label: "Twitter CRM" } do %><span class="lc-rail:hidden">Twitter CRM</span><span class="hidden lc-rail:inline" aria-hidden="true">TC</span><% end %>
+    <%= link_to root_path, class: "crm-signature-text text-subheading font-bold", aria: { label: "Xtend" } do %><span class="lc-rail:hidden">Xtend</span><span class="hidden lc-rail:inline" aria-hidden="true">X</span><% end %>
   <% end %>
   <%= lc_search label: "Search and commands", src: search_path, trigger: "Search", placeholder: "Search people, tags, drafts, posts, or pages…", empty: "Nothing matches %{query}", class: "w-full lc-rail:hidden" do %>
     <%= render "searches/results", search: Search.new(nil) %>
@@ -30,7 +30,7 @@
           <span class="relative inline-flex size-2 rounded-full <%= workspace.captured_at && workspace.captured_at > 10.minutes.ago ? "bg-ai" : "bg-muted-foreground" %>" data-live-target="dot"></span>
         </span>
         <span class="min-w-0 grow lc-rail:sr-only" role="status">
-          <span class="block truncate text-caption text-muted-foreground">Extension · <time data-live-target="time" datetime="<%= workspace.captured_at&.iso8601 %>"><%= workspace.captured_at ? "#{time_ago_in_words(workspace.captured_at)} ago" : "nothing yet" %></time></span>
+          <span class="block truncate text-caption text-muted-foreground">Extension | <time data-live-target="time" datetime="<%= workspace.captured_at&.iso8601 %>"><%= workspace.captured_at ? "#{time_ago_in_words(workspace.captured_at)} ago" : "nothing yet" %></time></span>
           <span class="block truncate text-caption" data-live-target="summary"><%= capture_summary(workspace.last_capture) %></span>
         </span>
       </div>

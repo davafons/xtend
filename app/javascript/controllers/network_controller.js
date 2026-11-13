@@ -185,7 +185,7 @@ export default class extends Controller {
       return
     }
     const box = this.canvasTarget.getBoundingClientRect()
-    this.tooltipTarget.textContent = node.owner ? "You" : `${node.name} · @${node.handle}`
+    this.tooltipTarget.textContent = node.owner ? "You" : `${node.name} | @${node.handle}`
     this.tooltipTarget.style.transform = `translate(${event.clientX - box.left + 12}px, ${event.clientY - box.top + 12}px)`
     this.tooltipTarget.style.insetInlineStart = "0"
     this.tooltipTarget.style.top = "0"
@@ -214,7 +214,7 @@ export default class extends Controller {
     heading.textContent = node.owner ? "You" : node.name
     const meta = document.createElement("p")
     meta.className = "text-small text-muted-foreground"
-    meta.textContent = node.owner ? `@${node.handle}` : [`@${node.handle}`, node.follow_state, node.outside ? "Outside your CRM" : null].filter(Boolean).join(" · ")
+    meta.textContent = node.owner ? `@${node.handle}` : [`@${node.handle}`, node.follow_state, node.outside ? "Outside your CRM" : null].filter(Boolean).join(" | ")
     panel.append(heading, meta)
     if (node.person_id || node.outside) {
       const link = document.createElement("a")

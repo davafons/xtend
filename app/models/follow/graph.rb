@@ -46,7 +46,7 @@ class Follow::Graph
       return "Follows you" if incoming
       return "Neither"
     end
-    return "You follow · follow-back unknown" if outgoing
+    return "You follow | follow-back unknown" if outgoing
     return "Observed follower" if incoming
     "Unknown"
   end

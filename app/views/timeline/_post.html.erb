@@ -20,7 +20,7 @@
     { name: author&.name, handle: author&.handle, body: CGI.unescapeHTML(quoted.body) }
   end
   seen = timeline.sightings[post.x_id].to_i
-  note = [ ("Counts as of #{post.metrics_observed_at.strftime('%-d %b, %H:%M')}" if post.metrics_observed_at), ("seen #{seen} times" if seen > 1) ].compact.join(" · ").presence
+  note = [ ("Counts as of #{post.metrics_observed_at.strftime('%-d %b, %H:%M')}" if post.metrics_observed_at), ("seen #{seen} times" if seen > 1) ].compact.join(" | ").presence
 %>
 <%= render "shared/x_post", avatar: avatar, name: name, name_url: person, handle: owner ? X::Connection.current&.username : person&.handle || account&.handle,
   at: post.published_at, detail: note, context: context, body: CGI.unescapeHTML(post.body).then { |text| post.reply_to_x_id ? text.sub(/\A(@\w+\s+)+/, "") : text }, media_kinds: post.media_kinds.to_s.split(","), quote: quote,

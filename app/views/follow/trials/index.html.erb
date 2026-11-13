@@ -3,7 +3,7 @@
 <% trials = @trials %>
 <% counts = trials.counts %>
 <div class="flex flex-wrap items-center gap-related">
-  <%= view_tabs "Trial views", Follow::Trials::VIEWS.map { |key, label| [ "#{label} · #{counts[key]}", follow_trials_path(view: key, days: trials.days), trials.view == key ] } %>
+  <%= view_tabs "Trial views", Follow::Trials::VIEWS.map { |key, label| [ "#{label} | #{counts[key]}", follow_trials_path(view: key, days: trials.days), trials.view == key ] } %>
   <% if trials.available? && counts["all"].positive? %>
     <p class="text-small text-muted-foreground"><span class="tabular-nums text-foreground"><%= (counts["followed_back"] * 100.0 / counts["all"]).round %>%</span> followed back since <%= trials.baseline.observed_at.strftime("%-d %b") %></p>
   <% end %>

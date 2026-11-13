@@ -5,7 +5,7 @@
 <% select_class = "w-auto field-sizing-content" %>
 
 <div class="flex flex-wrap items-center gap-related">
-  <%= view_tabs "Why to review", Follow::Cleanup::REASONS.map { |key, label| [ (@counts.key?(key) ? "#{label} · #{@counts[key]}" : label), follow_reviews_path(review_filters.merge("reason" => key)), cleanup.reason == key ] } %>
+  <%= view_tabs "Why to review", Follow::Cleanup::REASONS.map { |key, label| [ (@counts.key?(key) ? "#{label} | #{@counts[key]}" : label), follow_reviews_path(review_filters.merge("reason" => key)), cleanup.reason == key ] } %>
   <%= form_with url: follow_reviews_path, method: :get, class: "ms-auto flex flex-wrap items-center gap-tight", data: { controller: "auto-submit", turbo_action: "replace" } do %>
     <%= hidden_field_tag :reason, cleanup.reason, id: nil %>
     <% if cleanup.reason == "inactive" %>
@@ -43,8 +43,8 @@
   <% end %>
 <% else %>
   <div class="flex flex-wrap items-center justify-between gap-x-content gap-y-tight text-small text-muted-foreground">
-    <p><%= pluralize(@counts.fetch(cleanup.reason), "account") %> · <%= reason_hints.fetch(cleanup.reason).downcase_first %><%= " · mutuals marked" if cleanup.mutuals? %></p>
-    <p aria-label="Decided today">Today <span class="tabular-nums text-foreground"><%= @tally.fetch("keep", 0) %></span> kept · <span class="tabular-nums text-foreground"><%= @tally.fetch("defer", 0) %></span> deferred · <span class="tabular-nums text-foreground"><%= @tally.fetch("unfollowed", 0) + @tally.fetch("reported_unfollow", 0) %></span> unfollowed</p>
+    <p><%= pluralize(@counts.fetch(cleanup.reason), "account") %> | <%= reason_hints.fetch(cleanup.reason).downcase_first %><%= " | mutuals marked" if cleanup.mutuals? %></p>
+    <p aria-label="Decided today">Today <span class="tabular-nums text-foreground"><%= @tally.fetch("keep", 0) %></span> kept | <span class="tabular-nums text-foreground"><%= @tally.fetch("defer", 0) %></span> deferred | <span class="tabular-nums text-foreground"><%= @tally.fetch("unfollowed", 0) + @tally.fetch("reported_unfollow", 0) %></span> unfollowed</p>
   </div>
 
   <% unknown = cleanup.unknown_activity_count %>
@@ -118,7 +118,7 @@
           <%= lc_text "Needs two complete following lists.", size: :small, tone: :muted %>
         <% else %>
           <%= chart :line, label: "Accounts you follow at each complete list", ticks: "date",
-            x: points.map { |at, _| at.to_i * 1000 }, labels: points.map { |at, _, source| "#{at.strftime("%-d %b %Y, %H:%M")} · #{source}" },
+            x: points.map { |at, _| at.to_i * 1000 }, labels: points.map { |at, _, source| "#{at.strftime("%-d %b %Y, %H:%M")} | #{source}" },
             series: [ { name: "Following", meaning: :you, values: points.map { |_, count| count } } ] %>
         <% end %>
       </div>
@@ -143,7 +143,7 @@
     <% collapsible.summary do %>About this data<% end %>
     <div class="flex flex-col gap-tight pt-related text-small text-muted-foreground">
       <p>Kept accounts<%= " and mutuals" unless cleanup.mutuals? %> are left out<%= "; mutuals are marked, from the follower list of #{cleanup.followers.observed_at.strftime("%-d %b")}" if cleanup.mutuals? && cleanup.followers %>. Nobody needs unfollowing just to reach a number.</p>
-      <p>Interaction coverage: <%= @coverage.map { |label, value| "#{label} #{value}" }.join(" · ") %>.</p>
+      <p>Interaction coverage: <%= @coverage.map { |label, value| "#{label} #{value}" }.join(" | ") %>.</p>
       <p>Likes and reposts have no time of their own, so they use the post date or when the capture saw them.</p>
     </div>
   <% end %>

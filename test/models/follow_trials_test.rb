@@ -29,7 +29,7 @@ class FollowTrialsTest < ActiveSupport::TestCase
     assert workspace.captured_at
     assert_equal 1, workspace.last_capture["posts"]
     summary = ApplicationController.helpers.capture_summary({ "posts" => 3, "lists" => [ { "direction" => "following", "state" => "partial", "seen" => 40, "expected" => 500 } ] })
-    assert_equal "following list 40 of 500 so far · 3 posts", summary
+    assert_equal "following list 40 of 500 so far | 3 posts", summary
 
     before = workspace.captured_at
     capture!

@@ -12,7 +12,7 @@ class OutreachPageTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "nav[aria-label=Outreach] a[aria-current=page]", text: /Reply now/
     assert_select "#outreach-session", text: /of 20 new targets\s*1\b/
-    assert_select "#opening_5001", text: /1 from them · none seen from you/
+    assert_select "#opening_5001", text: /1 from them | none seen from you/
     assert_select "#opening_5001 a[href='https://x.com/alice/status/5001'][aria-label='Reply on X']"
     assert_select "h1", count: 1, text: "Outreach"
     assert_select "h1.sr-only"

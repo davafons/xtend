@@ -2,7 +2,7 @@
 <% locked = demo? || !@cycle || !connection %>
 <% missing = X::Config::DATASET_SCOPES.values.reject { |scope| connection&.granted?(scope) } %>
 <% read = ->(label, dataset, mode: nil, disabled: locked, **options) { lc_button_to label, x_sync_runs_path, params: { dataset: dataset, mode: mode, request_key: SecureRandom.uuid }.compact, variant: :secondary, size: :sm, disabled: disabled, **options } %>
-<% cost = ->(standard, owned = nil) { tag.span(standard, class: "w-14 shrink-0 text-end text-small tabular-nums text-muted-foreground", title: [ "#{standard} standard", ("#{owned} owned" if owned) ].compact.join(" · ")) } %>
+<% cost = ->(standard, owned = nil) { tag.span(standard, class: "w-14 shrink-0 text-end text-small tabular-nums text-muted-foreground", title: [ "#{standard} standard", ("#{owned} owned" if owned) ].compact.join(" | ")) } %>
 <div id="collection" class="<%= lc_stack_class(gap: :section) %> scroll-mt-section">
   <% unless @cycle %>
     <%= lc_list_group do %>

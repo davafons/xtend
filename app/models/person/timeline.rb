@@ -86,7 +86,7 @@ class Person::Timeline
     events.map do |event|
       outgoing = event.direction == "outgoing"
       title = outgoing ? "You replied to #{person.name}" : "#{person.name} replied to you"
-      title += " · follow-up" if event.classification == "continuation"
+      title += " | follow-up" if event.classification == "continuation"
       parent_body = text(sources[event.target_x_id]&.body)
       Entry.new(at: event.occurred_at, category: "conversation", kind: :post, author: outgoing ? :you : :them,
         icon: outgoing ? "arrow-up-right" : "arrow-down-left", tone: outgoing ? :you : :both, title: title,
@@ -100,7 +100,7 @@ class Person::Timeline
   def post_entries
     person.outreach_candidates.map do |post|
       Entry.new(at: post.published_at, category: "conversation", kind: :post, author: :them, icon: "sparkles",
-        tone: post.source == "ai" ? :ai : :neutral, title: "Posted · suggested for outreach", body: text(post.body), x_id: post.x_id,
+        tone: post.source == "ai" ? :ai : :neutral, title: "Posted | suggested for outreach", body: text(post.body), x_id: post.x_id,
         detail: post.match_reason, url: post.source_url)
     end
   end
@@ -121,7 +121,7 @@ class Person::Timeline
       last = messages.last
       counts = [("#{sent.size} from you" if sent.any?), ("#{received.size} from them" if received.any?)].compact.join(", ")
       Entry.new(at: last.occurred_at, category: "messages", icon: "envelope", tone: :message,
-        title: "Direct messages · #{counts}", detail: "Last from #{last.direction == 'outgoing' ? 'you' : 'them'}. Message text is not stored.")
+        title: "Direct messages | #{counts}", detail: "Last from #{last.direction == 'outgoing' ? 'you' : 'them'}. Message text is not stored.")
     end
   end
 

@@ -12,6 +12,6 @@
     <% end %>
   <% end %>
   <p class="text-caption text-muted-foreground">
-    Session since <%= session.anchor_day == Date.current ? "today" : session.anchor_day.strftime(session.anchor_day.year == Date.current.year ? "%-d %b" : "%-d %b %Y") %> · counts once a capture or sync confirms your reply
+    Session since <%= session.anchor_day == Date.current ? "today" : session.anchor_day.strftime(session.anchor_day.year == Date.current.year ? "%-d %b" : "%-d %b %Y") %> | counts once a capture or sync confirms your reply
   </p>
 <% end %>

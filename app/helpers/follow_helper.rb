@@ -11,7 +11,7 @@ module FollowHelper
     scrolling = Follow::Snapshot.capturing(direction)
     parts = []
     if complete
-      parts << "#{pluralize(complete.person_ids.size, "account")} · #{complete.observed_at.strftime('%-d %b, %H:%M')} · #{complete.captured? ? 'scrolled on x.com' : complete.source.humanize}"
+      parts << "#{pluralize(complete.person_ids.size, "account")} | #{complete.observed_at.strftime('%-d %b, %H:%M')} | #{complete.captured? ? 'scrolled on x.com' : complete.source.humanize}"
     else
       parts << "No complete list yet"
     end
@@ -19,13 +19,13 @@ module FollowHelper
       count = scrolling.follow_memberships.count
       parts << "scrolling now: #{count}#{" of #{scrolling.expected_count}" if scrolling.expected_count} seen"
     end
-    parts.join(" · ")
+    parts.join(" | ")
   end
 
   CAPTURE_LABELS = { "posts" => "post", "people_added" => "new person", "likes" => "like", "bookmarks" => "bookmark",
     "interactions" => "interaction", "relationships" => "follow state", "unfollows" => "unfollow" }.freeze
 
-  # What the latest extension batch added, in a few words: "12 posts · following list 300 of 511".
+  # What the latest extension batch added, in a few words: "12 posts | following list 300 of 511".
   def capture_summary(summary)
     return if summary.blank?
     parts = CAPTURE_LABELS.filter_map { |key, word| pluralize(summary[key], word, plural: (word == "new person" ? "new people" : nil)) if summary[key].to_i.positive? }
@@ -37,6 +37,6 @@ module FollowHelper
       else "#{name} #{list["seen"]}#{" of #{list["expected"]}" if list["expected"]} so far"
       end
     end
-    (lists + parts).first(4).join(" · ").presence
+    (lists + parts).first(4).join(" | ").presence
   end
 end

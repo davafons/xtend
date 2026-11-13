@@ -21,11 +21,13 @@
     <% if @timeline.posts.empty? %>
       <%= lc_empty_state title: "No posts here yet.", text: "Browse x.com with the capture extension on, or widen the filters.", icon: "queue-list", card: true %>
     <% else %>
-      <ol class="flex flex-col divide-y divide-border border-y border-border">
-        <% @timeline.posts.each do |post| %>
-          <li class="py-3" id="post_<%= post.x_id %>"><%= render "timeline/post", post: post, timeline: @timeline %></li>
-        <% end %>
-      </ol>
+      <%= lc_card padding: :none, class: "overflow-hidden" do %>
+        <ol class="flex flex-col divide-y divide-border">
+          <% @timeline.posts.each do |post| %>
+            <li class="px-inset py-3" id="post_<%= post.x_id %>"><%= render "timeline/post", post: post, timeline: @timeline %></li>
+          <% end %>
+        </ol>
+      <% end %>
       <div class="flex items-center justify-between pt-content">
         <div><% if @timeline.page > 1 %><%= lc_button_link_to "Newer", timeline_path(filters.merge("page" => @timeline.page - 1)), variant: :ghost, size: :sm, icon: "arrow-left" %><% end %></div>
         <div><% if @timeline.next_page? %><%= lc_button_link_to "Older", timeline_path(filters.merge("page" => @timeline.page + 1)), variant: :ghost, size: :sm, icon: "arrow-right", icon_position: :end %><% end %></div>

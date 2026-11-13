@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
   <head>
-    <title><%= content_for(:title).presence || "Twitter CRM" %> · Twitter CRM</title>
+    <title><%= content_for(:title).presence || "Xtend" %> | Xtend</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -11,12 +11,12 @@
   </head>
   <body class="min-h-dvh bg-background text-foreground">
     <%= lc_skip_link %>
-    <% if demo? %><div class="bg-warning-soft px-inset py-related text-center text-small font-medium" role="status">Demo workspace · fictional people and activity · separate from your real data · no X requests</div><% end %>
+    <% if demo? %><div class="bg-warning-soft px-inset py-related text-center text-small font-medium" role="status">Demo workspace | fictional people and activity | separate from your real data | no X requests</div><% end %>
     <div class="flex min-h-dvh">
       <% if Current.workspace %><%= render "layouts/application/sidebar" %><% end %>
       <div class="min-w-0 flex-1">
-        <%= lc_container class: "px-8 xl:px-12" do %>
-          <main id="main" class="<%= lc_stack_class(gap: :section) %> py-10">
+        <%= lc_container class: "px-6 xl:px-8" do %>
+          <main id="main" class="<%= lc_stack_class(gap: :section) %> py-8">
             <%= yield %>
           </main>
         <% end %>

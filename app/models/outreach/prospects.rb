@@ -109,18 +109,18 @@ class Outreach::Prospects
         next if x_id == @owner
         if exchange.reaching_back? && !exchange.reached_since?(COOLDOWN.ago)
           seen_from_you = exchange.outgoing.zero? ? "none seen from you" : "#{exchange.outgoing} from you"
-          reasons[x_id] << Reason.new("reach_back", "#{exchange.incoming} from them · #{seen_from_you}",
+          reasons[x_id] << Reason.new("reach_back", "#{exchange.incoming} from them | #{seen_from_you}",
             "They reached you on #{exchange.incoming} #{'post'.pluralize(exchange.incoming)}; #{seen_from_you} in collected data")
         end
         if exchange.two_way? && exchange.last_touch_at < QUIET_AFTER.ago
           days = ((Time.current - exchange.last_touch_at) / 1.day).floor
-          reasons[x_id] << Reason.new("quiet", "Two-way · quiet #{days}d", "You have reached each other; nothing seen either way for #{days} days")
+          reasons[x_id] << Reason.new("quiet", "Two-way | quiet #{days}d", "You have reached each other; nothing seen either way for #{days} days")
         end
       end
       watched.each do |x_id, why|
         posts = recent_posts.fetch(x_id, [])
         next if posts.empty?
-        reasons[x_id] << Reason.new("posting", "#{why} · #{posts.size} new #{'post'.pluralize(posts.size)}",
+        reasons[x_id] << Reason.new("posting", "#{why} | #{posts.size} new #{'post'.pluralize(posts.size)}",
           "#{why} with #{posts.size} unanswered #{'post'.pluralize(posts.size)} in the last #{RECENT.inspect}")
       end
       network.each do |x_id, sources|

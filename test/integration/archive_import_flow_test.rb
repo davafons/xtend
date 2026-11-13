@@ -17,7 +17,7 @@ class ArchiveImportFlowTest < ActionDispatch::IntegrationTest
     snapshot("followers", [])
     get follow_reviews_path(reason: "quiet")
     assert_includes response.body, "Quiet for 100 days"
-    assert_includes response.body, "You replied ·"
+    assert_includes response.body, "You replied |"
     get follow_reviews_path(reason: "quiet", quiet: 180)
     assert_includes response.body, "Nothing left here"
   end
