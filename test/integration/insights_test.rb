@@ -60,4 +60,18 @@ class InsightsPageTest < ActionDispatch::IntegrationTest
     config = JSON.parse(css_select("[data-controller=chart]").last["data-chart-config-value"])
     assert_equal [ [ nil, 0, 1 ], [ nil, 0, -1 ] ], config["series"].map { |series| series["values"] }
   end
+
+  test "X's own analytics show as X totals them, with how many days were collected" do
+    X::AccountDay.create!(day: 3.days.ago.to_date, observed_at: 1.hour.ago,
+      counts: { "Displayed" => { "false" => 900, "true" => 100 }, "Fav" => { "false" => 20 }, "ProfilePic" => { "false" => 5 }, "Follow" => { "false" => 2 } })
+    X::PostAnalytic.create!(post_x_id: "123", published_at: 3.days.ago, body: "Shipped it", observed_at: 1.hour.ago,
+      metrics: { "Impressions" => 700, "ProfileVisits" => 4, "Follows" => 1 })
+
+    get insights_path(period: "month")
+    assert_select "h2", text: "From X analytics"
+    assert_match(/1,000.*impressions/m, response.body)
+    assert_match(/2\.5%/, response.body)
+    assert_select "p", text: /1 day of \d+ in this period collected/
+    assert_select "th a[href=?]", "https://x.com/i/status/123", text: "Shipped it"
+  end
 end

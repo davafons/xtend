@@ -1,0 +1,70 @@
+<%# X's own analytics for your account, as its Overview and Content pages on x.com showed them to the capture extension. %>
+<%# locals: (analytics:, activity:) %>
+<% count = ->(value) { value.nil? ? "—" : compact_count(value) } %>
+<%= lc_card do %>
+  <div class="flex flex-col gap-content">
+    <div class="flex flex-wrap items-baseline justify-between gap-related">
+      <h2 class="<%= lc_text_class(size: :label) %>">From X analytics</h2>
+      <% if analytics.any? %>
+        <span class="text-caption text-muted-foreground">As X reported on <%= analytics.observed_at.strftime("%-d %b, %H:%M") %></span>
+      <% end %>
+    </div>
+    <% if !analytics.any? %>
+      <%= lc_text "Not collected for this period. Open Analytics on x.com (Overview and Content) with the capture extension on, and X's own impressions, profile visits, and follows per day and per post are saved.", size: :small, tone: :muted %>
+    <% else %>
+      <% totals = analytics.totals %>
+      <% if analytics.days.any? %>
+        <%= lc_stats do %>
+          <%= lc_stat label: "impressions" do %><span class="text-you"><%= number_with_delimiter(totals[:impressions]) %></span><% end %>
+          <%= lc_stat number_with_delimiter(totals[:engagements]), label: "engagements", title: "Profile visits, likes, replies, reposts, bookmarks, and shares, as X totals them" %>
+          <%= lc_stat (analytics.engagement_rate ? number_to_percentage(analytics.engagement_rate * 100, precision: 1) : "—"), label: "engagement rate" %>
+          <%= lc_stat number_with_delimiter(totals[:profile_visits]), label: "profile visits" %>
+          <%= lc_stat number_with_delimiter(totals[:follows]), label: "follows", tone: :warning %>
+          <%= lc_stat number_with_delimiter(totals[:unfollows]), label: "unfollows" %>
+        <% end %>
+        <% axis, title = { day: [ "%-d %b", "%a %-d %b" ], week: [ "%-d %b", "Week of %-d %b %Y" ], month: [ "%b %Y", "%B %Y" ] }.fetch(activity.unit) %>
+        <%= chart :bar, label: "Impressions per #{activity.unit}", zoom: insights_path, missing: "Not collected",
+          dates: activity.buckets.map { |bucket| activity.bucket_dates(bucket) },
+          labels: activity.buckets.map { |bucket| bucket.strftime(axis) }, titles: activity.buckets.map { |bucket| bucket.strftime(title) },
+          series: [ { name: "Impressions", meaning: :you, values: analytics.per_bucket(:impressions) } ] %>
+        <p class="text-caption text-muted-foreground">
+          <%= pluralize(analytics.covered_days, "day") %> of <%= analytics.period_days %> in this period collected.
+          X counts a day about a day later, so the newest days are missing until you open Analytics again.
+        </p>
+      <% end %>
+      <% if analytics.posts.any? %>
+        <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Your posts in X analytics">
+          <%= lc_table do %>
+            <caption class="sr-only">Your posts' totals from X analytics, most impressions first</caption>
+            <thead>
+              <tr>
+                <th scope="col">Post</th>
+                <th scope="col" class="text-end">Impressions</th>
+                <th scope="col" class="text-end">Engagements</th>
+                <th scope="col" class="text-end">Profile visits</th>
+                <th scope="col" class="text-end">Follows</th>
+                <th scope="col" class="text-end" title="Link clicks">Links</th>
+                <th scope="col" class="text-end" title="Opened the post's detail">Expands</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% analytics.posts.each do |post| %>
+                <tr>
+                  <th scope="row" class="max-w-80 truncate font-normal">
+                    <%= link_to CGI.unescapeHTML(post.body.to_s).squish.presence || "Post", "https://x.com/i/status/#{post.post_x_id}", target: "_blank", rel: "noopener noreferrer", class: "hover:text-you", title: "Open on X" %>
+                  </th>
+                  <td class="text-end tabular-nums text-you"><%= count.(post.metric("Impressions")) %></td>
+                  <td class="text-end tabular-nums"><%= count.(post.metric("Engagements")) %></td>
+                  <td class="text-end tabular-nums"><%= count.(post.metric("ProfileVisits")) %></td>
+                  <td class="text-end tabular-nums text-warning"><%= count.(post.metric("Follows")) %></td>
+                  <td class="text-end tabular-nums"><%= count.(post.metric("UrlClicks")) %></td>
+                  <td class="text-end tabular-nums"><%= count.(post.metric("DetailExpands")) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

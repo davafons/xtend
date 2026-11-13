@@ -242,7 +242,7 @@ function flush() {
       const byOperation = { ...current.byOperation };
       for (const item of responses) byOperation[item.operation] = Math.max((byOperation[item.operation] || 1) - 1, 0);
       const totals = { ...current.totals };
-      for (const field of ["posts", "people_added", "people_updated", "likes", "bookmarks", "accounts", "interactions", "follows", "observations", "relationships", "unfollows", "lists_completed", "notifications"]) {
+      for (const field of ["posts", "people_added", "people_updated", "likes", "bookmarks", "accounts", "interactions", "follows", "observations", "relationships", "unfollows", "lists_completed", "notifications", "analytics_days", "post_analytics"]) {
         totals[field] = (totals[field] || 0) + (result.body[field] || 0);
       }
       await setState({ pending: Math.max(current.pending - batchKeys.length, 0), byOperation, totals,

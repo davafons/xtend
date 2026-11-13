@@ -73,6 +73,11 @@ class Network::Activity
     (Person.where(id: reply_people).pluck(:x_id) | dm_partners).size
   end
 
+  # The start of the bucket a time falls in.
+  def bucket_for(time)
+    time.in_time_zone.public_send(:"beginning_of_#{unit}")
+  end
+
   private
 
   def replies
@@ -85,10 +90,6 @@ class Network::Activity
 
   def earliest
     [ ReplyEvent.minimum(:occurred_at), DirectMessage.minimum(:occurred_at) ].compact.min
-  end
-
-  def bucket_for(time)
-    time.in_time_zone.public_send(:"beginning_of_#{unit}")
   end
 
   def counts(scope)

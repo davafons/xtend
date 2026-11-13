@@ -11,5 +11,6 @@ class InsightsController < ApplicationController
     @outreach_answers = Network::AnswerRate.new(replies.where(classification: "initial"), coverage: coverage)
     @follow_backs = Follow::FollowBacks.new(replies)
     @posts = Network::PostPerformance.new(since: @activity.starts_at, before: @activity.ends_at)
+    @x_analytics = Network::XAnalytics.new(@activity)
   end
 end

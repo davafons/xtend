@@ -39,6 +39,8 @@
 
 <%= render "insights/answers", answers: @answers, outreach: @outreach_answers, follow_backs: @follow_backs %>
 
+<%= render "insights/x_analytics", analytics: @x_analytics, activity: @activity %>
+
 <%= render "insights/posts", performance: @posts %>
 
 <% compared = @changes.select { |_, gained| gained } %>

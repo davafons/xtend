@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_100000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -384,6 +384,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
     t.json "last_capture"
   end
 
+  create_table "x_account_days", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.date "day", null: false
+    t.json "counts", default: {}, null: false
+    t.datetime "observed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["workspace_id", "day"], name: "index_x_account_days_on_workspace_id_and_day", unique: true
+    t.index ["workspace_id"], name: "index_x_account_days_on_workspace_id"
+  end
+
   create_table "x_accounts", force: :cascade do |t|
     t.integer "workspace_id", null: false
     t.string "x_id", null: false
@@ -467,6 +478,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
     t.index ["workspace_id", "kind", "post_x_id", "source_x_id", "target_x_id"], name: "index_x_interactions_uniqueness", unique: true
     t.index ["workspace_id", "source_x_id", "target_x_id"], name: "idx_on_workspace_id_source_x_id_target_x_id_0c6ec163ad"
     t.index ["workspace_id", "target_x_id"], name: "index_x_interactions_on_workspace_id_and_target_x_id"
+  end
+
+  create_table "x_post_analytics", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.string "post_x_id", null: false
+    t.datetime "published_at"
+    t.text "body"
+    t.json "metrics", default: {}, null: false
+    t.datetime "observed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["workspace_id", "post_x_id"], name: "index_x_post_analytics_on_workspace_id_and_post_x_id", unique: true
+    t.index ["workspace_id"], name: "index_x_post_analytics_on_workspace_id"
   end
 
   create_table "x_post_observations", force: :cascade do |t|
@@ -617,12 +641,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
   add_foreign_key "sessions", "users"
   add_foreign_key "tags", "workspaces"
   add_foreign_key "users", "workspaces"
+  add_foreign_key "x_account_days", "workspaces"
   add_foreign_key "x_accounts", "workspaces"
   add_foreign_key "x_archive_imports", "workspaces"
   add_foreign_key "x_billing_cycles", "workspaces"
   add_foreign_key "x_connections", "workspaces"
   add_foreign_key "x_follow_edges", "workspaces"
   add_foreign_key "x_interactions", "workspaces"
+  add_foreign_key "x_post_analytics", "workspaces"
   add_foreign_key "x_post_observations", "workspaces"
   add_foreign_key "x_reads", "workspaces"
   add_foreign_key "x_reads", "x_billing_cycles"

@@ -12,6 +12,8 @@
     "Followers", "Following", "BlueVerifiedFollowers", "FollowersYouKnow", "ListLatestTweetsTimeline", "UserMedia",
     "Favoriters", "Retweeters", "NotificationsTimeline", "UsersByRestIds",
     "CreateTweet", "CreateNoteTweet", "FavoriteTweet", "CreateRetweet", "CreateBookmark",
+    // Your own analytics pages: Overview (per day) and Content (per post).
+    "accountOverviewDailyQuery", "contentPageQuery",
   ]);
   const GRAPHQL = /\/i\/api\/graphql\/[^/]+\/([A-Za-z]+)/;
   // Following and unfollowing are REST calls with a form body naming the account.

@@ -16,6 +16,7 @@
 # - Your follow lists: scrolling your own Followers or Following page to the end builds a complete list, the
 #   same as an X API check (see Follow::Snapshot.capture_page!). Your profile's counts tell whether pages are missing.
 # - Your actions: likes, reposts, and bookmarks x.com marks on posts you were shown, and the ones you make.
+# - Your analytics: X's Overview and Content pages for your account (X::Analytics), saved per day and per post.
 # - Your notifications: replies and mentions are saved like any listed post; who liked or reposted your posts
 #   becomes interactions, and who followed you becomes a follow edge dated by X. A notification names only the
 #   accounts and posts it shows, so it is evidence, never a complete list.
@@ -25,7 +26,7 @@ class X::Capture
   MAX_RESPONSE_BYTES = 4.megabytes
   ENGAGEMENT_KINDS = { likes: "like", bookmarks: "bookmark" }.freeze
   LISTED_PURPOSES = %i[discovery context likes bookmarks notifications].freeze
-  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows relationships unfollows list_pages lists_completed notifications].freeze
+  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows relationships unfollows list_pages lists_completed notifications analytics_days post_analytics].freeze
   OWN_LISTS = { "Followers" => "followers", "Following" => "following" }.freeze
   CLOCK_SKEW = 5.minutes
 
@@ -43,8 +44,9 @@ class X::Capture
     raise Rejected, "Send at most #{MAX_RESPONSES} responses per batch." unless responses.is_a?(Array) && responses.size <= MAX_RESPONSES
     @batch_key = batch_key
     @now = Time.current
+    @analytics = []
     @parsed = responses.filter_map { |response| parse(response) }
-    @result = Hash.new(0).merge(responses: responses.size, ignored: responses.size - @parsed.size)
+    @result = Hash.new(0).merge(responses: responses.size, ignored: responses.size - @parsed.size - @analytics.size)
     @runs = {}
     @counts = Hash.new(0)
     @lists = {}
@@ -72,6 +74,7 @@ class X::Capture
       save_viewer_actions(posts)
       reconcile(saved)
       Draft.link_published! if posts.each_value.any? { |row| row["author_id"] == @owner }
+      save_analytics
       @runs.each { |key, run| run.update!(resource_count: @counts[key], page_limit: @counts[key].clamp(1, 1000)) }
     end
     result = [ :responses, :ignored, :skipped, :conflicts, *RESULT_KEYS ].index_with { |key| @result[key] }.merge(lists: @lists.values)
@@ -81,7 +84,7 @@ class X::Capture
 
   # Open Xtend pages poll this to refresh themselves when a batch changed something.
   def announce(result)
-    return if @parsed.empty?
+    return if @parsed.empty? && @analytics.empty?
     summary = result.slice(*RESULT_KEYS).select { |_, count| count.positive? }.merge(lists: result[:lists])
     Current.workspace.update_columns(captured_at: @now, last_capture: summary)
   end
@@ -89,10 +92,16 @@ class X::Capture
   private
 
   def parse(response)
-    return unless response.is_a?(Hash) && X::WebPayload::OPERATIONS.key?(response["operation"])
+    return unless response.is_a?(Hash)
+    operation = response["operation"]
+    return unless X::WebPayload::OPERATIONS.key?(operation) || X::Analytics::OPERATIONS.include?(operation)
     body = response["body"]
     return unless body.is_a?(String) && body.bytesize <= MAX_RESPONSE_BYTES
     variables = response["variables"].is_a?(Hash) ? response["variables"] : {}
+    if X::Analytics::OPERATIONS.include?(operation)
+      @analytics << [ X::Analytics.new(operation, JSON.parse(body), variables), seen_at(response["at"]) ]
+      return
+    end
     payload = X::WebPayload.new(response["operation"], JSON.parse(body))
     purpose = payload.purpose
     # Only the owner's own Likes page is evidence of the owner's likes.
@@ -372,6 +381,18 @@ class X::Capture
       ActiveRecord::Base.transaction(requires_new: true) { post.reconcile! }
     rescue ArgumentError, ActiveRecord::RecordInvalid
       @result[:conflicts] += 1
+    end
+  end
+
+  # Oldest sighting first, so the newest one of each day or post is what stays.
+  def save_analytics
+    @analytics.sort_by(&:last).each do |analytics, at|
+      days = analytics.days
+      posts = analytics.posts
+      X::AccountDay.record!(days, at: at)
+      X::PostAnalytic.record!(posts, at: at)
+      @result[:analytics_days] += days.size
+      @result[:post_analytics] += posts.size
     end
   end
 

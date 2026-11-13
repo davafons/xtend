@@ -8,6 +8,7 @@ const LABELS = {
   Followers: "Followers", Following: "Following", BlueVerifiedFollowers: "Followers",
   UserRepliesTimeline: "Profile replies", UserRepostsTimeline: "Profile reposts", UserVideoTimeline: "Profiles",
   NotificationsTimeline: "Notifications", UsersByRestIds: "Profiles", FollowingFollowers: "Followed by",
+  accountOverviewDailyQuery: "Analytics (overview)", contentPageQuery: "Analytics (posts)",
 };
 
 function render({ settings, state, raw }) {

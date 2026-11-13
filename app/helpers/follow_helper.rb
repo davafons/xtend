@@ -23,7 +23,8 @@ module FollowHelper
   end
 
   CAPTURE_LABELS = { "posts" => "post", "people_added" => "new person", "likes" => "like", "bookmarks" => "bookmark",
-    "interactions" => "interaction", "relationships" => "follow state", "unfollows" => "unfollow" }.freeze
+    "interactions" => "interaction", "relationships" => "follow state", "unfollows" => "unfollow",
+    "analytics_days" => "analytics day", "post_analytics" => "analytics post" }.freeze
 
   # What the latest extension batch added, in a few words: "12 posts | following list 300 of 511".
   def capture_summary(summary)
