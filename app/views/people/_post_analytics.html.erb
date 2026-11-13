@@ -1,0 +1,10 @@
+<%# X's private totals for one of your posts or replies, from its analytics Content page. %>
+<%# locals: (analytics:) %>
+<p class="mt-1 flex flex-wrap items-center gap-x-heading gap-y-tight text-caption text-muted-foreground" title="From X analytics, as of <%= analytics.observed_at.strftime("%-d %b, %H:%M") %>">
+  <span class="inline-flex items-center gap-tight"><%= lc_icon "chart-bar", options: { class: "size-3.5", "aria-hidden": true } %><span class="text-you"><%= number_with_delimiter analytics.metric("Impressions").to_i %></span> impressions</span>
+  <span><%= pluralize analytics.metric("ProfileVisits").to_i, "profile visit" %></span>
+  <span class="<%= "text-warning" if analytics.metric("Follows").to_i.positive? %>"><%= pluralize analytics.metric("Follows").to_i, "follow" %></span>
+  <% if analytics.metric("DetailExpands").to_i.positive? %><span><%= pluralize analytics.metric("DetailExpands").to_i, "expand" %></span><% end %>
+  <% if analytics.metric("UrlClicks").to_i.positive? %><span><%= pluralize analytics.metric("UrlClicks").to_i, "link click" %></span><% end %>
+  <span>X analytics, <%= analytics.observed_at.strftime("%-d %b") %></span>
+</p>

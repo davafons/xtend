@@ -1,7 +1,7 @@
 <%# One post as x.com draws it: avatar column, name line, text, media, quote, and the action row.
     An action shows only when there is a count or one of your marks for it, so a blank means not collected.
     thread: draws the line from this avatar down to the next post in the same conversation. %>
-<%# locals: (avatar:, name:, handle:, body:, name_url: nil, at: nil, detail: nil, cue: nil, context: nil, media_kinds: [], quote: nil, counts: nil, counts_note: nil, marks: [], url: nil, thread: false, extra: nil) -%>
+<%# locals: (avatar:, name:, handle:, body:, name_url: nil, at: nil, detail: nil, cue: nil, context: nil, media_kinds: [], quote: nil, counts: nil, counts_note: nil, marks: [], url: nil, thread: false, extra: nil, footer: nil) -%>
 <% counted = !counts.nil? %>
 <% counts ||= {} %>
 <% marks ||= [] %>
@@ -60,5 +60,6 @@
         <% if live %><%= lc_icon_button_link_to "Open on X", url, icon: "arrow-up-right", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open on X" %><% end %>
       </div>
     </div>
+    <%= footer %>
   </div>
 </div>

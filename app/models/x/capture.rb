@@ -26,7 +26,7 @@ class X::Capture
   MAX_RESPONSE_BYTES = 4.megabytes
   ENGAGEMENT_KINDS = { likes: "like", bookmarks: "bookmark" }.freeze
   LISTED_PURPOSES = %i[discovery context likes bookmarks notifications].freeze
-  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows relationships unfollows list_pages lists_completed notifications analytics_days post_analytics].freeze
+  RESULT_KEYS = %i[posts people_added people_updated likes bookmarks accounts observations interactions follows relationships unfollows list_pages lists_completed notifications analytics_days post_analytics analytics_hours].freeze
   OWN_LISTS = { "Followers" => "followers", "Following" => "following" }.freeze
   CLOCK_SKEW = 5.minutes
 
@@ -393,6 +393,16 @@ class X::Capture
       X::PostAnalytic.record!(posts, at: at)
       @result[:analytics_days] += days.size
       @result[:post_analytics] += posts.size
+      if (account = analytics.account)
+        X::AnalyticsSnapshot.record!("account", at.to_date, at.to_date, account, at: at)
+      end
+      if (metric, hours = analytics.hours)
+        X::AnalyticsHour.record!(metric, hours, at: at)
+        @result[:analytics_hours] += hours.size
+      end
+      if (from, to, audience = analytics.audience)
+        X::AnalyticsSnapshot.record!("audience", from, to, audience, at: at)
+      end
     end
   end
 

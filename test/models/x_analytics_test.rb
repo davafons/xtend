@@ -8,7 +8,7 @@ class XAnalyticsTest < ActiveSupport::TestCase
 
   def overview(rows, from:)
     web_response("accountOverviewDailyQuery", { data: { viewer_v2: { user_results: { result: { current_time_series: rows } } } } },
-      variables: { current_from: ms(from) })
+      variables: { "current_from" => ms(from) })
   end
 
   def row(type, count, date, verified: "false") = { engagement_type: type, count: count, timestamp: ms(date), is_engaging_user_verified: verified }
@@ -47,5 +47,43 @@ class XAnalyticsTest < ActiveSupport::TestCase
     post = X::PostAnalytic.sole
     assert_equal({ "Impressions" => 194, "Follows" => 0, "ProfileVisits" => 3 }, post.metrics)
     assert_equal "Perfect weather", post.body
+  end
+
+  test "the Overview page also saves video and media views per day and your followers right now" do
+    day = Date.new(2026, 3, 1)
+    document = { data: { viewer_v2: { user_results: { result: {
+      current_time_series: [ row("Displayed", 10, day) ],
+      legacy_current_metrics: [ { timestamp: { iso8601_time: "2026-03-01T00:00:00Z" }, metric_values: [ { metric_type: "VideoViews", metric_value: 7 }, { metric_type: "MediaViews" } ] } ],
+      relationship_counts: { followers: 170 }, verified_follower_count: "111", realtime_active_followers: { active_count: 144 }
+    } } } } }
+    capture!(web_response("accountOverviewDailyQuery", document, variables: { "current_from" => ms(day) }))
+    assert_equal [ 7, 0 ], X::AccountDay.sole.then { [ _1.count(:video_views), _1.count(:media_views) ] }
+    assert_equal({ "followers" => 170, "verified_followers" => 111, "active_followers" => 144 }, X::AnalyticsSnapshot.latest("account").data)
+  end
+
+  test "the Audience page saves its hourly heatmap, zero for empty hours, and who you reached" do
+    document = { data: { viewer_v2: { user_results: { result: {
+      organic_metrics_time_series: [
+        { timestamp: { iso8601_time: "2026-10-17T00:00:00Z" }, metric_values: [ { metric_type: "Impressions", metric_value: 6 } ] },
+        { timestamp: { iso8601_time: "2026-10-17T03:00:00Z" }, metric_values: [ { metric_type: "Impressions", metric_value: 2 } ] }
+      ],
+      uec_metrics_daily_time_series_count: [
+        { engagement_type: "Displayed", is_in_network: "false", count: 70 }, { engagement_type: "Displayed", is_in_network: "true", count: 30 }
+      ],
+      uec_country_metrics_daily_time_series_count: [
+        { engagement_type: "Displayed", country: "JP", count: 50 }, { engagement_type: "Displayed", country: "US", count: 30 }, { engagement_type: "Displayed", country: "GB", count: 20 }
+      ]
+    } } } } }
+    variables = { requested_metrics: [ "Impressions" ], heatmap_from_time_incl: "2026-10-16T23:59:59.999Z",
+      from_time_incl: ms(Date.new(2026, 8, 16)), to_time_excl: ms(Date.new(2026, 11, 14)) - 1 }
+    result = capture!(web_response("audienceOverviewDataQuery", document, variables: variables.deep_stringify_keys))
+
+    assert_equal 5, result[:analytics_hours], "23:00 through 03:00"
+    assert_equal [ 0, 6, 0, 0, 2 ], X::AnalyticsHour.order(:hour).pluck(:value)
+    audience = X::AnalyticsSnapshot.latest("audience")
+    assert_equal [ Date.new(2026, 8, 16), Date.new(2026, 11, 13) ], [ audience.from_on, audience.to_on ]
+    assert_in_delta 0.7, audience.outside_network_share
+    assert_in_delta 0.5, audience.english_share
+    assert_equal "JP", audience.countries.first.first
   end
 end

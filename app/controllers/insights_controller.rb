@@ -12,5 +12,7 @@ class InsightsController < ApplicationController
     @follow_backs = Follow::FollowBacks.new(replies)
     @posts = Network::PostPerformance.new(since: @activity.starts_at, before: @activity.ends_at)
     @x_analytics = Network::XAnalytics.new(@activity)
+    metrics = @x_analytics.heat_metrics
+    @heat_metric = metrics.include?(params[:heat]) ? params[:heat] : (metrics.include?("Impressions") ? "Impressions" : metrics.first)
   end
 end

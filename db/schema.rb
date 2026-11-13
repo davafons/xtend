@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_110000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -413,6 +413,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_100000) do
     t.index ["workspace_id", "x_id"], name: "index_x_accounts_on_workspace_id_and_x_id", unique: true
   end
 
+  create_table "x_analytics_hours", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.string "metric", null: false
+    t.datetime "hour", null: false
+    t.integer "value", default: 0, null: false
+    t.datetime "observed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["workspace_id", "metric", "hour"], name: "index_x_analytics_hours_on_workspace_id_and_metric_and_hour", unique: true
+    t.index ["workspace_id"], name: "index_x_analytics_hours_on_workspace_id"
+  end
+
+  create_table "x_analytics_snapshots", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.string "kind", null: false
+    t.date "from_on", null: false
+    t.date "to_on", null: false
+    t.json "data", default: {}, null: false
+    t.datetime "observed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["workspace_id", "kind", "from_on", "to_on"], name: "idx_on_workspace_id_kind_from_on_to_on_98f7732949", unique: true
+    t.index ["workspace_id"], name: "index_x_analytics_snapshots_on_workspace_id"
+  end
+
   create_table "x_archive_imports", force: :cascade do |t|
     t.string "owner_x_id", null: false
     t.datetime "generated_at", null: false
@@ -643,6 +668,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_100000) do
   add_foreign_key "users", "workspaces"
   add_foreign_key "x_account_days", "workspaces"
   add_foreign_key "x_accounts", "workspaces"
+  add_foreign_key "x_analytics_hours", "workspaces"
+  add_foreign_key "x_analytics_snapshots", "workspaces"
   add_foreign_key "x_archive_imports", "workspaces"
   add_foreign_key "x_billing_cycles", "workspaces"
   add_foreign_key "x_connections", "workspaces"

@@ -1,0 +1,47 @@
+<%# Your replies with X's private totals from its analytics Content page: which ones brought people to your profile. %>
+<%# locals: (analytics:) %>
+<% if analytics.replies.any? %>
+  <%= lc_card do %>
+    <div class="flex flex-col gap-content">
+      <div class="flex flex-wrap items-baseline justify-between gap-related">
+        <h2 class="<%= lc_text_class(size: :label) %>">Replies that brought people to your profile</h2>
+        <span class="text-caption text-muted-foreground"><%= analytics.replies.size %> of <%= pluralize(analytics.outgoing_reply_count, "reply", plural: "replies") %> in this period counted by X analytics</span>
+      </div>
+      <% totals = analytics.reply_totals %>
+      <%= lc_stats do %>
+        <%= lc_stat label: "impressions" do %><span class="text-you"><%= number_with_delimiter(totals[:impressions]) %></span><% end %>
+        <%= lc_stat number_with_delimiter(totals[:visits]), label: totals[:visits] == 1 ? "profile visit" : "profile visits" %>
+        <%= lc_stat number_with_delimiter(totals[:follows]), label: totals[:follows] == 1 ? "follow" : "follows", tone: :warning %>
+        <%= lc_stat (totals[:impressions].positive? ? number_to_percentage(totals[:visits] * 100.0 / totals[:impressions], precision: 1) : "—"), label: "visits per impression" %>
+      <% end %>
+      <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Your replies in X analytics">
+        <%= lc_table do %>
+          <caption class="sr-only">Replies that brought follows or profile visits first, then the most seen</caption>
+          <thead>
+            <tr>
+              <th scope="col">To</th>
+              <th scope="col">Reply</th>
+              <th scope="col" class="text-end">Impressions</th>
+              <th scope="col" class="text-end">Profile visits</th>
+              <th scope="col" class="text-end">Follows</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% analytics.best_replies.each do |reply| %>
+              <tr>
+                <th scope="row" class="font-normal"><%= person_link reply.event.person, "@#{reply.event.person.handle}", class: "hover:underline" %></th>
+                <td class="max-w-96 truncate">
+                  <%= link_to CGI.unescapeHTML(reply.analytics.body.to_s).sub(/\A(@\w+\s+)+/, "").squish.presence || "Reply", "https://x.com/i/status/#{reply.event.x_id}", target: "_blank", rel: "noopener noreferrer", class: "hover:text-you", title: "Open on X" %>
+                </td>
+                <td class="text-end tabular-nums text-you"><%= compact_count reply.impressions %></td>
+                <td class="text-end tabular-nums"><%= reply.visits %></td>
+                <td class="text-end tabular-nums text-warning"><%= reply.follows %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        <% end %>
+      </div>
+      <p class="text-caption text-muted-foreground">Totals as X reported them when you last opened Analytics → Content on x.com. Replies outside the range you viewed there aren't counted.</p>
+    </div>
+  <% end %>
+<% end %>

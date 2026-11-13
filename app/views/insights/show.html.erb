@@ -41,6 +41,10 @@
 
 <%= render "insights/x_analytics", analytics: @x_analytics, activity: @activity %>
 
+<%= render "insights/reply_reach", analytics: @x_analytics %>
+
+<%= render "insights/audience", analytics: @x_analytics, metric: @heat_metric %>
+
 <%= render "insights/posts", performance: @posts %>
 
 <% compared = @changes.select { |_, gained| gained } %>

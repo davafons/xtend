@@ -7,9 +7,9 @@
 <% first = thread.posts.first %>
 <% if first.parent && thread.posts.none? { |post| post.x_id == first.parent.x_id } %>
   <%= render "people/tweet", author: first.parent.author, person: person, owner_handle: owner_handle, body: first.parent.body,
-    at: nil, url: ("https://x.com/i/status/#{first.parent.x_id}" if first.url), marks: timeline.marks[first.parent.x_id], thread: true, **timeline.counts_for(first.parent.x_id) %>
+    at: nil, url: ("https://x.com/i/status/#{first.parent.x_id}" if first.url), marks: timeline.marks[first.parent.x_id], thread: true, analytics: timeline.analytics_for(first.parent.x_id), **timeline.counts_for(first.parent.x_id) %>
 <% end %>
 <% thread.posts.each_with_index do |post, index| %>
   <%= render "people/tweet", author: post.author, person: person, owner_handle: owner_handle, body: post.body, at: post.at,
-    url: post.url, marks: timeline.marks[post.x_id], detail: post.detail, thread: index < thread.posts.size - 1, **timeline.counts_for(post.x_id) %>
+    url: post.url, marks: timeline.marks[post.x_id], detail: post.detail, thread: index < thread.posts.size - 1, analytics: timeline.analytics_for(post.x_id), **timeline.counts_for(post.x_id) %>
 <% end %>

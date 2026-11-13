@@ -1,4 +1,5 @@
-<%# X's own analytics for your account, as its Overview and Content pages on x.com showed them to the capture extension. %>
+<%# X's own analytics for your account, as its Overview and Content pages on x.com showed them to the capture extension.
+    Video and media views are in X's own totals but not in engagements. %>
 <%# locals: (analytics:, activity:) %>
 <% count = ->(value) { value.nil? ? "—" : compact_count(value) } %>
 <%= lc_card do %>
@@ -18,9 +19,14 @@
           <%= lc_stat label: "impressions" do %><span class="text-you"><%= number_with_delimiter(totals[:impressions]) %></span><% end %>
           <%= lc_stat number_with_delimiter(totals[:engagements]), label: "engagements", title: "Profile visits, likes, replies, reposts, bookmarks, and shares, as X totals them" %>
           <%= lc_stat (analytics.engagement_rate ? number_to_percentage(analytics.engagement_rate * 100, precision: 1) : "—"), label: "engagement rate" %>
-          <%= lc_stat number_with_delimiter(totals[:profile_visits]), label: "profile visits" %>
-          <%= lc_stat number_with_delimiter(totals[:follows]), label: "follows", tone: :warning %>
-          <%= lc_stat number_with_delimiter(totals[:unfollows]), label: "unfollows" %>
+          <%= lc_stat number_with_delimiter(totals[:profile_visits]), label: totals[:profile_visits] == 1 ? "profile visit" : "profile visits" %>
+          <%= lc_stat number_with_delimiter(totals[:follows]), label: totals[:follows] == 1 ? "follow" : "follows", tone: :warning %>
+          <%= lc_stat number_with_delimiter(totals[:unfollows]), label: totals[:unfollows] == 1 ? "unfollow" : "unfollows" %>
+          <% if totals[:video_views].positive? %><%= lc_stat number_with_delimiter(totals[:video_views]), label: "video views" %><% end %>
+          <% if totals[:media_views].positive? %><%= lc_stat number_with_delimiter(totals[:media_views]), label: "media views" %><% end %>
+          <% if (account = analytics.account) && account.data["active_followers"] %>
+            <%= lc_stat label: "followers active today", title: "Followers active in the 24 hours before #{account.observed_at.strftime('%-d %b, %H:%M')}; #{account.data['verified_followers']} of your followers are verified" do %><%= account.data["active_followers"] %><span class="text-muted-foreground"> / <%= account.data["followers"] %></span><% end %>
+          <% end %>
         <% end %>
         <% axis, title = { day: [ "%-d %b", "%a %-d %b" ], week: [ "%-d %b", "Week of %-d %b %Y" ], month: [ "%b %Y", "%B %Y" ] }.fetch(activity.unit) %>
         <%= chart :bar, label: "Impressions per #{activity.unit}", zoom: insights_path, missing: "Not collected",

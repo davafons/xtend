@@ -45,6 +45,12 @@ class Person::Timeline
       counts_note: "As seen on X #{source.metrics_observed_at.strftime(source.metrics_observed_at.year == Date.current.year ? '%-d %b, %H:%M' : '%-d %b %Y')}" }
   end
 
+  # X's private totals for your own posts and replies on this page, from its analytics Content page.
+  def analytics_for(x_id)
+    @analytics ||= X::PostAnalytic.where(post_x_id: entries.select(&:post?).flat_map { |entry| [ entry.x_id, entry.parent&.x_id ] }.compact).index_by(&:post_x_id)
+    @analytics[x_id]
+  end
+
   def filter(category)
     return entries unless category
     entries.select { |entry| entry.category == category || (category == "engagement" && marked?(entry)) }

@@ -9,7 +9,8 @@ class X::AccountDay < ApplicationRecord
   # engagements are the sum of the others.
   METRICS = {
     impressions: %w[Displayed], profile_visits: %w[ProfilePic], likes: %w[Fav], replies: %w[Reply],
-    reposts: %w[Retweet QuoteTweet], bookmarks: %w[Bookmark], shares: %w[Share], follows: %w[Follow], unfollows: %w[Unfollow]
+    reposts: %w[Retweet QuoteTweet], bookmarks: %w[Bookmark], shares: %w[Share], follows: %w[Follow], unfollows: %w[Unfollow],
+    video_views: %w[VideoViews], media_views: %w[MediaViews]
   }.freeze
   ENGAGEMENTS = %i[profile_visits likes replies reposts bookmarks shares].freeze
 

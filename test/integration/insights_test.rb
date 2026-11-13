@@ -74,4 +74,26 @@ class InsightsPageTest < ActionDispatch::IntegrationTest
     assert_select "p", text: /1 day of \d+ in this period collected/
     assert_select "th a[href=?]", "https://x.com/i/status/123", text: "Shipped it"
   end
+
+  test "replies show what X analytics counted for them, and the audience heatmap and reach show when collected" do
+    ingest(x_id: "7001", target_x_id: "8001", occurred_at: 3.days.ago, person_profile: profile(x_id: "7", handle: "ada", name: "Ada"))
+    X::PostAnalytic.create!(post_x_id: "7001", published_at: 3.days.ago, body: "@ada Great point", observed_at: 1.hour.ago,
+      metrics: { "Impressions" => 300, "ProfileVisits" => 4, "Follows" => 1 })
+    wednesday = 3.weeks.ago.beginning_of_week + 2.days + 23.hours
+    X::AnalyticsHour.create!(metric: "Impressions", hour: wednesday, value: 40, observed_at: 1.hour.ago)
+    X::AnalyticsSnapshot.create!(kind: "audience", from_on: 30.days.ago.to_date, to_on: Date.yesterday, observed_at: 1.hour.ago,
+      data: { "in_network" => { "Displayed" => { "true" => 25, "false" => 75 } }, "countries" => { "Displayed" => { "US" => 60, "JP" => 40 } } })
+
+    get insights_path(period: "30d")
+    assert_select "h2", text: "Replies that brought people to your profile"
+    assert_select "td a[href=?]", "https://x.com/i/status/7001", text: "Great point"
+    assert_select "h2", text: "When your audience is active"
+    assert_select "p", text: /Busiest: Wed 23:00/
+    assert_select "td[title=?]", "Wed 23:00: 40"
+    assert_select "h2", text: "Who you reached"
+    assert_select "[data-slot=stat]", text: /from non-followers\s*75%/
+
+    get person_path(Person.find_by!(x_id: "7"))
+    assert_select "p", text: /300\s+impressions.*4 profile visits.*1 follow\b/m
+  end
 end

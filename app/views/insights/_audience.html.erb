@@ -1,0 +1,87 @@
+<%# When your audience is active (X's hourly heatmap) and who you reached (followers or not, and countries). %>
+<%# locals: (analytics:, metric:) %>
+<% audience = analytics.audience %>
+<% if analytics.heat_metrics.any? || audience %>
+  <div class="grid gap-inset <%= "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" if analytics.heat_metrics.any? && audience %>">
+    <% if analytics.heat_metrics.any? %>
+      <%= lc_card do %>
+        <% grid, span = analytics.heat(metric) %>
+        <% max = grid.values.max.to_i %>
+        <% days = %w[Mon Tue Wed Thu Fri Sat Sun] %>
+        <div class="flex flex-col gap-content">
+          <div class="flex flex-wrap items-center justify-between gap-related">
+            <h2 class="<%= lc_text_class(size: :label) %>">When your audience is active</h2>
+            <% if analytics.heat_metrics.size > 1 %>
+              <%= view_tabs "Heatmap metric", analytics.heat_metrics.map { |name| [ Network::XAnalytics::HEAT_LABELS.fetch(name), insights_path(request.query_parameters.merge(heat: name)), name == metric ] } %>
+            <% end %>
+          </div>
+          <% if max.zero? %>
+            <%= lc_text "Nothing counted for this metric in this period.", size: :small, tone: :muted %>
+          <% else %>
+            <% busiest = grid.max_by(2) { |_, value| value } %>
+            <p class="text-small">
+              Busiest: <%= busiest.map { |(day, hour), _| "#{days[day]} #{format('%02d:00', hour)}" }.to_sentence %>
+              <span class="text-muted-foreground">(<%= Time.zone.tzinfo.identifier %> time)</span>
+            </p>
+            <div class="overflow-x-auto" tabindex="0" role="region" aria-label="<%= Network::XAnalytics::HEAT_LABELS.fetch(metric) %> by weekday and hour">
+              <table class="w-full border-separate border-spacing-0.5 text-caption">
+                <caption class="sr-only"><%= Network::XAnalytics::HEAT_LABELS.fetch(metric) %> by weekday and hour of the day, in your time zone</caption>
+                <thead>
+                  <tr>
+                    <td></td>
+                    <% 24.times do |hour| %><th scope="col" class="font-normal text-muted-foreground"><%= hour % 3 == 0 ? hour : tag.span(hour, class: "sr-only") %></th><% end %>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% days.each_with_index do |day, index| %>
+                    <tr>
+                      <th scope="row" class="pe-1 text-start font-normal text-muted-foreground"><%= day %></th>
+                      <% 24.times do |hour| %>
+                        <% value = grid[[ index, hour ]] %>
+                        <td class="h-5 min-w-4 rounded-sm bg-tile" title="<%= "#{day} #{format('%02d:00', hour)}: #{number_with_delimiter(value)}" %>">
+                          <span class="block size-full rounded-sm bg-you" style="opacity: <%= value.positive? ? (Math.sqrt(value.fdiv(max)) * 0.85 + 0.15).round(2) : 0 %>"></span>
+                          <span class="sr-only"><%= value %></span>
+                        </td>
+                      <% end %>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+            <p class="text-caption text-muted-foreground">
+              When people saw or acted on your posts, not when you posted, <%= span.map { _1.strftime("%-d %b") }.join("–") %>.
+              From the heatmap on X's Analytics → Audience; pick another metric there to collect it.
+            </p>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+    <% if audience %>
+      <%= lc_card do %>
+        <div class="flex flex-col gap-content">
+          <h2 class="<%= lc_text_class(size: :label) %>">Who you reached</h2>
+          <%= lc_stats do %>
+            <% if (outside = audience.outside_network_share) %>
+              <%= lc_stat number_to_percentage(outside * 100, precision: 0), label: "from non-followers", tone: :success, title: "Share of impressions from people who don't follow you" %>
+            <% end %>
+            <% if (english = audience.english_share) %>
+              <%= lc_stat number_to_percentage(english * 100, precision: 0), label: "English-speaking", title: "US, UK, Canada, Australia, Ireland, and New Zealand" %>
+            <% end %>
+          <% end %>
+          <ul class="flex flex-col gap-tight">
+            <% audience.countries.each do |country, share| %>
+              <li class="grid grid-cols-[3rem_minmax(0,1fr)_3rem] items-center gap-related text-small">
+                <span><%= country %></span>
+                <span class="h-2 rounded-full bg-tile"><span class="block h-full rounded-full bg-you" style="width: <%= (share * 100).round(1) %>%"></span></span>
+                <span class="text-end tabular-nums text-muted-foreground"><%= number_to_percentage(share * 100, precision: 0) %></span>
+              </li>
+            <% end %>
+          </ul>
+          <p class="text-caption text-muted-foreground">
+            Impressions <%= audience.from_on.strftime("%-d %b") %>–<%= audience.to_on.strftime("%-d %b") %>, from X's Analytics → Audience, as of <%= audience.observed_at.strftime("%-d %b") %>.
+          </p>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>
