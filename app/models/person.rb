@@ -11,6 +11,7 @@ class Person < ApplicationRecord
   has_many :direct_messages, primary_key: :x_id, foreign_key: :partner_x_id, inverse_of: false
   has_many :ai_proposals, class_name: "AI::Proposal", dependent: :destroy
   has_many :person_tags, dependent: :destroy
+  has_many :reminders, -> { order(:due_on, :id) }, dependent: :destroy
   has_many :tags, -> { order(:name) }, through: :person_tags
 
   before_validation { self.handle = handle.to_s.delete_prefix("@").downcase.strip }

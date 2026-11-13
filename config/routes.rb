@@ -7,6 +7,7 @@ Rails.application.routes.draw do
     resource :pin, only: [ :create, :destroy ]
     resource :follow_protection, only: [ :create, :destroy ], controller: "follow/protections"
     resources :tags, only: [ :create, :destroy ], controller: "person_tags"
+    resources :reminders, only: :create
   end
   resources :drafts, except: :show do
     get :ideas, on: :collection
@@ -21,6 +22,7 @@ Rails.application.routes.draw do
   end
   resource :inbox, only: :show, controller: "inbox"
   resource :outreach, only: :show, controller: "outreach"
+  resources :reminders, only: [ :update, :destroy ]
   resources :reply_events, only: [] do
     resource :dismissal, only: :create, controller: "reply_events/dismissals"
   end

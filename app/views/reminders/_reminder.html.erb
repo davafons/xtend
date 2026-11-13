@@ -1,0 +1,18 @@
+<%# One reminder with its actions. show_person: adds who it is about, for lists that mix people. %>
+<%# locals: (reminder:, show_person: false) %>
+<li class="flex items-start gap-related py-related" id="<%= dom_id reminder %>">
+  <% if show_person %><%= link_to person_avatar(reminder.person, size: :sm), reminder.person, tabindex: -1, aria: { hidden: true }, class: "shrink-0" %><% end %>
+  <div class="flex min-w-0 grow flex-col gap-tight">
+    <% if show_person %><%= link_to reminder.person.name, reminder.person, class: "truncate text-label font-semibold hover:underline" %><% end %>
+    <p class="text-small"><%= reminder.reason %></p>
+    <p class="text-caption <%= reminder.due? ? "text-warning" : "text-muted-foreground" %>">
+      <% if reminder.due_on < Date.current %>Overdue since <%= reminder.due_on.strftime("%a %-d %b") %>
+      <% elsif reminder.due_on == Date.current %>Due today
+      <% else %>Due <%= reminder.due_on.strftime("%a %-d %b") %><% end %>
+    </p>
+  </div>
+  <div class="flex shrink-0 items-center">
+    <%= lc_icon_button_to "Done", reminder_path(reminder), method: :patch, icon: "check", size: :sm, title: "Done" %>
+    <%= lc_icon_button_to "A week later", reminder_path(reminder, snooze: 1), method: :patch, icon: "clock", size: :sm, title: "A week later" %>
+  </div>
+</li>

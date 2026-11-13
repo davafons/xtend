@@ -1,0 +1,18 @@
+<%# Reminders on this person: open ones first, then a form to add one. %>
+<%# locals: (person:) %>
+<% open = person.reminders.select { |reminder| reminder.completed_at.nil? } %>
+<%= lc_card padding: :sm do %>
+  <div class="flex flex-col gap-related">
+    <h2 class="flex items-center gap-tight text-small text-muted-foreground"><%= lc_icon "bell", options: { class: "size-4", "aria-hidden": true } %>Reminders</h2>
+    <% if open.any? %>
+      <ul class="flex flex-col divide-y divide-border"><%= render partial: "reminders/reminder", collection: open, as: :reminder %></ul>
+    <% end %>
+    <%= form_with url: person_reminders_path(person), scope: :reminder, class: "flex flex-col gap-related" do %>
+      <%= lc_input name: "reminder[reason]", placeholder: "Ask how the launch went…", maxlength: Reminder::REASON_LENGTH, required: true, size: :sm, aria: { label: "Remind me to" } %>
+      <div class="flex items-center gap-related">
+        <%= lc_select [ [ "Tomorrow", "tomorrow" ], [ "In a week", "week" ], [ "In two weeks", "two_weeks" ], [ "In a month", "month" ] ], name: "reminder[in]", selected: "week", size: :sm, aria: { label: "When" }, class: "grow" %>
+        <%= lc_button "Remind me", type: :submit, size: :sm, variant: :secondary %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

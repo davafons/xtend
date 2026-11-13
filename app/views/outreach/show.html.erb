@@ -11,6 +11,7 @@
   </section>
 
   <aside class="flex flex-col gap-section lg:sticky lg:top-6" aria-label="Session">
+    <%= render "outreach/reminders", due: @due_reminders, upcoming: @upcoming_reminders %>
     <%= render "outreach/session", session: @session %>
     <%= render "outreach/coverage", graph: @prospects.graph %>
   </aside>

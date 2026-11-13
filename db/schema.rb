@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_081000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -302,6 +302,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_081000) do
     t.integer "workspace_id", null: false
     t.index ["person_id"], name: "index_pins_on_person_id", unique: true
     t.index ["workspace_id"], name: "index_pins_on_workspace_id"
+  end
+
+  create_table "reminders", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "person_id", null: false
+    t.string "reason", null: false
+    t.date "due_on", null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["person_id"], name: "index_reminders_on_person_id"
+    t.index ["workspace_id", "completed_at", "due_on"], name: "index_reminders_on_workspace_id_and_completed_at_and_due_on"
+    t.index ["workspace_id"], name: "index_reminders_on_workspace_id"
   end
 
   create_table "reply_events", force: :cascade do |t|
@@ -597,6 +610,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_081000) do
   add_foreign_key "person_tags", "workspaces"
   add_foreign_key "pins", "people"
   add_foreign_key "pins", "workspaces"
+  add_foreign_key "reminders", "people"
+  add_foreign_key "reminders", "workspaces"
   add_foreign_key "reply_events", "people"
   add_foreign_key "reply_events", "workspaces"
   add_foreign_key "sessions", "users"

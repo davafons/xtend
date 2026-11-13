@@ -1,0 +1,12 @@
+<%# Reminders that are due, and the next few coming up. Nothing shows when there are none. %>
+<%# locals: (due:, upcoming:) %>
+<% if due.any? || upcoming.any? %>
+  <%= lc_card padding: :sm do %>
+    <div class="flex flex-col gap-related">
+      <h2 class="flex items-center gap-tight text-label"><%= lc_icon "bell", options: { class: "size-4", "aria-hidden": true } %>Reminders<% if due.any? %><%= lc_badge due.size, tone: :warning %><% end %></h2>
+      <ul class="flex flex-col divide-y divide-border">
+        <%= render partial: "reminders/reminder", collection: due + upcoming, as: :reminder, locals: { show_person: true } %>
+      </ul>
+    </div>
+  <% end %>
+<% end %>
