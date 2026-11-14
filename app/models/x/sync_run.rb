@@ -6,7 +6,7 @@ class X::SyncRun < ApplicationRecord
   has_many :x_reads, class_name: "X::Read", foreign_key: :x_sync_run_id
   has_many :x_source_posts, class_name: "X::SourcePost", foreign_key: :x_sync_run_id
   validates :dataset, inclusion: { in: DATASETS }
-  validates :mode, inclusion: { in: %w[backfill refresh capture] }
+  validates :mode, inclusion: { in: %w[backfill refresh capture archive] }
   validates :request_key, presence: true, uniqueness: { scope: :workspace_id }
   validates :page_limit, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 1000 }
 

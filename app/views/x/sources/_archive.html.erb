@@ -1,19 +1,24 @@
-<% last_import = X::ArchiveImport.order(:created_at).last %>
-<%= lc_list_section "X archive", id: "archive", class: "scroll-mt-section", footnote: "Fills your full one-to-one DM history: sender and time only, never message text." do %>
+<% last_import = X::ArchiveImport.where(status: "completed").order(:created_at).last %>
+<% latest = X::ArchiveImport.order(:created_at).last %>
+<%= lc_list_section "X archive", id: "archive", class: "scroll-mt-section", footnote: "The best way to start: one upload brings in your posts, your replies and the people you replied to, and your one-to-one DMs (sender and time only, never message text). It covers everything up to the day X generated it." do %>
   <%= form_with url: x_archive_imports_path, multipart: true do %>
     <%= lc_list_group do %>
-      <%= lc_list_row "Last import", icon: "archive-box" do %>
-        <span class="text-small tabular-nums text-muted-foreground">
-          <% if last_import %>
-            <%= relative_day last_import.created_at %> | <%= pluralize(last_import.direct_messages_count, "new DM") %><%= " | partial, coverage not claimed" if last_import.partial %>
-          <% else %>
-            Never
-          <% end %>
-        </span>
+      <% detail = last_import && "#{last_import.summary.upcase_first}#{" | partial, coverage not claimed" if last_import.partial}" %>
+      <%= lc_list_row "Last import", icon: "archive-box", subtitle: detail do %>
+        <span class="text-small tabular-nums text-muted-foreground"><%= last_import ? relative_day(last_import.created_at) : "Never" %></span>
+      <% end %>
+      <% if latest&.in_progress? %>
+        <%= lc_list_row "Importing", icon: "arrow-path", subtitle: "Archive of #{latest.generated_at.to_date.to_fs(:long)}. Reload to see what was added." do %>
+          <span class="text-small tabular-nums text-muted-foreground"><%= relative_day latest.created_at %></span>
+        <% end %>
+      <% elsif latest&.status == "failed" %>
+        <%= lc_list_row "Import failed", icon: "exclamation-triangle", subtitle: latest.message do %>
+          <span class="text-small tabular-nums text-muted-foreground"><%= relative_day latest.updated_at %></span>
+        <% end %>
       <% end %>
       <%= lc_list_row "Archive .zip", icon: "arrow-up-tray" do %>
         <%= tag.input type: :file, name: "file", accept: "application/zip,.zip", required: true, id: "archive-file", aria: { label: "X archive .zip" }, class: "max-w-56 text-small text-muted-foreground file:me-related file:rounded-full file:border-0 file:bg-secondary file:px-content file:py-tight file:text-small file:text-foreground" %>
-        <%= lc_button "Import", type: :submit, variant: :secondary, size: :sm, aria: { label: "Import DM history" } %>
+        <%= lc_button "Import", type: :submit, variant: :secondary, size: :sm, aria: { label: "Import X archive" } %>
       <% end %>
     <% end %>
   <% end %>

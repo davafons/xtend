@@ -2,7 +2,8 @@ class X::SourcePost < ApplicationRecord
   include WorkspaceScoped
   belongs_to :x_sync_run, class_name: "X::SyncRun"
   validates :x_id, uniqueness: { scope: :workspace_id }
-  scope :collected, -> { joins(:x_sync_run).where.not(x_sync_runs: { mode: "capture" }) }
+  # Posts read from the X API. Captured and archived posts never queue paid lookups.
+  scope :collected, -> { joins(:x_sync_run).where(x_sync_runs: { mode: %w[backfill refresh] }) }
 
   COUNTS = %i[like_count repost_count quote_count bookmark_count view_count].freeze
 
@@ -75,15 +76,16 @@ class X::SourcePost < ApplicationRecord
   end
 
   def source
-    x_sync_run.mode == "capture" ? "x_capture" : "x_api"
+    { "capture" => "x_capture", "archive" => "archive" }.fetch(x_sync_run.mode, "x_api")
   end
 
   def outreach_classification(owner)
+    earlier = self.class.where(author_x_id: owner, repost: false).where.not(x_id: x_id).where("published_at < ?", published_at)
     if conversation_x_id.present?
-      prior = self.class.where(author_x_id: owner, conversation_x_id: conversation_x_id, repost: false)
-        .where.not(parent_x_id: nil).where.not(x_id: x_id).where("published_at < ?", published_at)
-      return "continuation" if prior.exists?
+      return "continuation" if earlier.where(conversation_x_id: conversation_x_id).where.not(parent_x_id: nil).exists?
     end
+    # Archived posts carry no conversation, but a second reply to the same post is still a follow-up.
+    return "continuation" if earlier.exists?(parent_x_id: parent_x_id)
     ancestor = self.class.find_by(x_id: parent_x_id)
     return ai_target_classification(owner) if ancestor.nil? && Outreach::Candidate.exists?(x_id: parent_x_id, source: "ai")
     visited = [x_id]

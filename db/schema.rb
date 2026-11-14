@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_140000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -464,6 +464,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_130000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
+    t.integer "posts_count", default: 0, null: false
+    t.integer "replies_count", default: 0, null: false
+    t.integer "people_count", default: 0, null: false
+    t.string "status", default: "completed", null: false
+    t.text "message"
     t.index ["workspace_id"], name: "index_x_archive_imports_on_workspace_id"
   end
 
