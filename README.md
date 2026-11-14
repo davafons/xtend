@@ -1,118 +1,101 @@
-# Xtend
+<p align="center">
+  <img src="public/icon.png" width="96" height="96" alt="">
+</p>
 
-A Rails app for finding useful builder conversations, remembering people, and reviewing follows. It started as a local POC and now has sign-in and per-workspace data so it can be deployed (see [deploy](docs/deploy.md) and [architecture plan](docs/architecture-plan.md)). The shared components come directly from the sibling `lostcoords-ui` gem. Project structure follows WariWari: Rails models and REST controllers, ERB, Hotwire, Importmap, Propshaft, SQLite, and standalone Tailwind.
+<h1 align="center">Xtend</h1>
 
-## Run with Parcela
+<p align="center">
+  <a href="https://rubyonrails.org"><img src="https://img.shields.io/badge/Rails-8.1-b45d3c?logo=rubyonrails&amp;logoColor=white" alt="Rails 8.1"></a>
+  <a href="https://www.ruby-lang.org"><img src="https://img.shields.io/badge/Ruby-4.0-b45d3c?logo=ruby&amp;logoColor=white" alt="Ruby 4.0"></a>
+</p>
 
-Requirements: Ruby 4.0.2, Bundler, and Parcela. The `lostcoords-ui` 0.7.0 gem comes from GitHub.
+<p align="center">
+  Remember the people you talk with on X, and grow by replying well.
+</p>
 
-```bash
-bundle install
-bin/dev --detach
-parcela url web
+<p align="center">
+  <a href="docs/features.md">Features</a> ·
+  <a href="extension/README.md">Browser extension</a> ·
+  <a href="docs/grok-mcp-plan.md">AI connector</a> ·
+  <a href="docs/deploy.md">Deploy</a>
+</p>
+
+Xtend is a personal CRM for X. It keeps a record of everyone you reply to, who replies back, who follows whom, and what each reply brought, then helps you choose the next conversations worth having. Replying, following, and unfollowing stay manual on X: Xtend never posts or acts for you.
+
+It's a Rails 8.1 app with Hotwire, SQLite, and the [lostcoords-ui](https://github.com/lostcoords/ui) components. One person signs in with X; their data lives in a workspace of its own.
+
+## What it does
+
+- **Outreach.** A reply session of 20 new posts, ranked by what past replies brought (account size, the people who paid off) and by whether now is a busy hour for your audience. Follow-ups in an existing exchange don't count toward it.
+- **People.** Every person you replied to becomes a record automatically, with replies both ways, likes, follows, tags, notes, pins, and reminders. Sync never overwrites what you set by hand.
+- **Growth.** A follower goal with weekly checkpoints, a checklist Xtend ticks from your replies, posts, and analytics, and your circle: the people you want to be seen by, and who you haven't replied to this week.
+- **Week in review and Insights.** What you did, what it brought (impressions, profile visits, follows from X's own analytics), your best reply and post, and who has gone quiet.
+- **Network and Timeline.** Who talks with whom among the people you know, built from what you've seen.
+- **Follow review.** Accounts worth unfollowing, never including explicit keeps or anyone you've exchanged replies with. Mutuals are included and marked. It needs a fresh, complete follower list, because missing history isn't proof you never interacted.
+- **Compose.** Post ideas and drafts.
+
+## Where the data comes from
+
+- **The browser extension.** [Xtend Capture](extension/README.md) copies what x.com already loaded while you browse: timelines, profiles, follow lists, notifications, and your X analytics. It makes no requests to X. On x.com it also shows what Xtend knows: a relationship ring on avatars, badges by names, a card on profiles, and a panel above the reply box.
+- **Read-only X API.** Optional, bounded, one page per explicit action, with a spend ledger and a monthly allowance. Nothing runs on a schedule.
+- **An X archive.** One-to-one DM metadata only: who and when, never the text.
+
+Every page says how complete its data is. Missing data shows as missing, not zero.
+
+## Connect an AI
+
+Xtend is an MCP server at `/mcp`, with its own OAuth 2.1 sign-in, so any MCP client can connect: Grok, Claude, ChatGPT, or your editor's agent.
+
+```sh
+claude mcp add --transport http xtend https://your-xtend-host/mcp
 ```
 
-The review URL is `https://xtend.localhost`. `parcela status` shows Rails and the CSS watcher. `parcela logs web` shows application logs. `parcela down` stops this environment.
+The AI reads your people, replies, network, and analytics, and runs Xtend's tasks as MCP prompts: `tag_people`, `review_follows`, `research_person`, `weekly_review`, `what_works`, `post_ideas`, and `find_reply_targets`. It can write only to Xtend's own records (tags, notes, reminders, recaps, profile facts, post drafts, and reply targets), and each change can be undone. Turn off **AI applies changes** to review each one first. An AI never posts, follows, unfollows, or messages on X.
 
-Every page requires signing in with X. The X app comes from `X_CLIENT_ID`, `X_CLIENT_SECRET`, and `X_REDIRECT_URI`, or from `x.client_id`, `x.client_secret`, and `x.redirect_uri` in Rails credentials. Locally that's `config/credentials/development.yml.enc`, and its key is gitignored. Allow your X account once per database:
+## Run it locally
 
-```bash
+You need Ruby 4.0.2, Bundler, [Parcela](https://github.com/lostcoords/parcela), and an X developer app with OAuth 2.0 and the read scopes `tweet.read users.read follows.read offline.access`.
+
+```sh
+bundle install
+bin/dev --detach
+parcela url web     # https://xtend.localhost
+```
+
+Set the X app with `X_CLIENT_ID`, `X_CLIENT_SECRET`, and `X_REDIRECT_URI`, or under `x:` in Rails credentials. Signing in with X is the only way in, and there's no signup. Allow your account first:
+
+```sh
 PARCELA_DATA_DIR=~/.local/state/parcela/environments/<id>/data bin/rails users:allow HANDLE=yourhandle
 ```
 
-`parcela ls` shows the environment ID. `parcela run` can't be used while the environment is up, because it holds the environment lock. The first allowed user joins the existing workspace and its data. `users:list` shows allowed accounts, and `users:revoke HANDLE=...` removes one.
+`parcela ls` shows the environment ID. A new workspace starts empty and makes no X requests.
 
-Parcela runs database preparation and the Tailwind build before startup. SQLite lives in `PARCELA_DATA_DIR` when provided, otherwise `storage/`. Real mode starts empty and makes no X requests.
+To try it without X, seed the isolated demo, which uses its own database and a labeled banner:
 
-## Edit pages with Tensaku
-
-Tensaku runs only in development. Its GitHub revision is pinned in `Gemfile`; the published 0.1.0 gem uses an older agent connector.
-
-Open `https://xtend.localhost` and click the flower button or press **Alt+Shift+T** to select an element. Option-click text and press **E** to edit its source, or add a note for your coding agent.
-
-The agent setup comes from `bin/rails generate tensaku:install --agents codex`. Restart Codex after installation to load `.codex/config.toml` and its `bundle exec tensaku mcp` server. Ask it to work through your Tensaku notes. Other MCP clients can use the same command; `.mcp.json` also contains the server entry.
-
-## What works
-
-- Today shows English candidate tweets with person context, pins, skip and one-day snooze controls.
-- Opening a source tweet does not count as replying. A manual reply report remains unverified and stays separate from confirmed progress.
-- Source-backed reply ingestion creates or updates the person and maintains all-history reply states. Initial replies to distinct targets count once. Continuations, repeats, self-replies, and unresolved classifications cannot inflate outreach progress.
-- Notes, pins, and keep-following records persist independently of source updates.
-- Follow review excludes mutuals, explicit keeps, and anyone with a direct reply in either direction. It needs a complete fresh follower snapshot. A manual unfollow report does not rewrite X relationship facts.
-- Data settings allow builder-interest edits, bounded candidate-file import, and a Grok context download that excludes notes and DMs.
-
-## Current integration boundary
-
-Single-owner X OAuth uses Authorization Code + PKCE S256 and read-only scopes. It verifies the connected account through `/2/users/me`, supports refresh and local disconnect, and stores tokens encrypted in SQLite. X OAuth is separate from signing in to the app.
-
-Bounded manual collection, a spend ledger, recent search, and follower-change tracking are implemented. Full archive ingestion, backup restore, background sync jobs, and a live MCP connection are not implemented. Connecting does not start collection. The identity check can consume a user-read credit when a real connection is initiated. This POC never posts or unfollows on X.
-
-The existing Birdclaw checkout was considered as a data foundation. Its documented first live sync requires an archive, so it does not provide the archive-independent first slice. A future adapter can reuse its public interfaces after checking the real export and coverage semantics. This app does not open Birdclaw personal databases or use its private browser transport.
-
-## Candidate import
-
-Upload JSON on Discover. The format is `xtend-discovery-v1`, with up to 200 posts and a 1 MB limit. Each post has `x_id`, `body`, `published_at` in ISO-8601, optional `language`, `topic`, `match_reason`, and a `person` object containing numeric-string `x_id`, `handle`, `name`, and optional `description`.
-
-Imports are transactional and idempotent by stable IDs. They cannot submit verified replies or follow memberships. Existing private notes, pins, and keep choices survive profile enrichment. Invalid data rolls back the entire file.
-
-## Isolated demo
-
-The demo is opt-in and uses a different SQLite file. It contains fictional people, tweets, source evidence, and follow snapshots, and displays a persistent demo banner. Links to X are disabled for fictional content.
-
-```bash
+```sh
 XTEND_DEMO=1 bin/rails db:prepare demo:seed
 ```
 
-With a Parcela data directory, pass the same `PARCELA_DATA_DIR` to that command. Serving the demo requires starting the web process with `XTEND_DEMO=1`; the running real workspace does not change. `demo:seed` refuses to run in real mode. It does not overwrite an existing demo or contact X. The demo sign-in page opens the demo workspace directly, without X.
+Then start the web process with `XTEND_DEMO=1`.
 
-## Verify
+## Load the extension
 
-```bash
+Open `chrome://extensions` (or `brave://extensions`), turn on **Developer mode**, choose **Load unpacked**, and pick the `extension/` folder. Connect it to Xtend from its options page. After pulling changes, press reload on the extension.
+
+## Check it
+
+```sh
 bin/rails test
-bin/rails tailwindcss:build
 bin/rails zeitwerk:check
 ```
 
-Tests exercise domain behavior and HTTP persistence, including populated demo rendering, sign-in on every route, and workspace isolation. Desktop layout is checked in the running Parcela browser, rather than asserted through HTML selector tests.
+Tests cover the domain rules: reply direction, distinct outreach targets, duplicate ingestion, automatic person records, manual choices surviving sync, and cleanup exclusions. Layout is checked in a browser.
 
-The [POC specification](docs/poc-spec.md) defines intended scope. The [cost calculator](scripts/estimate-x-costs.py) is a planning tool; displayed allowances do not configure X billing controls.
+## Documentation
 
-New workspaces default to a **$10 monthly API allowance**. Existing saved allowances stay unchanged until explicitly edited on Spending. Enter integer USD cents (`1000` means `$10.00`). This local setting cannot verify or change the X console billing-cycle cap or report actual provider spend; use the X developer console for those controls. Graph and discovery reads start only through explicit manual actions and require a current billing-cycle observation.
-
-## Connect your personal X account
-
-Create or inspect your own developer app in the X console. Enable OAuth 2.0 and the read scopes `tweet.read users.read follows.read offline.access`. A confidential web app also requires its client secret.
-
-On **Settings**, use the **X developer app** form to save the OAuth Client ID, masked Client Secret, and exact redirect URI. The configuration is encrypted locally under a purpose separate from account tokens. Saved secrets are never rendered into the form or included in context exports. A blank secret preserves the saved value only for the same Client ID; use the explicit removal checkbox to clear it.
-
-Environment configuration remains supported through `X_CLIENT_ID`, optional `X_CLIENT_SECRET`, and `X_REDIRECT_URI`. Alternatively run `bin/rails credentials:edit` and add an `x` mapping with `client_id`, `client_secret`, and `redirect_uri`. Precedence is environment, Rails credentials, then local form. A Client ID selects the whole source, so an environment client cannot accidentally use a different app's saved secret. Never put values in chat or commit plaintext keys.
-
-Disconnect an active X connection locally before changing saved client configuration. Saving configuration invalidates pending OAuth attempts, and a configuration fingerprint prevents an in-flight old callback from saving mismatched credentials.
-
-The callback route is `/x/connection/callback`. The personal development app has successfully authorized with `https://xtend.localhost/x/connection/callback` and completed its identity check. For another developer app, register exactly its configured full URL in the X console, and open the local app at that same origin before pressing **Connect X**. The URI remains configurable; no public tunnel is created.
-
-Restart the app after changing process environment. Settings displays the exact configured callback and keeps **Connect X** disabled until configuration is present and valid. The callback verifies state, expiry, one-time use and account identity. Once bound, a different X account cannot replace the owner or its data.
-
-Saved tokens use AES-256-GCM with a separate owner-readable key at `PARCELA_DATA_DIR/x-token.key`, falling back to `storage/x-token.key`. Back up that key securely with the encrypted database if retaining the connection. It is excluded from exports and version control. **Disconnect locally** deletes token records while preserving relationship data; revoke the app in X settings to remove the provider authorization.
-
-**Check connection** refreshes an expiring token if necessary and fetches only account identity. It never triggers graph or search collection. OAuth behavior is tested with mock HTTP, not a live paid account.
-
-The initial token response may omit `scope` when it is unchanged, as permitted by [OAuth RFC 6749 section 5.1](https://www.rfc-editor.org/rfc/rfc6749#section-5.1). The app then retains the exact requested read scopes. Explicit extra or missing required scopes are still rejected.
-
-## Use the connected workspace
-
-Open **Spending** for the provider-cycle observation and remaining allowance, and **X data** for source coverage and recent page results. Each collection action reads one bounded page. **Read next page** continues that source, and duplicate submissions cannot refetch an already committed page.
-
-Use **Refresh follower baseline** before cleanup when follower data is more than 24 hours old. Its completed result also updates Followers. The first snapshot is a baseline, so loss dates and follower lifetimes appear only after later observations. See [follower metrics](docs/follower-metrics.md).
-
-For Grok discovery, copy the prepared prompt, then paste its public source URLs. **Resolve saved links** verifies up to 20 posts. **Resolve people** fills missing author identities separately. A bounded direct-search option is also available. **Refresh saved matches** re-ranks collected posts without API calls.
-
-Write replies on X and use **Check sent replies** to confirm them. The collector ends its query window fifteen seconds before the check, so a just-sent reply may need a later refresh. Historical backfill and follow-ups never create additional outreach slots.
-
-The first collection trial remains limited to $5 inside the $10 cycle allowance. Provider observations are manual and can lag. Failed requests retain conservative holds, and other apps may share the provider account. There is no scheduled collection or automatic top-up.
-
-Gemfile pins the sibling UI source to its last working revision while its current checkout is being refactored. Update that revision only after its helpers and Tailwind build pass this app's checks. The [implementation status](docs/implementation-status.md) records the live trial and remaining gaps.
-
-## Visual theme
-
-The interface is dark only and uses the default `lostcoords-ui` dark theme, as on its docs site. The app sets no color tokens of its own. Shared Heroicons and text labels mark relationship and action cues.
+- [Features](docs/features.md) and the [POC specification](docs/poc-spec.md)
+- [Architecture plan](docs/architecture-plan.md) and [data access](docs/data-access.md)
+- [Follower metrics](docs/follower-metrics.md) and [X API costs](docs/api-costs.md)
+- [AI connector](docs/grok-mcp-plan.md)
+- [Deploy with Kamal](docs/deploy.md)
+- [Implementation status](docs/implementation-status.md)
