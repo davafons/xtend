@@ -397,8 +397,23 @@
     const shaped = [...avatar.querySelectorAll("div")].map((div) => getComputedStyle(div).borderRadius).find((radius) => radius && radius !== "0px");
     avatar.style.borderRadius = shaped || "9999px";
     avatar.style.outline = color ? `2px solid ${color}` : `1.5px dashed ${COLORS.muted}`;
-    avatar.style.outlineOffset = "2px";
+    avatar.style.outlineOffset = clipped(avatar) ? "-2px" : "2px";
     avatar.title = ringTitle(person);
+  }
+
+  // Small avatars in rows that hide overflow (notification groups, stacked faces) would cut a ring drawn outside
+  // the avatar, so there it sits just inside the edge instead.
+  function clipped(avatar) {
+    const box = avatar.getBoundingClientRect();
+    if (!box.width) return false;
+    let node = avatar.parentElement;
+    for (let depth = 0; node && depth < 8; depth++, node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (style.overflowX === "visible" && style.overflowY === "visible") continue;
+      const edge = node.getBoundingClientRect();
+      if (box.left - 4 < edge.left || box.right + 4 > edge.right || box.top - 4 < edge.top || box.bottom + 4 > edge.bottom) return true;
+    }
+    return false;
   }
 
   function unring(avatar, forget = true) {
