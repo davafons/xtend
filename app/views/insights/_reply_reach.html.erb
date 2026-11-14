@@ -41,6 +41,27 @@
           </tbody>
         <% end %>
       </div>
+      <% payoff = Outreach::Payoff.new %>
+      <% timing = analytics.reply_timing %>
+      <% if payoff.bands.any? || timing %>
+        <div class="flex flex-col gap-related">
+          <h3 class="text-small text-muted-foreground">What paid off, across all your counted replies</h3>
+          <ul class="flex flex-col gap-tight text-small">
+            <% payoff.bands.each_value do |band| %>
+              <li>
+                Accounts with <%= band.label %> followers: <%= band.summary %>
+                <% if band.paying_people < Outreach::Payoff::PAYING_PEOPLE && band.value.positive? %><span class="text-muted-foreground">(all from one person, so Outreach doesn't rank on it yet)</span><% end %>
+              </li>
+            <% end %>
+            <% if timing %>
+              <li>
+                Replies in your audience's busy hours: median <span class="text-you"><%= timing[:busy][0].round %></span> impressions (<%= timing[:busy][1] %>),
+                other hours <span class="text-you"><%= timing[:other][0].round %></span> (<%= timing[:other][1] %>)
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
       <p class="text-caption text-muted-foreground">Totals as X reported them when you last opened Analytics → Content on x.com. Replies outside the range you viewed there aren't counted.</p>
     </div>
   <% end %>

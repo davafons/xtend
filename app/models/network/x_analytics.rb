@@ -64,6 +64,16 @@ class Network::XAnalytics
     replies.sort_by { |reply| [ -reply.follows, -reply.visits, -reply.impressions ] }.first(limit)
   end
 
+  # Median impressions of counted replies posted in your audience's busy hours against the rest, when each side has
+  # at least MINIMUM replies: { busy: [median, count], other: [median, count] } or nil.
+  def reply_timing(hours = Network::ActiveHours.new)
+    return unless hours.collected?
+    busy, other = replies.partition { |reply| hours.level(reply.event.occurred_at) == :busy }
+    return if busy.size < Outreach::Payoff::MINIMUM || other.size < Outreach::Payoff::MINIMUM
+    median = ->(group) { group.map(&:impressions).sort.then { |values| (values[(values.size - 1) / 2] + values[values.size / 2]) / 2.0 } }
+    { busy: [ median.(busy), busy.size ], other: [ median.(other), other.size ] }
+  end
+
   def reply_totals
     { impressions: replies.sum(&:impressions), visits: replies.sum(&:visits), follows: replies.sum(&:follows) }
   end

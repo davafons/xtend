@@ -9,5 +9,6 @@ class OutreachController < ApplicationController
     @openings = Outreach::Openings.new(@prospects)
     @due_reminders = Reminder.due.includes(:person).order(:due_on).to_a
     @upcoming_reminders = Reminder.upcoming.includes(:person).order(:due_on).limit(3).to_a
+    @active_hours = Network::ActiveHours.new
   end
 end

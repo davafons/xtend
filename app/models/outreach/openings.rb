@@ -7,14 +7,15 @@ class Outreach::Openings
   PER_AUTHOR = 2
   DISCOVERY_RECENT = Outreach::Prospects::RECENT
 
-  Opening = Data.define(:post, :author, :prospect, :discovery, :score) do
+  Opening = Data.define(:post, :author, :prospect, :discovery, :score, :payoff) do
     delegate :x_id, :published_at, to: :post
     def url = "https://x.com/#{author&.handle || 'i'}/status/#{x_id}"
     def body = post.body
   end
 
-  def initialize(prospects)
+  def initialize(prospects, payoff: Outreach::Payoff.new)
     @prospects = prospects
+    @payoff = payoff
   end
 
   def to_a
@@ -22,14 +23,19 @@ class Outreach::Openings
       seen = {}
       @prospects.all.each do |prospect|
         prospect.recent_posts.first(PER_AUTHOR).each do |post|
-          seen[post.x_id] = Opening.new(post, prospect.person || prospect.account, prospect, nil, prospect.score + freshness(post.published_at))
+          seen[post.x_id] = Opening.new(post, prospect.person || prospect.account, prospect, nil, prospect.score + freshness(post.published_at), nil)
         end
       end
       discovery.each do |post|
         source = sources[post.x_id] || post
         current = seen[post.x_id]
         score = (current&.score || 0) + post.rank + freshness(post.published_at)
-        seen[post.x_id] = Opening.new(current&.post || source, post.person, current&.prospect || @prospects.find(post.person.x_id), post, score)
+        seen[post.x_id] = Opening.new(current&.post || source, post.person, current&.prospect || @prospects.find(post.person.x_id), post, score, nil)
+      end
+      # What your past replies brought lifts openings like the ones that paid off.
+      seen.transform_values! do |opening|
+        points, reason = @payoff.lift(opening.author)
+        points ? opening.with(score: opening.score + points, payoff: reason) : opening
       end
       seen.values.sort_by { |opening| [ -opening.score, -opening.published_at.to_f ] }.first(LIMIT)
     end

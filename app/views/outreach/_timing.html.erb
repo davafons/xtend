@@ -1,0 +1,22 @@
+<%# Whether now is one of your audience's busier hours, from X analytics' impressions heatmap. %>
+<%# locals: (hours:) -%>
+<% if hours.collected? %>
+  <% level = hours.level %>
+  <% upcoming = hours.next_busy unless level == :busy %>
+  <%= lc_card do %>
+    <p class="flex items-start gap-related text-small">
+      <%= lc_icon "clock", options: { class: "mt-0.5 size-4 shrink-0 #{level == :busy ? 'text-success' : 'text-muted-foreground'}", "aria-hidden": true } %>
+      <span>
+        <% if level == :busy %>
+          <span class="font-semibold text-success">Your audience is usually busy now.</span> A good hour to reply.
+        <% else %>
+          <span class="font-semibold"><%= level == :quiet ? "Usually quiet now." : "A usual hour for your audience." %></span>
+          <% if upcoming %>Busier from <%= upcoming.strftime("%H:%M") %><%= " tomorrow" if upcoming.to_date != Date.current %>.<% end %>
+        <% end %>
+        <span class="block text-caption text-muted-foreground" title="Average impressions per hour of the week over the four weeks before <%= hours.newest.strftime('%-d %b') %>">
+          From your X analytics heatmap<%= ", last collected #{hours.newest.strftime('%-d %b')}; open Analytics → Audience on x.com to refresh" if hours.stale? %>.
+        </span>
+      </span>
+    </p>
+  <% end %>
+<% end %>

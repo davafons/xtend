@@ -30,6 +30,7 @@ Rails.application.routes.draw do
   resource :network, only: :show, controller: "network"
   resource :timeline, only: :show, controller: "timeline"
   resource :insights, only: :show
+  resource :week, only: :show
   resource :search, only: :show
   resource :settings, only: [ :show, :update ]
   resource :appearance, only: :update

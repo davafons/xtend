@@ -17,6 +17,11 @@
               safe_join([ lc_icon("light-bulb", options: { class: "size-4 shrink-0", "aria-hidden": true }), tag.span(opening.discovery.match_reason, class: "truncate") ])
             end
           end
+          if opening.payoff
+            why << tag.span(class: "inline-flex min-w-0 items-center gap-tight text-success", title: "From X analytics on your past replies. #{opening.payoff}.") do
+              safe_join([ lc_icon("arrow-trending-up", options: { class: "size-4 shrink-0", "aria-hidden": true }), tag.span(opening.payoff, class: "truncate") ])
+            end
+          end
           note = ("Counts as of #{post.metrics_observed_at.strftime('%-d %b, %H:%M')}" if captured && post.metrics_observed_at)
         %>
         <li class="px-inset py-3" id="opening_<%= opening.x_id %>">

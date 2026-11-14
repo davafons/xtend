@@ -1,0 +1,106 @@
+<% content_for :title, "Week in review" %>
+<% week = @week %>
+<% day = ->(time) { time.strftime(time.year == Date.current.year ? "%-d %b" : "%-d %b %Y") } %>
+<div class="flex flex-wrap items-center justify-between gap-heading">
+  <h1 class="<%= lc_heading_class(size: :heading) %>">
+    Week in review <span class="text-muted-foreground font-normal"><%= day.(week.starts_at) %>–<%= day.(week.ends_at) %></span>
+  </h1>
+  <div class="flex items-center gap-related">
+    <%= lc_button_link_to "Earlier", week_path(weeks_ago: week.weeks_ago + 1), variant: :secondary, size: :sm, icon: "chevron-left", disabled: week.weeks_ago >= Network::Week::MAX_WEEKS_AGO %>
+    <% unless week.current? %><%= lc_button_link_to "Later", week_path(weeks_ago: (week.weeks_ago - 1 if week.weeks_ago > 1)), variant: :secondary, size: :sm, icon: "chevron-right", icon_position: :end %><% end %>
+  </div>
+</div>
+
+<div class="grid gap-inset lg:grid-cols-2">
+  <%= lc_card do %>
+    <div class="flex flex-col gap-content">
+      <h2 class="<%= lc_text_class(size: :label) %>">What you did</h2>
+      <%= lc_stats do %>
+        <%= lc_stat label: "replies" do %><span class="text-you"><%= week.replies.count %></span><% end %>
+        <%= lc_stat week.new_targets, label: "new targets", title: "First replies to a post, the ones that count toward a session" %>
+        <%= lc_stat week.follow_ups, label: "follow-up".pluralize(week.follow_ups) %>
+        <%= lc_stat week.people_count, label: "people talked with" %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%= lc_card do %>
+    <div class="flex flex-col gap-content">
+      <h2 class="<%= lc_text_class(size: :label) %>">What it brought</h2>
+      <%= lc_stats do %>
+        <%= lc_stat week.replies_to_you, label: "replies to you", tone: :warning %>
+        <% if week.replies.exists? %>
+          <%= lc_stat week.answers_seen, label: "of #{week.replies.count} answered", title: "Answered by the same person within a week, as far as collected data shows" %>
+        <% end %>
+        <% if week.analytics_days.any? %>
+          <% totals = week.analytics_totals %>
+          <%= lc_stat number_with_delimiter(totals[:impressions]), label: "impressions" %>
+          <%= lc_stat totals[:profile_visits], label: totals[:profile_visits] == 1 ? "profile visit" : "profile visits" %>
+          <%= lc_stat totals[:follows], label: totals[:follows] == 1 ? "follow" : "follows", tone: :success %>
+        <% end %>
+      <% end %>
+      <p class="text-caption text-muted-foreground">
+        <% if week.analytics_days.any? %>
+          X analytics for <%= pluralize(week.analytics_days.size, "day") %> of 7, through <%= day.(week.analytics_days.last.day) %>.
+        <% else %>
+          No X analytics for this week. Open Analytics on x.com with the capture extension on to add impressions, profile visits, and follows.
+        <% end %>
+        <% if week.replies.exists? && week.answers_incomplete? %>
+          Answers can still be missing: <%= week.answers.covered_until ? "mentions are covered until #{day.(week.answers.covered_until)}" : "mentions aren't collected" %><%= " and some replies are under a week old" if week.answers.open.positive? %>.
+        <% end %>
+        <% if (change = week.follower_change) %>Complete follower checks this week: +<%= change[0] %> / −<%= change[1] %>.<% end %>
+      </p>
+    </div>
+  <% end %>
+</div>
+
+<div class="grid gap-inset lg:grid-cols-2">
+  <%= lc_card do %>
+    <div class="flex flex-col gap-related">
+      <h2 class="<%= lc_text_class(size: :label) %>">Best reply</h2>
+      <% if (reply = week.best_reply) %>
+        <p class="text-small">To <%= person_link reply.event.person, "@#{reply.event.person.handle}", class: "hover:underline" %>:
+          <%= link_to CGI.unescapeHTML(reply.analytics.body.to_s).sub(/\A(@\w+\s+)+/, "").squish.truncate(160), "https://x.com/i/status/#{reply.event.x_id}", target: "_blank", rel: "noopener noreferrer", class: "hover:text-you" %></p>
+        <p class="text-caption text-muted-foreground">
+          <span class="text-you"><%= number_with_delimiter reply.impressions %></span> impressions · <%= pluralize reply.visits, "profile visit" %> · <%= pluralize reply.follows, "follow" %>
+          <% if reply.follows.positive? || reply.visits.positive? %>· It brought people to your profile, so more like it, to people like them.<% end %>
+        </p>
+      <% else %>
+        <%= lc_text "None of this week's replies have X analytics yet. Open Analytics → Content on x.com.", size: :small, tone: :muted %>
+      <% end %>
+    </div>
+  <% end %>
+  <%= lc_card do %>
+    <div class="flex flex-col gap-related">
+      <h2 class="<%= lc_text_class(size: :label) %>">Best post</h2>
+      <% if (post = week.best_post) %>
+        <p class="text-small"><%= link_to CGI.unescapeHTML(post[:body].to_s).squish.truncate(180), "https://x.com/i/status/#{post[:x_id]}", target: "_blank", rel: "noopener noreferrer", class: "hover:text-you" %></p>
+        <p class="text-caption text-muted-foreground"><span class="text-you"><%= number_with_delimiter post[:count] %></span> <%= post[:label] %>, from <%= post[:source] %></p>
+      <% else %>
+        <%= lc_text "No post of yours with counts this week.", size: :small, tone: :muted %>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<%= lc_card do %>
+  <div class="flex flex-col gap-content">
+    <h2 class="<%= lc_text_class(size: :label) %>">Next</h2>
+    <ul class="flex flex-col gap-related text-small">
+      <% if (waiting = week.waiting_count).positive? %>
+        <li class="flex items-center gap-related"><%= lc_icon "inbox-arrow-down", options: { class: "size-4 text-warning", "aria-hidden": true } %>
+          <%= link_to "#{pluralize(waiting, 'reply', plural: 'replies')} to you waiting for an answer", inbox_path(days: 7), class: "hover:underline" %></li>
+      <% end %>
+      <% week.reminders.each do |reminder| %>
+        <li class="flex items-center gap-related"><%= lc_icon "bell", options: { class: "size-4 text-warning", "aria-hidden": true } %>
+          <span><%= person_link reminder.person, reminder.person.name, class: "hover:underline" %>: <%= reminder.reason %></span></li>
+      <% end %>
+      <% week.gone_quiet.each do |prospect| %>
+        <li class="flex items-center gap-related"><%= lc_icon "moon", options: { class: "size-4 text-success", "aria-hidden": true } %>
+          <span><%= prospect.person ? person_link(prospect.person, prospect.name, class: "hover:underline") : prospect.name %> has gone quiet <span class="text-muted-foreground">(<%= prospect.reasons.find { _1.key == "quiet" }&.detail %>)</span></span></li>
+      <% end %>
+      <li class="flex items-center gap-related"><%= lc_icon "megaphone", options: { class: "size-4 text-primary", "aria-hidden": true } %>
+        <%= link_to "Find posts worth a reply", outreach_path, class: "text-primary hover:underline" %></li>
+    </ul>
+  </div>
+<% end %>
