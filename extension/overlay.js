@@ -396,13 +396,28 @@
     if (!color && !neither) return unring(avatar, false);
     const shaped = [...avatar.querySelectorAll("div")].map((div) => getComputedStyle(div).borderRadius).find((radius) => radius && radius !== "0px");
     avatar.style.borderRadius = shaped || "9999px";
-    avatar.style.outline = color ? `2px solid ${color}` : `1.5px dashed ${COLORS.muted}`;
-    avatar.style.outlineOffset = clipped(avatar) ? "-2px" : "2px";
+    const line = color ? `2px solid ${color}` : `1.5px dashed ${COLORS.muted}`;
+    avatar.querySelector(":scope > [data-xtend-ring-layer]")?.remove();
+    if (clipped(avatar)) {
+      // Drawn on a layer above X's image, just inside the edge, so the row can't cut it and the image can't cover it.
+      avatar.style.removeProperty("outline");
+      if (getComputedStyle(avatar).position === "static") {
+        avatar.style.position = "relative";
+        avatar.dataset.xtendPositioned = "";
+      }
+      const layer = document.createElement("span");
+      layer.dataset.xtendRingLayer = "";
+      layer.style.cssText = `position:absolute;inset:0;border:${line};border-radius:${avatar.style.borderRadius};pointer-events:none;z-index:1;box-sizing:border-box`;
+      avatar.append(layer);
+    } else {
+      avatar.style.outline = line;
+      avatar.style.outlineOffset = "2px";
+    }
     avatar.title = ringTitle(person);
   }
 
   // Small avatars in rows that hide overflow (notification groups, stacked faces) would cut a ring drawn outside
-  // the avatar, so there it sits just inside the edge instead.
+  // the avatar.
   function clipped(avatar) {
     const box = avatar.getBoundingClientRect();
     if (!box.width) return false;
@@ -418,6 +433,11 @@
 
   function unring(avatar, forget = true) {
     for (const property of ["outline", "outline-offset", "border-radius"]) avatar.style.removeProperty(property);
+    if (avatar.dataset.xtendPositioned !== undefined) {
+      avatar.style.removeProperty("position");
+      delete avatar.dataset.xtendPositioned;
+    }
+    avatar.querySelector(":scope > [data-xtend-ring-layer]")?.remove();
     avatar.removeAttribute("title");
     if (forget) delete avatar.dataset.xtendRing;
   }
@@ -614,7 +634,7 @@
 
   new MutationObserver((records) => {
     // Our own hosts going in or out don't need another scan.
-    if (records.every((record) => [...record.addedNodes, ...record.removedNodes].every((node) => node.dataset?.xtendHost))) return;
+    if (records.every((record) => [...record.addedNodes, ...record.removedNodes].every((node) => node.dataset?.xtendHost || node.dataset?.xtendRingLayer !== undefined))) return;
     schedule();
   }).observe(document.body, { childList: true, subtree: true });
   schedule();
