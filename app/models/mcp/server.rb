@@ -4,14 +4,14 @@
 class Mcp::Server
   PROTOCOL_VERSIONS = %w[2025-06-18 2025-03-26 2024-11-05].freeze
   INSTRUCTIONS = <<~TEXT.squish
-    Xtend, the owner's X relationship app, shared with whichever AI assistant he connects. Read tools return collected evidence with coverage
+    Xtend, the owner's X relationship app, shared with whichever AI assistant they connect. Read tools return collected evidence with coverage
     limits: missing history is not proof that nothing happened, and an unknown follow state is not a non-follow.
     Write tools change only Xtend: tags, recaps, profile facts, notes, reminders, post drafts, and unverified reply targets.
-    When the owner lets AI apply changes they apply at once and he can undo each one; otherwise they wait for his review, and
+    When the owner lets AI apply changes changes apply at once and the owner can undo each one; otherwise they wait for the owner's review, and
     each result says which. Nothing here posts, replies, follows, unfollows, messages, or marks a reply as sent.
-    Start with get_owner_profile for his interests, rules, and tag vocabulary, and call list_ai_changes before writing so
+    Start with get_owner_profile for their interests, rules, and tag vocabulary, and call list_ai_changes before writing so
     you don't repeat work. For a whole task, use a prompt or get_task: #{Mcp::Prompts.names.join(', ')}.
-    When the owner shares a post idea, save it with save_post_idea, adding variations if he asks. For a recap of his week,
+    When the owner shares a post idea, save it with save_post_idea, adding variations if they ask. For a recap of their week,
     use get_week_review. Omit facts you did not observe instead of guessing.
   TEXT
 

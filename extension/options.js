@@ -9,7 +9,7 @@ async function current() {
 
 async function load() {
   const settings = await current();
-  $("xtendUrl").value = settings.xtendUrl || "https://xtend.example.com";
+  $("xtendUrl").value = settings.xtendUrl || "";
   $("token").value = settings.refreshToken ? "" : settings.token || "";
   $("status").textContent = settings.refreshToken ? `Connected to ${settings.xtendUrl}.` : settings.token ? "Using a pasted token." : "Not connected.";
   $("disconnect").hidden = !settings.token;
@@ -20,7 +20,7 @@ function show(text, ok) {
   $("message").className = ok ? "success" : "error";
 }
 
-// Addresses other than the built-in ones need permission; asking must happen inside the click.
+// The extension reaches only the Xtend address you enter here; asking for that permission must happen inside the click.
 async function permittedOrigin() {
   let origin;
   try {

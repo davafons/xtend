@@ -46,8 +46,9 @@
   <% if people_filter_params.except(:sort).any? %>
     <%= lc_empty_state title: "Nobody matches these filters.", icon: "funnel", card: true do %><%= lc_button_link_to "Clear filters", people_path, variant: :secondary, icon: "x-mark" %><% end %>
   <% else %>
-    <%= lc_empty_state title: "Build your circle, one conversation at a time.", text: "People appear as replies, captures, and follow checks come in.", icon: "users", card: true do %>
-      <%= lc_button_link_to "Add your first person", new_person_path, variant: :secondary, icon: "plus" %>
+    <%= lc_empty_state title: "Build your circle, one conversation at a time.", text: "People appear as your X archive, the browser extension, and follow checks bring them in.", icon: "users", card: true do %>
+      <%= lc_button_link_to "Get started", start_path, icon: "rocket-launch" %>
+      <%= lc_button_link_to "Add a person", new_person_path, variant: :secondary, icon: "plus" %>
     <% end %>
   <% end %>
 <% else %>

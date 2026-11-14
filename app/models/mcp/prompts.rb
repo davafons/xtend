@@ -6,7 +6,7 @@ class Mcp::Prompts
     Use the xtend tools for all data instead of asking the owner to paste anything. Before writing, call list_ai_changes to
     skip what an AI already did. Base every judgment on the evidence the tools return or on public posts you can open,
     say what it rests on, and leave out what you can't support. Writes stay inside Xtend; the owner replies, follows, and
-    unfollows himself on X. Finish with a short summary of what you found and what you changed.
+    unfollows themselves on X. Finish with a short summary of what you found and what you changed.
   TEXT
 
   TASKS = {
@@ -27,9 +27,9 @@ class Mcp::Prompts
       description: "Judge which accounts in your follow review fit your interests, and tag the ones that don't.",
       text: <<~TEXT
         Help the owner decide who to keep following.
-        1. get_follow_review_batch (reason inactive, then strangers and quiet if he asks) for the accounts to review and his interests.
+        1. get_follow_review_batch (reason inactive, then strangers and quiet if they ask) for the accounts to review and their interests.
         2. For each account, judge from its bio and recent posts, and its public posts on X if needed, whether it relates to anything
-           in his interests. An account that posts about them even occasionally fits.
+           in their interests. An account that posts about them even occasionally fits.
         3. add_tags: give accounts that don't fit the off-topic tag the batch names, and give every account its place, role, and
            topic tags too, so the review can group them.
         4. Summarize: which look safe to drop and why, and which to keep despite being quiet. Never call someone inactive when
@@ -58,7 +58,7 @@ class Mcp::Prompts
         1. get_week_review (weeks_ago 0, and 1 to compare), get_x_analytics with period 30d, and get_growth_plan.
         2. Explain what worked and what didn't: which replies brought profile visits or follows, to whom, and when; how the week
            compares with the one before; and, if a growth plan is running, where the owner stands against this week's checkpoint
-           and checklist and which circle people he hasn't replied to. Use only the numbers returned, and say when coverage is partial.
+           and checklist and which circle people they haven't replied to. Use only the numbers returned, and say when coverage is partial.
         3. For people who've gone quiet or have replies waiting, get_person_context, then set_reminder for the ones worth
            reconnecting with, with a concrete reason, spread over the next week.
         4. Suggest 3 changes for next week (who to reply to, when, what to post), grounded in the numbers.
@@ -70,9 +70,9 @@ class Mcp::Prompts
       text: <<~TEXT
         Work out what brings the owner reach and new followers.
         1. get_x_analytics with period 90d (top posts, best replies, replies by account size and hour) and get_post_performance.
-        2. Compare: replies by account size and time (busy hours), his best replies and posts and what they have in common
-           (topic, format, length, a question, a number, media), and who he reached.
-        3. For the people his best replies went to, add_tags so they can be found again, and add_note on what landed with them.
+        2. Compare: replies by account size and time (busy hours), their best replies and posts and what they have in common
+           (topic, format, length, a question, a number, media), and who they reached.
+        3. For the people their best replies went to, add_tags so they can be found again, and add_note on what landed with them.
         4. Answer with concrete patterns, each with its numbers and how many examples it rests on. Say "not enough data" where
            there are fewer than 3 examples.
       TEXT
@@ -82,11 +82,11 @@ class Mcp::Prompts
       description: "Suggest posts for this week from what works for you and what your network is talking about.",
       text: <<~TEXT
         Suggest 10 posts the owner could write this week.
-        1. get_owner_profile for his interests, list_post_drafts to avoid repeats, get_post_performance and get_x_analytics for
-           what works, and list_network_posts (period 7d, sort top) for what his network is talking about.
+        1. get_owner_profile for their interests, list_post_drafts to avoid repeats, get_post_performance and get_x_analytics for
+           what works, and list_network_posts (period 7d, sort top) for what their network is talking about.
         2. Prefer concrete experiences, lessons, numbers, and questions over hot takes.
         3. save_post_idea for each, with the angle and why it could work in notes and the network post that inspired it as
-           inspiration_url. Write a first draft only if he asks.
+           inspiration_url. Write a first draft only if they ask.
       TEXT
     },
     "find_reply_targets" => {
@@ -94,9 +94,9 @@ class Mcp::Prompts
       description: "Find fresh public posts worth a reply and add them to Outreach.",
       text: <<~TEXT
         Find posts the owner could reply to today.
-        1. get_session_state and list_known_posts to skip what he has already seen or answered, get_owner_profile for his
-           interests and discovery filters, and get_x_analytics for the account sizes his replies pay off with.
-        2. Search public X for English posts from the last two days with few replies where he could add something useful.
+        1. get_session_state and list_known_posts to skip what they have already seen or answered, get_owner_profile for their
+           interests and discovery filters, and get_x_analytics for the account sizes their replies pay off with.
+        2. Search public X for English posts from the last two days with few replies where they could add something useful.
         3. propose_candidate_posts with real URLs, the text as observed, and one concrete reason each.
       TEXT
     }

@@ -35,10 +35,10 @@ To study a payload Xtend doesn't parse yet, turn on **Raw debug log** in the pop
 ## Install
 
 1. Open `brave://extensions`, turn on **Developer mode**, choose **Load unpacked**, and select this `extension` folder.
-2. In the extension's options, check the Xtend address (default `https://xtend.example.com`; use `https://xtend.localhost` for local development) and choose **Connect to Xtend**. Xtend opens in a window for you to approve, then the extension tests the connection.
+2. In the extension's options, enter your Xtend address (such as `https://xtend.example.com`, or `https://xtend.localhost` for local development) and choose **Connect to Xtend**. The browser asks to let the extension reach that address, which is the only site besides x.com it can talk to. Xtend opens in a window for you to approve, then the extension tests the connection.
 3. To disconnect, use **Disconnect** in the options, or disconnect the extension in Xtend under **X data → Browser extension**.
 
-The extension links with OAuth (authorization code with PKCE through `chrome.identity`), so it holds a capture-only token that renews itself and works nowhere else. A pasted capture token still works for a setup by hand: create one in Xtend and paste it under **Use a pasted token instead**. `/x/captures`, `/oauth/token`, and `/oauth/revoke` bypass Cloudflare Access; the approval page doesn't.
+The extension links with OAuth (authorization code with PKCE through `chrome.identity`), so it holds a capture-only token that renews itself and works nowhere else. A pasted capture token still works for a setup by hand: create one in Xtend and paste it under **Use a pasted token instead**. If an access proxy such as Cloudflare Access fronts Xtend, let `/x/captures`, `/oauth/token`, and `/oauth/revoke` bypass it; the approval page can stay behind it.
 
 Browse x.com as usual. The toolbar badge counts pages waiting to be sent. The popup has **Send to Xtend**, an automatic one-minute send toggle, and **Pause capture**. Captures queue in extension storage while Xtend is unreachable.
 

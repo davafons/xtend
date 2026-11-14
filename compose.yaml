@@ -1,0 +1,22 @@
+# Run Xtend with Docker Compose on any host with Docker. See docs/deploy.md.
+#
+#   cp .env.example .env    # then fill it in
+#   docker compose up -d --build
+#   docker compose exec xtend bin/rails users:allow HANDLE=yourhandle
+#
+# Xtend expects HTTPS in front of it: put a reverse proxy such as Caddy on the host and forward your hostname to
+# 127.0.0.1:3000 (Caddyfile: `xtend.example.com { reverse_proxy 127.0.0.1:3000 }`).
+services:
+  xtend:
+    build: .
+    image: xtend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - xtend_data:/data
+
+volumes:
+  # Both SQLite databases and the X token key. Back this up.
+  xtend_data:

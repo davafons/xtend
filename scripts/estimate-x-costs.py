@@ -71,8 +71,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Estimate monthly X API reads in USD using published rates."
     )
-    parser.add_argument("--following", type=nonnegative, default=657)
-    parser.add_argument("--followers", type=nonnegative, default=167)
+    parser.add_argument("--following", type=nonnegative, default=500)
+    parser.add_argument("--followers", type=nonnegative, default=200)
     parser.add_argument("--days", type=nonnegative, default=30)
     parser.add_argument("--graph-refreshes", type=nonnegative, default=4)
     parser.add_argument(

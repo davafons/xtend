@@ -10,8 +10,9 @@ module ApplicationHelper
   end
 
   def navigation_sections
+    start = ([ "Get started", start_path, "rocket-launch" ] unless onboarding.finished?)
     [
-      [ "Work", [ [ "Outreach", outreach_path, "megaphone" ], [ "People", people_path, "users" ], [ "Replies to you", inbox_path, "inbox-arrow-down" ], [ "Compose", drafts_path, "pencil-square" ], [ "Week in review", week_path, "calendar-days" ], [ "Growth", growth_path, "arrow-trending-up" ] ] ],
+      [ "Work", [ start, [ "Outreach", outreach_path, "megaphone" ], [ "People", people_path, "users" ], [ "Replies to you", inbox_path, "inbox-arrow-down" ], [ "Compose", drafts_path, "pencil-square" ], [ "Week in review", week_path, "calendar-days" ], [ "Growth", growth_path, "arrow-trending-up" ] ].compact ],
       [ "Relationships", [ [ "Network", network_path, "share" ], [ "Timeline", timeline_path, "queue-list" ], [ "Follow review", follow_reviews_path, "user-minus" ], [ "Follow trials", follow_trials_path, "beaker" ], [ "Followers", follower_history_path, "chart-bar" ], [ "Insights", insights_path, "presentation-chart-line" ] ] ],
       [ "Data", [ [ "X data", x_sources_path, "circle-stack" ], [ "AI", ai_connector_path, "sparkles" ], [ "Spending", x_billing_cycles_path, "banknotes" ] ] ]
     ]
@@ -134,4 +135,6 @@ module ApplicationHelper
       lc_button_link_to(label, url, target: "_blank", rel: "noopener noreferrer", icon: "arrow-up-right", **options)
     end
   end
+
+  def onboarding = @onboarding ||= Onboarding.new
 end

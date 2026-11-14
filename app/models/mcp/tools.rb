@@ -24,11 +24,11 @@ class Mcp::Tools
   }.freeze
 
   MAX_VARIATIONS = 10
-  APPLY_NOTE = "Applies at once with an undo when the owner lets AI apply changes, otherwise waits for his review; the result says which."
+  APPLY_NOTE = "Applies at once with an undo when the owner lets AI apply changes, otherwise waits for their review; the result says which."
 
   DEFINITIONS = [
     { name: "get_owner_profile", title: "Owner interests and rules",
-      description: "The owner's interests, the daily reply goal, discovery filters, and which private categories he shares.",
+      description: "The owner's interests, the daily reply goal, discovery filters, and which private categories they share.",
       inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
     { name: "get_session_state", title: "Today's session",
       description: "Progress toward 20 distinct new reply targets, plus post IDs already replied to. Use it to avoid duplicates.",
@@ -49,7 +49,7 @@ class Mcp::Tools
       inputSchema: { type: "object", properties: PERSON_REF.merge(limit: { type: "integer", minimum: 1, maximum: 50 }) },
       annotations: { readOnlyHint: true } },
     { name: "list_pending_proposals", title: "Proposals awaiting review",
-      description: "Tags, recaps, and profile facts staged for the owner that he has not accepted or dismissed yet, plus unverified reply targets still on his Outreach page. Check it before proposing so you add to the queue instead of repeating it.",
+      description: "Tags, recaps, and profile facts staged for the owner that they have not accepted or dismissed yet, plus unverified reply targets still on their Outreach page. Check it before proposing so you add to the queue instead of repeating it.",
       inputSchema: { type: "object", properties: {
         kind: { type: "string", enum: AI::Proposal::KINDS + %w[posts], description: "Only one kind. Defaults to all." },
         limit: { type: "integer", minimum: 1, maximum: 50 } } },
@@ -105,13 +105,13 @@ class Mcp::Tools
       inputSchema: { type: "object", required: %w[id], properties: { id: { type: "integer" } } },
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true } },
     { name: "get_follow_review_batch", title: "Follow review batch",
-      description: "The next accounts the owner follows that cleanup suggests reviewing (inactive, never interacted, or quiet), with bio, follow state, tags, last interaction, and their latest collected posts. Use it to judge which fit his interests; mark ones that don't with the off-topic tag via add_tags. The owner decides who to unfollow, on X.",
+      description: "The next accounts the owner follows that cleanup suggests reviewing (inactive, never interacted, or quiet), with bio, follow state, tags, last interaction, and their latest collected posts. Use it to judge which fit their interests; mark ones that don't with the off-topic tag via add_tags. The owner decides who to unfollow, on X.",
       inputSchema: { type: "object", properties: {
         reason: { type: "string", enum: Follow::Cleanup::REASONS.keys, description: "Defaults to inactive." },
         limit: { type: "integer", minimum: 1, maximum: 50 } } },
       annotations: { readOnlyHint: true } },
     { name: "get_x_analytics", title: "X analytics",
-      description: "X's own analytics as the extension saved them from x.com: daily totals (impressions, profile visits, follows, engagements), what the owner's replies brought by the size of the account he answered, his best replies and posts, his audience's busy hours of the week, and who he reached (followers vs not, countries). Use it to find what works.",
+      description: "X's own analytics as the extension saved them from x.com: daily totals (impressions, profile visits, follows, engagements), what the owner's replies brought by the size of the account they answered, their best replies and posts, their audience's busy hours of the week, and who they reached (followers vs not, countries). Use it to find what works.",
       inputSchema: { type: "object", properties: {
         period: { type: "string", enum: Network::Activity::PERIODS.keys, description: "Defaults to 30d." } } },
       annotations: { readOnlyHint: true } },
@@ -121,7 +121,7 @@ class Mcp::Tools
         weeks_ago: { type: "integer", minimum: 0, maximum: Network::Week::MAX_WEEKS_AGO, description: "0 (default) is the seven days ending today." } } },
       annotations: { readOnlyHint: true } },
     { name: "get_growth_plan", title: "Growth plan",
-      description: "The owner's growth plan: follower goal, start, this week's follower and profile-visit checkpoints against what Xtend saw, the week's checklist (ticked from data or by the owner), and his circle (people tagged circle) with who he replied to this week. Use it in weekly reviews to judge progress against the plan; tag new circle people with add_tags.",
+      description: "The owner's growth plan: follower goal, start, this week's follower and profile-visit checkpoints against what Xtend saw, the week's checklist (ticked from data or by the owner), and their circle (people tagged circle) with who they replied to this week. Use it in weekly reviews to judge progress against the plan; tag new circle people with add_tags.",
       inputSchema: { type: "object", properties: {
         week: { type: "integer", minimum: 1, maximum: Outreach::Growth::WEEKS, description: "Plan week; default is the current one." } } },
       annotations: { readOnlyHint: true } },
@@ -131,9 +131,9 @@ class Mcp::Tools
         task: { type: "string", enum: Mcp::Prompts.names }, handle: { type: "string", description: "For research_person." } } },
       annotations: { readOnlyHint: true } },
     { name: "list_network_posts", title: "Network posts",
-      description: "Posts from the owner's network that he collected or scrolled past on x.com, with the counts last seen (likes, reposts, replies, quotes, bookmarks, views). Use them as references for style and topics. Counts are not live, and coverage is only what was captured.",
+      description: "Posts from the owner's network that they collected or scrolled past on x.com, with the counts last seen (likes, reposts, replies, quotes, bookmarks, views). Use them as references for style and topics. Counts are not live, and coverage is only what was captured.",
       inputSchema: { type: "object", properties: PERSON_REF.merge(
-        who: { type: "string", enum: Network::Timeline::WHO.keys, description: "network (default): The owner's people and the owner; seen: everything he was shown." },
+        who: { type: "string", enum: Network::Timeline::WHO.keys, description: "network (default): The owner's people and the owner; seen: everything they were shown." },
         kind: { type: "string", enum: Network::Timeline::KINDS.keys, description: "Defaults to posts (no replies)." },
         sort: { type: "string", enum: Network::Timeline::SORTS.keys },
         period: { type: "string", enum: Network::Timeline::PERIODS.keys, description: "Defaults to 30d." },
@@ -141,13 +141,13 @@ class Mcp::Tools
         with_media: { type: "boolean" }, limit: { type: "integer", minimum: 1, maximum: 40 }) },
       annotations: { readOnlyHint: true } },
     { name: "get_network", title: "Network connections",
-      description: "Who interacts with whom among the owner's people (replies, quotes, reposts, mentions, likes) and captured follow edges. With a person, their connections; without, the most connected people, the busiest pairs, and outside accounts several of his people talk to. A missing connection is not proof of none.",
+      description: "Who interacts with whom among the owner's people (replies, quotes, reposts, mentions, likes) and captured follow edges. With a person, their connections; without, the most connected people, the busiest pairs, and outside accounts several of their people talk to. A missing connection is not proof of none.",
       inputSchema: { type: "object", properties: PERSON_REF.merge(
         period: { type: "string", enum: Network::Graph::PERIODS.keys, description: "Defaults to 90d." },
         tag: { type: "string" }) },
       annotations: { readOnlyHint: true } },
     { name: "list_post_drafts", title: "List post drafts",
-      description: "The owner's saved ideas and drafts for his own posts, newest first, with their alternative versions. Use draft IDs with add_post_variations.",
+      description: "The owner's saved ideas and drafts for their own posts, newest first, with their alternative versions. Use draft IDs with add_post_variations.",
       inputSchema: { type: "object", properties: {
         stage: { type: "string", enum: Draft::STATUSES.keys, description: "Defaults to every stage except posted." },
         limit: { type: "integer", minimum: 1, maximum: 25 } } },
@@ -397,7 +397,7 @@ class Mcp::Tools
 
   def get_growth_plan(args)
     growth = Outreach::Growth.new
-    return { started: false, followers: growth.followers, note: "The owner hasn't started a growth plan; he starts one on Xtend's Growth page." } unless growth.started?
+    return { started: false, followers: growth.followers, note: "The owner hasn't started a growth plan; they start one on Xtend's Growth page." } unless growth.started?
     number = Integer(args["week"] || growth.current_week.clamp(1, Outreach::Growth::WEEKS), exception: false)
     raise Invalid, "week must be 1 to #{Outreach::Growth::WEEKS}." unless number&.between?(1, Outreach::Growth::WEEKS)
     week = growth.week(number)

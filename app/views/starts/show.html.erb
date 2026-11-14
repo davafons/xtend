@@ -1,0 +1,74 @@
+<% content_for :title, "Get started" %>
+<% onboarding = @onboarding %>
+<% handle = Current.user&.x_handle %>
+<% link = ->(text, href, external: false) { link_to text, href, class: "text-primary hover:underline", **(external ? { target: "_blank", rel: "noopener noreferrer" } : {}) } %>
+<div class="flex flex-col gap-related">
+  <h1 class="<%= lc_heading_class(size: :heading) %>">Get started</h1>
+  <p class="max-w-prose text-small text-muted-foreground">
+    <% if onboarding.finished? %>
+      You're set up. The optional steps below are here whenever you want them.
+    <% else %>
+      Four steps fill Xtend with your history for free, without X API reads. Each one ticks itself when Xtend sees it done, and you can do them in any order.
+    <% end %>
+  </p>
+</div>
+
+<ol class="flex max-w-3xl flex-col gap-inset">
+  <% onboarding.steps.each_with_index do |step, index| %>
+    <li id="step-<%= step.key %>">
+      <%= lc_card do %>
+        <div class="flex items-start gap-content">
+          <% if step.done %>
+            <%= lc_icon "check-circle", options: { class: "size-6 shrink-0 text-success", "aria-hidden": true } %>
+          <% else %>
+            <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-tile text-caption font-semibold tabular-nums" aria-hidden="true"><%= index + 1 %></span>
+          <% end %>
+          <div class="flex min-w-0 grow flex-col gap-related">
+            <h2 class="<%= lc_text_class(size: :label) %>">
+              <span class="sr-only"><%= step.done ? "Done:" : "To do:" %></span><%= step.title %>
+              <% unless step.required %><span class="font-normal text-muted-foreground"> · optional</span><% end %>
+            </h2>
+            <p class="text-small text-muted-foreground"><%= step.why %></p>
+            <div class="flex flex-col gap-tight text-small">
+              <% case step.key %>
+              <% when :archive %>
+                <p>On x.com, <%= link.("request your archive", "https://x.com/settings/download_your_data", external: true) %>. X emails you when the .zip is ready, usually within a day or two. Then upload it on <%= link.("X data", x_sources_path(anchor: "archive")) %>. Xtend reads it here and calls nothing.</p>
+              <% when :extension %>
+                <ol class="list-decimal ps-5">
+                  <li><%= link.("Download the extension", extension_path) %> and unzip it.</li>
+                  <li>Open <code>chrome://extensions</code> (or <code>brave://extensions</code>), turn on <strong>Developer mode</strong>, choose <strong>Load unpacked</strong>, and pick the unzipped folder.</li>
+                  <li>In the extension's options, enter this address and choose <strong>Connect to Xtend</strong>:</li>
+                </ol>
+                <div class="flex items-center gap-related">
+                  <code class="rounded-lg bg-tile px-related py-tight"><%= request.base_url %></code>
+                  <%= lc_copy_button "Copy", value: request.base_url, variant: :ghost, size: :sm, aria: { label: "Copy this Xtend address" } %>
+                </div>
+                <p class="text-muted-foreground">Then browse x.com as usual. It never sends requests to X.</p>
+              <% when :follow_lists %>
+                <p>
+                  With the extension on, open
+                  <% if handle %><%= link.("your Followers", "https://x.com/#{handle}/followers", external: true) %> and <%= link.("your Following", "https://x.com/#{handle}/following", external: true) %><% else %>your Followers and Following pages<% end %>
+                  on x.com and scroll each to the end. A list counts only when every page arrived and the total matches your profile, so scroll slowly if X stops loading.
+                </p>
+              <% when :analytics %>
+                <p><%= link.("Open Analytics on x.com", X::Analytics::URL, external: true) %> with the extension on, and visit its Overview, Content, and Audience tabs. Do it again every week or so; Outreach reminds you.</p>
+              <% when :ai %>
+                <p>Add this as a remote MCP server in your AI client, then approve it here. <%= link.("More on the AI page", ai_connector_path) %>.</p>
+                <div class="flex items-center gap-related">
+                  <code class="rounded-lg bg-tile px-related py-tight"><%= request.base_url %>/mcp</code>
+                  <%= lc_copy_button "Copy", value: "#{request.base_url}/mcp", variant: :ghost, size: :sm, aria: { label: "Copy the MCP address" } %>
+                </div>
+              <% when :growth %>
+                <p>Set a follower goal on <%= link.("Growth", growth_path) %>, and tag the people you most want to be seen by <%= tag_chip Outreach::Growth::CIRCLE_TAG %>.</p>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </li>
+  <% end %>
+</ol>
+
+<p class="max-w-prose text-caption text-muted-foreground">
+  The X API is optional after sign-in: <%= link.("X data", x_sources_path) %> reads your follow lists and recent posts one page per button press, within the allowance on <%= link.("Spending", x_billing_cycles_path) %>.
+</p>

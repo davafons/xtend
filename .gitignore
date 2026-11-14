@@ -15,3 +15,12 @@
 /.playwright-cli/
 /.ruby-lsp/
 /compose.override.yaml
+
+# Personal instance settings and agent rules
+/CLAUDE.local.md
+/AGENTS.local.md
+/config/deploy.*.yml
+/.kamal/secrets.*
+/.kamal/secrets-common
+/config/credentials/development.yml.enc
+/config/credentials.yml.enc

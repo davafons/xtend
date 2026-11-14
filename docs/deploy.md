@@ -1,56 +1,76 @@
-# Deploying to the server
+# Deploy Xtend
 
-The app runs on the server at `https://xtend.example.com` and deploys with Kamal from this repository. The owner approves each deployment and any change to what is exposed.
+Xtend is one container with SQLite inside a mounted volume, so any host that runs Docker will do: a small VPS, a home server, or a NAS. It needs HTTPS, a hostname, and the settings from [setup](setup.md).
 
-## How it fits together
+Two ways to run it:
 
-| Piece | Where |
-| --- | --- |
-| Container | Kamal runs `xtend` on the server (`config/deploy.yml`). kamal-proxy listens on `127.0.0.1:23010` only, because Caddy owns ports 80 and 443. |
-| Image | Built for amd64 from the working copy on this Mac and pushed to Kamal's local registry (`localhost:5555`). the server pulls it through the SSH tunnel. No public registry is involved. |
-| Edge | In `../infra`, the `xtend` entry in `terraform/cloudflare-service-access.tf` defines the DNS record, the server tunnel route, and Cloudflare Access with the owner's GitHub login. |
-| `/mcp`, `/x/captures`, OAuth | `/mcp`, `/x/captures`, `/.well-known`, `/oauth/token`, `/oauth/register`, and `/oauth/revoke` bypass Access (`api_prefix` and `extra_bypass_prefixes` in that entry), so AI clients and the browser extension can reach them; they also skip the browser integrity check. The app authenticates `/mcp` and `/x/captures` with OAuth access tokens (or pasted tokens) scoped to each. The approval page, `/oauth/authorize`, stays behind Access and the app session. |
-| Data | `xtend_data` on the server, mounted at `/data`. It holds `production.sqlite3`, `production_queue.sqlite3`, and `x-token.key`, which encrypts saved X tokens. The appdata restic backup covers it. A database backup without the key can't decrypt X tokens. |
-| Secrets | `SECRET_KEY_BASE`, `X_CLIENT_ID`, and `X_CLIENT_SECRET` live in SSM under `/xtend/`, and `.kamal/secrets` reads them. Keep `SECRET_KEY_BASE` stable: changing it signs everyone out and invalidates every OAuth and pasted token. |
+- **Kamal**, from your computer to a server over SSH. Kamal builds the image, ships it, and gets a Let's Encrypt certificate.
+- **Docker Compose**, on the server itself, behind your own reverse proxy.
 
-## Sign-in
+Either way, the `/data` volume holds both SQLite databases and `x-token.key`, which encrypts your X tokens. Back up the whole volume, together.
 
-Two gates, in order:
+## Kamal
 
-1. Cloudflare Access with the owner's GitHub login covers every path except `/mcp`, `/x/captures`, and the OAuth endpoints clients call without a browser.
-2. The app's own sign-in is "Sign in with X" only. Only handles allowed with `users:allow` get in; the first sign-in pins the X user ID, and the same sign-in saves the workspace's read-only X tokens. There is no signup and there are no passwords.
-
-Each sign-in costs one X user read, which is recorded on Spending.
-
-## Deploy
+You need Docker on your computer, and a Linux server you can reach as root (or a sudo user) over SSH with your key. Point your hostname's DNS at the server first.
 
 ```sh
-aws sso login --profile default   # .kamal/secrets reads SECRET_KEY_BASE from SSM
-bin/kamal deploy
+export XTEND_SERVER=203.0.113.10        # the server's address or SSH host alias
+export XTEND_HOST=xtend.example.com     # your public hostname
+export SECRET_KEY_BASE=$(bin/rails secret)
+export X_CLIENT_ID=... X_CLIENT_SECRET=...
+
+bin/kamal setup                          # installs Docker on the server and deploys
+bin/kamal allow HANDLE=yourhandle        # allow your X account
 ```
 
-Kamal builds the current working copy, including jj's `@`, which isn't a git commit yet. Useful aliases: `bin/kamal logs`, `bin/kamal console`, `bin/kamal shell`.
+Later deploys are `bin/kamal deploy` with the same variables set. `.kamal/secrets` reads the three secrets from your environment; you can replace each line with a password-manager command, such as `$(op read op://Private/xtend/X_CLIENT_SECRET)`. Never write raw values into it.
 
-## First-time setup
+`config/deploy.yml` uses a registry that Kamal runs on your computer and tunnels over SSH, so you don't need a Docker Hub account. Useful aliases: `bin/kamal console`, `bin/kamal logs`, `bin/kamal shell`, `bin/kamal dbc`.
 
-These steps run once, in order:
+For a setup the defaults don't fit (no public ports, a tunnel, a different user), copy `config/deploy.yml` to `config/deploy.mine.yml`, edit it, set `secrets_path: .kamal/secrets.mine` in it, and pass `-c config/deploy.mine.yml` to every Kamal command. Both files are gitignored.
 
-1. Store the secret: `aws ssm put-parameter --profile default --region us-east-1 --type SecureString --name /xtend/SECRET_KEY_BASE --value "$(openssl rand -hex 64)"`.
-2. Create the data directory, owned by the container's `rails` user: `ssh the server 'install -d -o 1000 -g 1000 -m 700 xtend_data'`.
-3. Store the X app as `X_CLIENT_ID` and `X_CLIENT_SECRET` in the same SSM path. In the X developer portal, add `https://xtend.example.com/x/connection/callback` to the app's callback URLs.
-4. In `../infra/terraform`, run `./tf plan`, then `./tf apply`.
-5. `bin/kamal setup`. This boots kamal-proxy on loopback and deploys the app.
-6. Allow the owner: `bin/kamal app exec "bin/rails users:allow HANDLE=yourhandle"`, then sign in with X.
-7. To keep local data instead, copy the local database and `x-token.key` into the data directory before step 5.
-8. Add `https://xtend.example.com/mcp` to the assistant as a custom connector; it registers itself and opens Xtend for approval. For a client without OAuth, create a pasted token under AI and send it as a bearer header.
+## Docker Compose
 
-## Background jobs
+On the server:
 
-X reads run in Solid Queue inside the same Puma process, so there is one container and no separate worker. Each click queues one page read, the page refreshes until it finishes, and failed reads are never retried automatically. There are no recurring jobs.
+```sh
+git clone https://github.com/davafons/xtend.git && cd xtend
+cp .env.example .env                    # fill it in; SECRET_KEY_BASE from the command in the file
+docker compose up -d --build
+docker compose exec xtend bin/rails users:allow HANDLE=yourhandle
+```
 
-## What is public
+The container listens on `127.0.0.1:3000`. Put a reverse proxy in front for HTTPS. With [Caddy](https://caddyserver.com), the whole Caddyfile is:
 
-- Cloudflare Access protects everything except `/mcp`, `/x/captures`, `/.well-known`, `/oauth/token`, `/oauth/register`, and `/oauth/revoke`. Behind Access, every page still requires an app session, except `/session/new`, the X sign-in start and callback, and `/up`.
-- `/mcp` takes an access token with the `mcp` scope and allows 120 requests per minute per IP. `/x/captures` takes one with the `capture` scope, accepts only browser-extension origins, and allows 60 requests per minute per IP. Starting X sign-in allows 10 attempts per 3 minutes per IP. `/oauth/token` allows 60 requests per minute and `/oauth/register` 10 per hour per IP; a registration grants nothing until the owner approves it, and unapproved ones are pruned after a day.
-- The port is bound to the server's loopback, so nothing can bypass the tunnel. Rails trusts private proxies, so `X-Forwarded-For` gives the visitor's IP (`test/integration/proxy_test.rb`).
-- The Content Security Policy only allows scripts from the app's own origin.
+```
+xtend.example.com {
+  reverse_proxy 127.0.0.1:3000
+}
+```
+
+To update: `git pull && docker compose up -d --build`. Migrations run when the container starts.
+
+## Behind an access proxy
+
+You can put Cloudflare Access or a similar sign-in proxy in front of Xtend for a second lock. Let these paths bypass it, because the browser extension and AI clients reach them with their own tokens:
+
+- `/x/captures` (and `/x/captures/context`)
+- `/mcp`
+- `/.well-known/*`
+- `/oauth/token`, `/oauth/register`, `/oauth/revoke`
+
+`/oauth/authorize` is where you approve a connection in your browser, so it can stay behind the proxy.
+
+## Back up and restore
+
+Take a consistent copy of the live database without stopping the app:
+
+```sh
+bin/kamal app exec --reuse "bin/rails runner 'ActiveRecord::Base.connection.execute(%q{VACUUM INTO \"/data/backup.sqlite3\"})'"
+```
+
+Copy `/data` off the server with your usual backup tool. To restore, stop the app, put the files back in the volume, and start it again. Without `x-token.key`, saved X tokens can't be read and you sign in again; everything else is intact.
+
+## Nothing runs on its own
+
+Xtend has no scheduled jobs. X reads start only when you press a button, one page at a time, and AI runs only when you ask your AI client. Background jobs (Solid Queue) run inside the web process.

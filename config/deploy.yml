@@ -1,37 +1,34 @@
-# Deploy to the server with `bin/kamal deploy`. See docs/deploy.md.
+# Deploy Xtend to your own server with Kamal: one Linux host with Docker and SSH access. See docs/deploy.md.
+#
+#   XTEND_SERVER=203.0.113.10 XTEND_HOST=xtend.example.com bin/kamal setup
+#
+# Secrets come from .kamal/secrets (read from your environment). For a second setup, add a destination:
+# config/deploy.<name>.yml and .kamal/secrets.<name> (both gitignored), then bin/kamal deploy -d <name>.
+<% host = ENV.fetch("XTEND_HOST", "xtend.example.com") %>
 service: xtend
 image: xtend
 
 servers:
   web:
-    - the server
+    - <%= ENV.fetch("XTEND_SERVER", "203.0.113.10") %>
 
 ssh:
-  user: root
+  user: <%= ENV.fetch("XTEND_SSH_USER", "root") %>
 
-# Kamal runs a registry on this Mac and the server pulls through the SSH tunnel.
+# Kamal runs a registry on your machine and the server pulls through the SSH tunnel, so no registry account is needed.
 registry:
   server: localhost:5555
 
 builder:
   arch: amd64
-  # Build the working copy, not a clean clone of git HEAD (which is jj's @-).
-  context: .
 
-# Cloudflare Tunnel terminates TLS and forwards xtend.example.com to 127.0.0.1:23010.
-# Caddy owns the server's 80/443, so kamal-proxy listens only on loopback.
+# kamal-proxy gets a Let's Encrypt certificate for the host. Point its DNS at the server first.
 proxy:
-  ssl: false
-  host: xtend.example.com
+  ssl: true
+  host: <%= host %>
   app_port: 3000
-  forward_headers: true
   healthcheck:
     path: /up
-  run:
-    http_port: 23010
-    https_port: 23011
-    bind_ips:
-      - 127.0.0.1
 
 env:
   secret:
@@ -39,10 +36,10 @@ env:
     - X_CLIENT_ID
     - X_CLIENT_SECRET
   clear:
-    APP_HOSTS: xtend.example.com
-    X_REDIRECT_URI: https://xtend.example.com/x/connection/callback
+    APP_HOSTS: <%= host %>
+    X_REDIRECT_URI: https://<%= host %>/x/connection/callback
 
-# Inside the server's backup scope. Holds both SQLite databases and x-token.key.
+# Both SQLite databases and the X token key live here. Back this volume up.
 volumes:
   - xtend_data:/data
 
@@ -51,3 +48,4 @@ aliases:
   shell: app exec --interactive --reuse "bash"
   logs: app logs -f
   dbc: app exec --interactive --reuse "bin/rails dbconsole"
+  allow: app exec --reuse "bin/rails users:allow"

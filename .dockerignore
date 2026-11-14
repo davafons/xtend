@@ -19,3 +19,7 @@
 /.dockerignore
 /.kamal/
 /compose.override.yaml
+/CLAUDE.local.md
+/AGENTS.local.md
+/config/deploy.*.yml
+/compose.yaml

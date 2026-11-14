@@ -4,7 +4,7 @@
 import { needsRenewal, refresh } from "./oauth.js";
 
 // token is an OAuth access token (renewed with refreshToken) or a pasted capture token (no refreshToken).
-const DEFAULT_SETTINGS = { xtendUrl: "https://xtend.example.com", token: "", refreshToken: "", expiresAt: null, auto: true, paused: false, rawDebug: false, overlay: true };
+const DEFAULT_SETTINGS = { xtendUrl: "", token: "", refreshToken: "", expiresAt: null, auto: true, paused: false, rawDebug: false, overlay: true };
 // The raw debug log stays in extension storage until you download it from the popup; it is never sent anywhere.
 const RAW_PREFIX = "raw:";
 const MAX_RAW_ENTRIES = 5000;
@@ -14,7 +14,6 @@ const MAX_BATCH_RESPONSES = 50;
 const MAX_BATCH_BYTES = 6 * 1024 * 1024;
 const ITEM_PREFIX = "q:";
 const SEND_DELAY_MS = 4000;
-const XTEND_TABS = ["https://xtend.example.com/*", "https://xtend.localhost/*"];
 // What Xtend knows about the people on screen. A fresh answer is used as is; an older one (or one a capture batch may
 // have changed) is shown at once while it's asked again, and the tab gets the new answer if it differs. Kept in session
 // storage so it outlives the service worker, which Chrome stops after half a minute idle.
@@ -142,7 +141,8 @@ async function staleContext({ hard = false } = {}) {
 
 async function announce(result) {
   staleContext();
-  const xtendTabs = await chrome.tabs.query({ url: XTEND_TABS }).catch(() => []);
+  const { xtendUrl } = await settings();
+  const xtendTabs = xtendUrl ? await chrome.tabs.query({ url: `${origin(xtendUrl)}/*` }).catch(() => []) : [];
   for (const tab of xtendTabs) chrome.tabs.sendMessage(tab.id, { type: "captured" }).catch(() => {});
   const messages = listMessages(result);
   if (result.unfollows) messages.push(`Unfollow recorded in Xtend.`);
@@ -451,11 +451,24 @@ chrome.storage.onChanged.addListener((changes, area) => {
   const before = changes.settings.oldValue || {};
   const after = changes.settings.newValue || {};
   if (before.overlay !== after.overlay || before.token !== after.token || before.xtendUrl !== after.xtendUrl) staleContext({ hard: true });
+  if (before.xtendUrl !== after.xtendUrl) registerXtendScript();
 });
 
+// Xtend's own pages refresh when a batch lands. Which address that is comes from the options page, so the script that
+// listens there is registered for it at runtime, once the extension has permission to reach it.
+async function registerXtendScript() {
+  await chrome.scripting.unregisterContentScripts({ ids: ["xtend-page"] }).catch(() => {});
+  const { xtendUrl } = await settings();
+  if (!xtendUrl) return;
+  const matches = [`${origin(xtendUrl)}/*`];
+  if (!(await chrome.permissions.contains({ origins: matches }).catch(() => false))) return;
+  await chrome.scripting.registerContentScripts([{ id: "xtend-page", matches, js: ["xtend.js"], runAt: "document_idle", persistAcrossSessions: true }]).catch(() => {});
+}
+
 const schedule = () => chrome.alarms.create("flush", { periodInMinutes: 1 });
-chrome.runtime.onInstalled.addListener(schedule);
+chrome.runtime.onInstalled.addListener(() => { schedule(); registerXtendScript(); });
 chrome.runtime.onStartup.addListener(schedule);
+chrome.permissions.onAdded.addListener(registerXtendScript);
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== "flush") return;
   const [{ auto }, { pending }] = await Promise.all([settings(), state()]);
