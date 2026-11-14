@@ -21,11 +21,6 @@ class CleanupAndInboxTest < ActiveSupport::TestCase
     assert_equal [ c ], Follow::Cleanup.new(reason: "strangers", tag: "Rails").matches
     assert_equal [ a ], Follow::Cleanup.new(reason: "strangers", tag: "untagged").matches
     assert_equal %w[off-topic rails], cleanup.tag_options.sort
-
-    prompt = AI::Classification.relevance_prompt([ a ])
-    assert_includes prompt, "off-topic"
-    assert_includes prompt, Current.workspace.interests.first
-    assert_includes prompt, "p11"
   end
 
   test "progress counts an unfollow once even when the capture later confirms a reported one" do

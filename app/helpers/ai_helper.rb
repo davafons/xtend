@@ -6,22 +6,11 @@ module AIHelper
     "Run the Xtend task #{task}#{detail}."
   end
 
-  # A copy button for a task, with the full prompt for assistants without the connector behind a disclosure.
-  def ai_task_copy(task, fallback: nil, label: "Copy request for your AI", **arguments)
+  # A button that copies the request for a task, with the request shown beside it.
+  def ai_task_copy(task, label: "Copy request for your AI", **arguments)
     phrase = ai_task_phrase(task, **arguments)
-    tag.div(class: "flex flex-col gap-related") do
-      safe_join([
-        tag.div(class: "flex flex-wrap items-center gap-related") do
-          safe_join([ lc_copy_button(label, value: phrase, variant: :secondary, size: :sm),
-            tag.span("“#{phrase}”", class: "text-caption text-muted-foreground") ])
-        end,
-        (lc_collapsible(title: "No connector? Copy the full prompt", card: false, indicator: :chevron, button: { variant: :ghost, size: :sm }) do
-          tag.div(class: "flex flex-col gap-related") do
-            safe_join([ tag.div(lc_copy_button("Copy full prompt", value: fallback, variant: :secondary, size: :sm)),
-              tag.p(fallback, class: "whitespace-pre-wrap rounded-2xl bg-tile p-content text-caption") ])
-          end
-        end if fallback)
-      ].compact)
+    tag.div(class: "flex flex-wrap items-center gap-related") do
+      safe_join([ lc_copy_button(label, value: phrase, variant: :secondary, size: :sm), tag.span("“#{phrase}”", class: "text-caption text-muted-foreground") ])
     end
   end
 

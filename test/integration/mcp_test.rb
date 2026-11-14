@@ -101,7 +101,7 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_equal 0, X::Read.count
   end
 
-  test "settings shows the token once, paste intake works, and proposals are reviewed on the person page" do
+  test "settings shows the token once, and proposals are reviewed on the person page" do
     get ai_connector_path
     assert_includes response.body, "Assistant connector (MCP)"
     assert_includes response.body, "claude mcp add --transport http xtend"
@@ -117,10 +117,8 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_equal Current.workspace, Oauth::Grant.authenticate(new_token, scope: "mcp").workspace
     assert Oauth::Grant.authenticate(@token, scope: "mcp"), "each pasted token is its own connection"
 
-    paste = "Results:\n```json\n" + { format: "xtend-grok-v1", recaps: [{ handle: "builder", summary: "Ships Rails tools." }] }.to_json + "\n```"
-    post ai_intakes_path, params: { ai_output: paste }
-    assert_redirected_to ai_connector_path
-    assert_match "1 staged", flash[:notice]
+    Current.workspace.update!(mcp_apply_changes: false)
+    tool("save_recap", { "handle" => "builder", "summary" => "Ships Rails tools." })
     get person_path(@person)
     assert_includes response.body, "Proposed recap"
     patch ai_proposal_path(AI::Proposal.last), params: { decision: "accept" }

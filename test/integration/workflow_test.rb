@@ -6,9 +6,6 @@ class WorkflowTest < ActionDispatch::IntegrationTest
       get path
       assert_response :success
     end
-    get context_export_path
-    assert_response :success
-    assert_equal "xtend-context-v1", JSON.parse(response.body).fetch("format")
   end
 
   test "saving a person pin notes and keep uses real persistence" do

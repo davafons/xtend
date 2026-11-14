@@ -146,12 +146,4 @@ class AIConnectorTest < ActiveSupport::TestCase
     assert_equal [ "From X", nil, "https://mine.example" ], [ person.description, person.location, person.website_url ]
     assert_equal "undone", change.status
   end
-
-  test "pasted AI answers are read from the JSON block inside prose" do
-    text = "Here are posts {not json}.\n```json\n{\"format\": \"xtend-grok-v1\", \"posts\": [#{candidate.to_json}]}\n```\nHope this helps {really}."
-    document = AI::Intake.parse_paste(text)
-    assert_equal 1, AI::Intake.new(via: "paste").call(document)[:posts].count { |item| item[:status] == "created" }
-    assert_raises(AI::Intake::Invalid) { AI::Intake.parse_paste("no block here") }
-    assert_raises(AI::Intake::Invalid) { AI::Intake.parse_paste('{"format": "other", "posts": []}') }
-  end
 end

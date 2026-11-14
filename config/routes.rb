@@ -34,7 +34,6 @@ Rails.application.routes.draw do
   resource :search, only: :show
   resource :settings, only: [ :show, :update ]
   resource :appearance, only: :update
-  resource :context_export, only: :show
 
   # Follower snapshots and cleanup
   namespace :follow do
@@ -61,7 +60,6 @@ Rails.application.routes.draw do
   get "/grok/connector", to: redirect("/ai/connector")
   namespace :ai do
     resource :connector, only: :show
-    resources :intakes, only: :create
     resources :proposals, only: :update do
       patch :review, on: :collection
       resource :undo, only: :create

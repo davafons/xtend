@@ -1,15 +1,13 @@
-# Accepts research and changes from an AI assistant, either through the MCP connector or a pasted JSON block.
+# Accepts research and changes from an AI assistant through the MCP connector.
 # AI data is research, not evidence: it never creates replies, follow state, progress, or coverage,
 # and it never overwrites X-sourced fields or the owner's edits. From the connector, with the workspace's
 # mcp_apply_changes on, tags, recaps, profile facts, notes, and reminders apply at once and can be undone;
-# otherwise, and always for pasted results, they wait for the owner to accept them.
+# otherwise they wait for the owner to accept them.
 class AI::Intake
   class Invalid < StandardError; end
-  FORMAT = "xtend-grok-v1"
   MAX_ITEMS = 20
   MAX_TAG_ITEMS = 50
   MAX_TAGS_PER_PERSON = 8
-  MAX_BYTES = 100.kilobytes
   HOSTS = %w[x.com www.x.com twitter.com www.twitter.com mobile.twitter.com mobile.x.com].freeze
   PROFILE_FIELDS = %w[name description location website_url followers_count following_count].freeze
   NOTE_LENGTH = 1000
@@ -22,20 +20,6 @@ class AI::Intake
     { handle: handle, x_id: match[2] }
   rescue URI::InvalidURIError
     nil
-  end
-
-  # Extracts the versioned document from a pasted AI answer, which may wrap it in prose or a code fence.
-  def self.parse_paste(text)
-    raise Invalid, "Paste up to 100 KB of AI output." unless text.is_a?(String) && text.bytesize <= MAX_BYTES
-    start = text.index(/\{\s*"format"\s*:/)
-    raise Invalid, "No #{FORMAT} JSON block was found." unless start
-    finish = text.length
-    while (finish = text.rindex("}", finish - 1)) && finish > start
-      document = JSON.parse(text[start..finish]) rescue next
-      raise Invalid, "Use a #{FORMAT} document." unless document.is_a?(Hash) && document["format"] == FORMAT
-      return document
-    end
-    raise Invalid, "The JSON block could not be read. Ask the assistant to repeat it without changes."
   end
 
   def initialize(via:, run_id: nil, apply: via == "mcp" && Current.workspace.mcp_apply_changes)

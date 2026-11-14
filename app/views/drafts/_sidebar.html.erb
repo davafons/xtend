@@ -25,7 +25,7 @@
     <div class="flex flex-col gap-heading">
       <%= lc_heading "Angles from AI", level: 2, size: :subheading %>
       <%= lc_text "Your connected AI reads your focus areas, what worked, and your network's posts, and saves ideas here.", size: :small, tone: :muted %>
-      <%= ai_task_copy :post_ideas, fallback: ideas.ai_prompt %>
+      <%= ai_task_copy :post_ideas %>
     </div>
   <% end %>
 </aside>

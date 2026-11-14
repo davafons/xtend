@@ -31,7 +31,7 @@ class TagTest < ActiveSupport::TestCase
   test "AI tag proposals stage only new tags and apply when accepted" do
     person = Person.resolve_profile!(profile)
     person.add_tags!("tokyo")
-    result = AI::Intake.new(via: "paste").call("tags" => [
+    result = AI::Intake.new(via: "mcp", apply: false).call("tags" => [
       { "handle" => "builder", "tags" => ["Tokyo", "indie hacker"], "reason" => "Bio says Tokyo indie hacker" },
       { "handle" => "nobody", "tags" => ["x"] }
     ])
@@ -42,16 +42,13 @@ class TagTest < ActiveSupport::TestCase
     proposal.accept!
     assert_equal ["indie hacker", "tokyo"], person.reload.tags.map(&:name)
     assert_equal "ai", person.person_tags.joins(:tag).find_by(tags: { name: "indie hacker" }).source
-    assert_equal "unchanged", AI::Intake.new(via: "paste").call("tags" => [{ "handle" => "builder", "tags" => ["tokyo"] }])[:tags].first[:status]
+    assert_equal "unchanged", AI::Intake.new(via: "mcp", apply: false).call("tags" => [{ "handle" => "builder", "tags" => ["tokyo"] }])[:tags].first[:status]
   end
 
-  test "the tagging prompt lists untagged people with an X account" do
+  test "the tagging batch lists untagged people with an X account" do
     Person.resolve_profile!(profile).add_tags!("tokyo")
     Person.resolve_profile!(profile(x_id: "102", handle: "plain", name: "Plain"))
     Person.create!(handle: "grokonly", name: "Grok only")
     assert_equal ["plain"], AI::Classification.batch.map(&:handle)
-    prompt = AI::Classification.prompt
-    assert_includes prompt, '"handle":"plain"'
-    assert_includes prompt, "Reuse these existing tags where they fit: tokyo."
   end
 end

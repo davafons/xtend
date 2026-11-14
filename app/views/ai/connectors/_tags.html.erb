@@ -29,35 +29,11 @@
     <% end %>
   <% end %>
 
-  <%= lc_list_section "Tag people with AI", footnote: "Your assistant tags people by city, role, or topic. A connected assistant does it directly from the request; without the connector, paste the prompt into any AI and its answer below. Your own tags never change." do %>
+  <%= lc_list_section "Tag people with AI", footnote: "Your connected AI tags people by city, role, or topic. Your own tags never change." do %>
     <%= lc_list_group do %>
-      <% if batch.any? %>
-        <%= lc_list_row "Ask your connected AI", icon: lc_icon("sparkles", options: { class: "text-ai", "aria-hidden": true }), subtitle: "“#{ai_task_phrase(:tag_people)}” | #{pluralize(batch.size, "untagged person", plural: "untagged people")}" do %>
-          <%= lc_copy_button "Copy", value: ai_task_phrase(:tag_people), variant: :secondary, size: :sm, aria: { label: "Copy request for your AI" } %>
-        <% end %>
-        <%= lc_list_row "Tagging prompt, without the connector", icon: "clipboard-document", subtitle: "Followers first | copy again after each import" do %>
-          <%= lc_copy_button "Copy", value: AI::Classification.prompt(batch), variant: :ghost, size: :sm, aria: { label: "Copy tagging prompt" } %>
-        <% end %>
-        <%= lc_list_row padded: false do %>
-          <%= lc_collapsible card: false, indicator: :chevron, summary_class: "px-content sm:px-inset text-small font-normal text-muted-foreground" do |collapsible| %>
-            <% collapsible.summary do %><span class="me-auto">Read the prompt</span><% end %>
-            <p class="mx-content mb-content whitespace-pre-wrap rounded-2xl bg-tile p-content text-caption sm:mx-inset"><%= AI::Classification.prompt(batch) %></p>
-          <% end %>
-        <% end %>
-      <% else %>
-        <%= lc_list_row "Tagging prompt", icon: "clipboard-document", subtitle: "Everyone with an X account in Xtend has tags." %>
-      <% end %>
-    <% end %>
-  <% end %>
-
-  <%= lc_list_section "AI results", footnote: "Paste the assistant's whole answer. Only its JSON block is read, up to #{AI::Intake::MAX_TAG_ITEMS} people." do %>
-    <%= form_with url: ai_intakes_path do %>
-      <%= hidden_field_tag :return_to, "ai" %>
-      <%= lc_list_group do %>
-        <%= lc_list_row do %>
-          <%= lc_textarea "", name: "ai_output", rows: 4, maxlength: 100_000, required: true, id: "ai-tags-output", placeholder: "Paste the answer", aria: { label: "AI results" } %>
-          <div class="mt-related flex justify-end"><%= lc_button "Import", type: :submit, variant: :secondary, size: :sm, aria: { label: "Import tag suggestions" } %></div>
-        <% end %>
+      <%= lc_list_row "Ask your connected AI", icon: lc_icon("sparkles", options: { class: "text-ai", "aria-hidden": true }),
+        subtitle: batch.any? ? "“#{ai_task_phrase(:tag_people)}” | #{pluralize(batch.size, "untagged person", plural: "untagged people")}, followers first" : "Everyone with an X account in Xtend has tags." do %>
+        <% if batch.any? %><%= lc_copy_button "Copy", value: ai_task_phrase(:tag_people), variant: :secondary, size: :sm, aria: { label: "Copy request for your AI" } %><% end %>
       <% end %>
     <% end %>
   <% end %>

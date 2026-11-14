@@ -44,26 +44,6 @@ class Draft::Ideas
     "https://x.com/i/status/#{post.x_id}"
   end
 
-  def ai_prompt
-    recent = own_posts.first(8).map { |post| "- #{strip_mentions(post.body).squish.truncate(200)}" }
-    drafts = Draft.where.not(status: "posted").recent.limit(10).filter_map(&:title).map { |title| "- #{title.truncate(120)}" }
-    <<~PROMPT
-      Suggest 10 X posts I could write this week. I'm a builder who posts in English.
-
-      My focus areas:
-      #{interests.map { |interest| "- #{interest}" }.join("\n")}
-
-      What I posted recently (avoid repeating these):
-      #{recent.presence&.join("\n") || "- Nothing collected yet"}
-
-      Ideas I'm already drafting:
-      #{drafts.presence&.join("\n") || "- None yet"}
-
-      For each suggestion give: a one-line angle, why people in these areas would care right now, and a link to a recent public post or discussion that shows the interest. Prefer concrete experiences, lessons, numbers, and questions over hot takes. Don't write the post for me.
-      If the xtend MCP connector is available, save each suggestion with save_post_idea instead of answering in text.
-    PROMPT
-  end
-
   private
 
   def owned

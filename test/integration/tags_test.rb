@@ -22,13 +22,12 @@ class TagsTest < ActionDispatch::IntegrationTest
     assert_equal ["ios dev"], @person.reload.tags.map(&:name)
   end
 
-  test "pasted AI tags return to the AI page and can be accepted in bulk" do
+  test "with AI set to ask first, its tags wait on the AI page and can be accepted in bulk" do
     get ai_connector_path
-    assert_includes response.body, "Copy tagging prompt"
-    paste = { format: AI::Intake::FORMAT, tags: [{ handle: "builder", tags: ["tokyo"] }, { handle: "plain", tags: ["designer"] }] }.to_json
-    post ai_intakes_path, params: { ai_output: paste, return_to: "ai" }
-    assert_redirected_to ai_connector_path(anchor: "tags")
-    follow_redirect!
+    assert_includes response.body, "Run the Xtend task tag_people."
+    assert_not_includes response.body, "ai_output"
+    AI::Intake.new(via: "mcp", apply: false).call("tags" => [{ "handle" => "builder", "tags" => ["tokyo"] }, { "handle" => "plain", "tags" => ["designer"] }])
+    get ai_connector_path
     assert_includes response.body, "2 people with suggested tags"
     patch review_ai_proposals_path, params: { decision: "accept" }
     assert_equal ["tokyo"], @person.reload.tags.map(&:name)

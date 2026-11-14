@@ -119,14 +119,6 @@ class RelationshipMemoryTest < ActiveSupport::TestCase
     assert_empty Outreach::Candidate.opportunities
   end
 
-  test "AI export excludes private notes and does not imply complete data" do
-    person = Person.resolve_profile!(profile)
-    person.update!(notes: "Private material")
-    context = Current.workspace.ai_context
-    assert_equal "xtend-context-v1", context[:format]
-    assert_not_includes context.to_json, "Private material"
-    assert_includes context[:coverage], "not a complete"
-  end
   test "a session that went quiet ends on its own and the next reply starts a fresh one" do
     travel_to Time.zone.parse("2026-11-04 10:00") do
       ingest

@@ -1,19 +1,19 @@
 require "test_helper"
 
 class FollowListsAndInboxTest < ActionDispatch::IntegrationTest
-  test "follow review shows progress, inline posts, tag suggestions, and the AI relevance prompt" do
+  test "follow review shows progress, inline posts, tag suggestions, and the request for AI" do
     a = Person.resolve_profile!(profile(x_id: "51", handle: "alpha"))
     b = Person.resolve_profile!(profile(x_id: "52", handle: "bravo"))
     snapshot("following", [ a, b ], observed_at: 2.days.ago)
     snapshot("following", [ a ], observed_at: 1.hour.ago)
     Follow::Review.record!(b, "reported_unfollow")
-    AI::Proposal.create!(person: a, kind: "tags", status: "pending", via: "paste", payload: { "tags" => [ "off-topic" ], "reason" => "Posts only about sports" })
+    AI::Proposal.create!(person: a, kind: "tags", status: "pending", via: "mcp", payload: { "tags" => [ "off-topic" ], "reason" => "Posts only about sports" })
 
     get follow_reviews_path(mutuals: "1", reason: "strangers")
     assert_response :success
     assert_includes response.body, "AI suggests"
     assert_select "button[aria-label=?]", "Accept suggested tags for A Builder"
-    assert_includes response.body, "Ask AI which of these 1 fit your interests"
+    assert_includes response.body, "Run the Xtend task review_follows."
     assert_includes response.body, "2 → 1 since"
     assert_select "[data-controller=chart]", 2
 

@@ -73,9 +73,6 @@ class XConnectionTest < ActionDispatch::IntegrationTest
       form = URI.decode_www_form(http.requests.first.body).to_h
       assert_equal query.fetch("code_challenge"), Base64.urlsafe_encode64(Digest::SHA256.digest(form.fetch("code_verifier")), padding: false)
       assert_equal "test-client", form.fetch("client_id")
-      get context_export_path
-      assert_not_includes response.body, "test-access"
-      assert_not_includes response.body, "token_ciphertext"
     end
   end
 
