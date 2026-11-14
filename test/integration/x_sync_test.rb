@@ -52,6 +52,18 @@ class XSyncTest < ActionDispatch::IntegrationTest
     assert_equal 0, X::Read.count
   end
 
+  test "followers explain a profile count that differs from the complete list" do
+    listed = Person.resolve_profile!(profile(x_id: "201", handle: "listed"))
+    late = Person.resolve_profile!(profile(x_id: "202", handle: "late"))
+    Follow::Snapshot.capture_page!(direction: "followers", cursor: nil, people: [ listed ], next_cursor: nil, last: true, at: 1.minute.ago, expected: 2)
+    Follow::FollowerPeriod.observe!(Follow::Snapshot.latest_complete("followers"))
+    late.update!(follows_you: true, follows_you_seen_at: 2.minutes.ago)
+    Current.workspace.update!(owner_followers_count: 2, owner_counts_seen_at: Time.current)
+    get follower_history_path
+    assert_select "span", text: /2\s+on X/
+    assert_select "a[href=?]", person_path(late), text: "@late"
+  end
+
   test "billing observation aligns to provider cycle and never changes the allowance" do
     cycle = X::BillingCycle.current
     post x_billing_cycles_path, params: {cycle: {starts_on: cycle.starts_on.to_s, ends_on: cycle.ends_on.to_s, spend_cents: "73"}}

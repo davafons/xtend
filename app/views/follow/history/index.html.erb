@@ -12,6 +12,12 @@
 
 <p class="flex flex-wrap items-center gap-x-content gap-y-tight text-small text-muted-foreground">
   <span><span class="tabular-nums text-foreground"><%= number_with_delimiter @counts["current"] %></span> followers</span>
+  <% if @on_x && @on_x != @counts["current"] %>
+    <span title="X's count on your profile. Its follower list can lag a new follow by a few minutes and leaves out some suspended or restricted accounts."><span class="tabular-nums text-foreground"><%= number_with_delimiter @on_x %></span> on X</span>
+  <% end %>
+  <% if @not_in_list.any? %>
+    <span>not in the list yet: <%= safe_join(@not_in_list.map { |person| link_to "@#{person.handle}", person_path(person), class: "text-primary hover:underline" }, ", ") %></span>
+  <% end %>
   <% if @counts["current"].positive? %><span>you follow back <span class="tabular-nums text-foreground"><%= (@follow_back * 100.0 / @counts["current"]).round %>%</span></span><% end %>
   <% if @new_since_last || @lost_since_last %><span>last check <span class="tabular-nums text-success">+<%= @new_since_last || 0 %></span> <span class="tabular-nums text-warning">−<%= @lost_since_last || 0 %></span></span><% end %>
   <% if @duration %><span title="Mean range across <%= @duration[:count] %> completed periods with observed starts. Ongoing follows and unknown starts are excluded.">follows last <span class="tabular-nums text-foreground"><%= @duration[:minimum_days].round(1) %>–<%= @duration[:maximum_days].round(1) %> days</span></span><% end %>

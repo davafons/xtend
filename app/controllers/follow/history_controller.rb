@@ -20,6 +20,9 @@ class Follow::HistoryController < ApplicationController
     @lost_since_last = @checks.size == 2 ? Follow::FollowerPeriod.where(ended_snapshot_id: @checks.first.id).count : nil
     @follow_back = ongoing.where(person_id: following).count
     @duration = Follow::FollowerPeriod.completed_duration_summary
+    @on_x = Current.workspace.owner_followers_count
+    list = Follow::Snapshot.latest_complete("followers")
+    @not_in_list = list ? Person.where(follows_you: true).where.not(id: list.follow_memberships.select(:person_id)).order(:handle).limit(10).to_a : []
     @periods = case @view
     when "changes" then Follow::FollowerPeriod.none
     when "current" then ongoing.joins(:person).order(Arel.sql("follower_periods.followed_after IS NULL, follower_periods.first_seen_at DESC, people.followers_count DESC"))
