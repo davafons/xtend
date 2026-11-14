@@ -37,6 +37,8 @@
   <aside class="flex flex-col gap-content">
     <%= render "people/ai", person: @person %>
 
+    <%= render "people/lists", person: @person %>
+
     <%= lc_card padding: :sm do %>
       <%= form_with model: @person, class: "flex flex-col gap-related" do %>
         <label for="person-notes" class="text-small text-muted-foreground">Notes</label>

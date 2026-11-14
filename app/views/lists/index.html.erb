@@ -1,0 +1,105 @@
+<% content_for :title, "Lists" %>
+<h1 class="sr-only">Lists</h1>
+<div class="flex flex-col gap-inset">
+  <div class="flex flex-wrap items-center gap-related">
+    <%= people_views :lists %>
+  </div>
+
+  <% tiers, custom = @lists.partition(&:tier?) %>
+  <section aria-labelledby="tiers-heading" class="flex flex-col gap-content">
+    <h2 id="tiers-heading" class="<%= lc_text_class(size: :label) %>">Your ladder</h2>
+    <div class="grid gap-content md:grid-cols-3">
+      <% tiers.each do |list| %>
+        <%= lc_card href: list_path(list) do %>
+          <div class="flex h-full flex-col gap-related">
+            <div class="flex items-baseline justify-between gap-related">
+              <span class="text-label font-semibold"><%= list.name %></span>
+              <span class="text-small tabular-nums <%= list.over_capacity? ? 'text-warning' : 'text-muted-foreground' %>">
+                <%= list.members_count %><% if list.capacity %> / <%= list.capacity %><% end %>
+              </span>
+            </div>
+            <p class="text-small text-muted-foreground"><%= list.purpose %></p>
+            <% if list.cadence_days %><p class="mt-auto text-caption text-muted-foreground">Reply every <%= pluralize(list.cadence_days, "day") %></p><% end %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="grid gap-content lg:grid-cols-2">
+    <%= lc_card do %>
+      <div class="flex flex-col gap-content">
+        <h2 class="<%= lc_text_class(size: :label) %>">Move up</h2>
+        <% if @suggestions.promote.empty? %>
+          <p class="text-small text-muted-foreground">Nobody yet. People show up here once replies go both ways.</p>
+        <% else %>
+          <ul class="flex flex-col divide-y divide-border">
+            <% @suggestions.promote.each do |suggestion| %>
+              <li class="flex items-center gap-related py-related">
+                <%= link_to person_avatar(suggestion.person, size: :sm), suggestion.person, tabindex: -1, aria: { hidden: true } %>
+                <div class="min-w-0 grow">
+                  <p class="truncate text-small"><%= person_link suggestion.person, class: "font-semibold hover:underline" %> <span class="text-muted-foreground">@<%= suggestion.person.handle %></span></p>
+                  <p class="truncate text-caption text-muted-foreground"><%= suggestion.reason %></p>
+                </div>
+                <%= lc_button_to "To #{suggestion.list.name}", list_memberships_path(suggestion.list), params: { person_id: suggestion.person.id }, variant: :secondary, size: :sm, icon: "arrow-up" %>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= lc_card do %>
+      <div class="flex flex-col gap-content">
+        <h2 class="<%= lc_text_class(size: :label) %>">Fading</h2>
+        <% if @suggestions.fading.empty? %>
+          <p class="text-small text-muted-foreground">Nobody in your circle has gone twice their cadence without a reply.</p>
+        <% else %>
+          <ul class="flex flex-col divide-y divide-border">
+            <% @suggestions.fading.each do |suggestion| %>
+              <li class="flex items-center gap-related py-related">
+                <%= link_to person_avatar(suggestion.person, size: :sm), suggestion.person, tabindex: -1, aria: { hidden: true } %>
+                <div class="min-w-0 grow">
+                  <p class="truncate text-small"><%= person_link suggestion.person, class: "font-semibold hover:underline" %> <%= tier_badge suggestion.list %></p>
+                  <p class="truncate text-caption text-muted-foreground"><%= suggestion.reason %></p>
+                </div>
+                <%= lc_button_link_to "Profile", suggestion.person.profile_url, variant: :ghost, size: :sm, icon: "arrow-top-right-on-square", target: "_blank", rel: "noopener noreferrer" %>
+              </li>
+            <% end %>
+          </ul>
+          <p class="text-caption text-muted-foreground">Reply to them this week, or move them down if the connection isn't there.</p>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <section aria-labelledby="custom-heading" class="flex flex-col gap-content">
+    <h2 id="custom-heading" class="<%= lc_text_class(size: :label) %>">Your lists</h2>
+    <% if custom.any? %>
+      <div class="grid gap-content md:grid-cols-2 xl:grid-cols-3">
+        <% custom.each do |list| %>
+          <%= lc_card href: list_path(list), padding: :sm do %>
+            <div class="flex items-baseline justify-between gap-related">
+              <span class="truncate text-label"><%= list.name %></span>
+              <span class="shrink-0 text-small tabular-nums text-muted-foreground"><%= pluralize(list.members_count, "person", plural: "people") %></span>
+            </div>
+            <% if list.purpose.present? || list.cadence_days %>
+              <p class="truncate text-caption text-muted-foreground"><%= [ list.purpose.presence, ("every #{pluralize(list.cadence_days, 'day')}" if list.cadence_days) ].compact.join(" · ") %></p>
+            <% end %>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+    <%= lc_card padding: :sm do %>
+      <%= form_with model: @list, class: "flex flex-wrap items-end gap-related" do %>
+        <%= lc_field label: "New list", id: "list-name", class: "grow" do |field| %>
+          <%= lc_input name: "list[name]", placeholder: "Tokyo devs, Rails folks, people to meet…", maxlength: List::NAME_LENGTH, required: true, size: :sm, **field %>
+        <% end %>
+        <%= lc_field label: "Reply every (days)", id: "list-cadence" do |field| %>
+          <%= lc_input name: "list[cadence_days]", type: "number", min: 1, max: 365, placeholder: "Optional", size: :sm, class: "w-32", **field %>
+        <% end %>
+        <%= lc_button "Create", type: :submit, size: :sm, variant: :secondary, icon: "plus" %>
+      <% end %>
+    <% end %>
+  </section>
+</div>

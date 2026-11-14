@@ -19,7 +19,7 @@ module ApplicationHelper
   end
 
   def navigation_active?(path)
-    request.path.start_with?(path) || (path == people_path && current_page?(root_path))
+    request.path.start_with?(path) || (path == people_path && (current_page?(root_path) || request.path.start_with?(lists_path)))
   end
 
   # "14 Sep 2026", "14–20 Sep 2026", or "28 Sep – 4 Oct 2026".

@@ -77,7 +77,7 @@ class Outreach::Prospects
   private
 
   def rank
-    people = Person.includes(:pin, :tags).where(x_id: candidates.keys).index_by(&:x_id)
+    people = Person.includes(:pin, :tags, :lists).where(x_id: candidates.keys).index_by(&:x_id)
     accounts = X::Account.where(x_id: candidates.keys - people.keys).index_by(&:x_id)
     candidates.filter_map do |x_id, reasons|
       person = people[x_id]
@@ -86,7 +86,8 @@ class Outreach::Prospects
       next if AUTOMATED.include?((person || account).handle)
       exchange = exchanges[x_id]
       score = reasons.sum { |reason| weight(reason.key, x_id, exchange) }
-      score += 10 if person&.pin
+      score += 10 if person&.pin || person&.tier_list&.tier == "inner"
+      score += 5 if person&.tier_list&.tier == "circle"
       score += 5 if person && mutual?(person)
       Prospect.new(x_id, person, account, reasons, score, exchange&.last_touch_at, recent_posts.fetch(x_id, []))
     end.sort_by { |prospect| [ -prospect.score, -(prospect.recent_posts.first&.published_at.to_f), prospect.name.downcase ] }.first(LIMIT)
@@ -168,12 +169,13 @@ class Outreach::Prospects
     exchange[key] = [ exchange[key], time ].compact.max
   end
 
-  # Mutuals and pinned people, whose new posts are worth a look even without other reasons: { x_id => "Mutual" }.
+  # Mutuals, pinned people, and your circle, whose new posts are worth a look even without other reasons: { x_id => "Mutual" }.
   def watched
     @watched ||= begin
       mutual = Person.where(id: graph.following_ids_query).where(id: graph.follower_ids_query).where.not(x_id: nil).pluck(:x_id)
       pinned = Person.where(id: Pin.select(:person_id)).where.not(x_id: nil).pluck(:x_id)
-      mutual.index_with { "Mutual" }.merge(pinned.index_with { "Pinned" }).except(@owner)
+      circle = List.circle_people.where.not(x_id: nil).pluck(:x_id)
+      mutual.index_with { "Mutual" }.merge(circle.index_with { "Circle" }).merge(pinned.index_with { "Pinned" }).except(@owner)
     end
   end
 

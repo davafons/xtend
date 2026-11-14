@@ -32,7 +32,7 @@ class OutreachGrowthTest < ActiveSupport::TestCase
 
   test "Xtend ticks replies, circle replies, posts, and analytics from data; the rest waits for a tick" do
     ada = Person.create!(x_id: "7", handle: "ada", name: "Ada")
-    ada.add_tags!([ "circle" ])
+    List.tier("circle").add!(ada)
     bob = Person.create!(x_id: "8", handle: "bob", name: "Bob")
     at = Time.zone.local(2026, 11, 10, 9)
     ReplyEvent.create!(person: ada, x_id: "71", target_x_id: "81", direction: "outgoing", source: "x_capture", occurred_at: at, confirmed_at: at)
@@ -57,7 +57,7 @@ class OutreachGrowthTest < ActiveSupport::TestCase
     run = X::SyncRun.create!(dataset: "posts", owner_x_id: "1", request_key: SecureRandom.uuid, mode: "capture", status: "completed", page_limit: 1, upper_bound: Time.current)
     ada = Person.create!(x_id: "7", handle: "ada", name: "Ada")
     cy = Person.create!(x_id: "9", handle: "cy", name: "Cy")
-    [ ada, cy ].each { _1.add_tags!([ "circle" ]) }
+    [ ada, cy ].each { List.tier("circle").add!(_1) }
     travel_to Time.zone.local(2026, 11, 11, 12) do
       ReplyEvent.create!(person: ada, x_id: "71", target_x_id: "81", direction: "outgoing", source: "x_capture", occurred_at: 1.day.ago, confirmed_at: 1.day.ago)
       X::SourcePost.create!(x_id: "91", author_x_id: "9", body: "Shipping today", published_at: 3.hours.ago, x_sync_run: run)

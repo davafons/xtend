@@ -1,7 +1,7 @@
 # Accepts research and changes from an AI assistant through the MCP connector.
 # AI data is research, not evidence: it never creates replies, follow state, progress, or coverage,
 # and it never overwrites X-sourced fields or the owner's edits. From the connector, with the workspace's
-# mcp_apply_changes on, tags, recaps, profile facts, notes, and reminders apply at once and can be undone;
+# mcp_apply_changes on, tags, list places, recaps, profile facts, notes, and reminders apply at once and can be undone;
 # otherwise they wait for the owner to accept them.
 class AI::Intake
   class Invalid < StandardError; end
@@ -36,6 +36,7 @@ class AI::Intake
       profiles: Array.wrap(document["profiles"]).then { |rows| bounded(rows) }.map { |row| profile(row) },
       recaps: Array.wrap(document["recaps"]).then { |rows| bounded(rows) }.map { |row| recap(row) },
       tags: Array.wrap(document["tags"]).then { |rows| bounded(rows, MAX_TAG_ITEMS) }.map { |row| tags(row) },
+      lists: Array.wrap(document["lists"]).then { |rows| bounded(rows, MAX_TAG_ITEMS) }.map { |row| list(row) },
       notes: Array.wrap(document["notes"]).then { |rows| bounded(rows) }.map { |row| note(row) },
       reminders: Array.wrap(document["reminders"]).then { |rows| bounded(rows) }.map { |row| reminder(row) }
     }
@@ -113,6 +114,24 @@ class AI::Intake
     AI::Proposal.transaction do
       AI::Proposal.pending.where(person: person, kind: "tags").destroy_all
       stage(person, "tags", { "tags" => names, "reason" => row["reason"].to_s.strip.first(300).presence }.compact)
+    end
+  end
+
+  # Adds someone to a list the owner made, or puts someone on a tier who isn't on one. Moving people between tiers
+  # and creating lists stay the owner's.
+  def list(row)
+    return rejected("Each list assignment must be an object.") unless row.is_a?(Hash)
+    person = find_person(row)
+    return rejected("Unknown person. Use a person_id or handle Xtend already has.", row["handle"]) unless person
+    list = List.lookup(row["list"])
+    return rejected("Unknown list. Use a list name from get_owner_profile; the owner creates lists.", person.handle) unless list
+    return result("unchanged", person.handle, "They're already on #{list.name}.") if list.memberships.exists?(person: person)
+    if list.tier? && (current = person.tier_list)
+      return rejected("They're on #{current.name}; only the owner moves people between tiers.", person.handle)
+    end
+    AI::Proposal.transaction do
+      AI::Proposal.pending.where(person: person, kind: "list").where("json_extract(payload, '$.list_id') = ?", list.id).destroy_all
+      stage(person, "list", { "list_id" => list.id, "list" => list.name, "reason" => row["reason"].to_s.strip.first(300).presence }.compact)
     end
   end
 

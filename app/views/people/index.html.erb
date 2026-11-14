@@ -1,11 +1,15 @@
 <% content_for :title, "People" %>
 <h1 class="sr-only">People</h1>
+<div class="flex flex-wrap items-center gap-related"><%= people_views :table %></div>
 <%= form_with url: people_path, method: :get, class: "flex flex-wrap items-center gap-related", data: { controller: "auto-submit", turbo_action: "replace" } do %>
   <% if params[:sort].present? %><%= hidden_field_tag :sort, params[:sort] %><% end %>
   <%= lc_input name: "q", value: params[:q], type: :search, size: :sm, placeholder: "Search people and notes", aria: { label: "Search people" }, class: "w-72" %>
   <%= lc_select [["Any follow", ""], ["Mutuals", "mutual"], ["You follow only", "following_only"], ["They follow only", "followers_only"], ["Lost followers", "lost"]], name: "follow", selected: params[:follow], size: :sm, aria: { label: "Follow status" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <%= lc_select [["Any replies", ""], *["Two-way", "You replied only", "They replied only", "No observed replies"].map { |state| [state, state] }], name: "state", selected: params[:state], size: :sm, aria: { label: "Reply state" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <%= lc_select [["Everyone", ""], ["Pinned", "pinned"], ["Kept", "kept"], ["With notes", "notes"], ["Untagged", "untagged"]], name: "filter", selected: params[:filter], size: :sm, aria: { label: "Your markers" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+  <% if @lists.any? %>
+    <%= lc_select [["Any list", ""], *@lists.map { |list| [list.name, list.id] }], name: "list", selected: @list&.id, size: :sm, aria: { label: "List" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+  <% end %>
   <% if @tags.any? %>
     <%= lc_select [["Any tag", ""], *@tags.map { |tag| ["##{tag.name} | #{tag.people_count}", tag.name] }], name: "tag", selected: params[:tag], size: :sm, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% end %>
@@ -76,6 +80,7 @@
                 <td class="w-full max-w-0 max-lg:hidden">
                   <% summary = person.notes.presence || person.description.presence %>
                   <div class="flex min-w-0 items-center gap-related">
+                    <% if (tier = person.tier_list) %><span class="shrink-0"><%= tier_badge tier %></span><% end %>
                     <% person.tags.each do |tag| %><span class="shrink-0"><%= tag_chip tag.name %></span><% end %>
                     <% if summary %><span class="min-w-0 truncate text-small <%= person.notes.present? ? "text-foreground" : "text-muted-foreground" %>" title="<%= summary %>"><%= summary %></span><% end %>
                   </div>

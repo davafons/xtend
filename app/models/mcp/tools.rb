@@ -1,5 +1,5 @@
 # Tools that any MCP client (Grok Bot, Claude, ChatGPT, ...) can call. Reads are bounded and scoped by the owner's sharing
-# choices. Writes go through AI::Intake (tags, recaps, profile facts, notes, reminders), which applies them at once
+# choices. Writes go through AI::Intake (tags, list places, recaps, profile facts, notes, reminders), which applies them at once
 # with an undo when the owner lets AI apply changes and stages them for review otherwise, or save post drafts and
 # unverified reply targets. Every write stays inside Xtend: no tool posts, follows, messages, or runs paid X reads.
 class Mcp::Tools
@@ -28,16 +28,17 @@ class Mcp::Tools
 
   DEFINITIONS = [
     { name: "get_owner_profile", title: "Owner interests and rules",
-      description: "The owner's interests, the daily reply goal, discovery filters, and which private categories they share.",
+      description: "The owner's interests, the daily reply goal, discovery filters, tags, lists (tiers Getting to know → Circle → Inner circle, and custom lists) with reply cadences, and which private categories they share.",
       inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
     { name: "get_session_state", title: "Today's session",
       description: "Progress toward 20 distinct new reply targets, plus post IDs already replied to. Use it to avoid duplicates.",
       inputSchema: { type: "object", properties: {} }, annotations: { readOnlyHint: true } },
     { name: "list_people", title: "List people",
-      description: "Bounded list of people in Xtend with follow state, reply state, tags, pins, keeps, and last observed interaction.",
+      description: "Bounded list of people in Xtend with follow state, reply state, tags, lists, pins, keeps, and last observed interaction.",
       inputSchema: { type: "object", properties: {
         filter: { type: "string", enum: %w[all pinned kept mutual you_follow follows_you replied untagged] },
         tag: { type: "string", description: "Only people with this tag." },
+        list: { type: "string", description: "Only people on this list, by name (Circle, Inner circle, Getting to know, or a custom list)." },
         query: { type: "string", description: "Match name, handle, or bio." },
         limit: { type: "integer", minimum: 1, maximum: 50 }, cursor: { type: "string" } } },
       annotations: { readOnlyHint: true } },
@@ -84,6 +85,20 @@ class Mcp::Tools
           tags: { type: "array", maxItems: 8, items: { type: "string", maxLength: 40 } },
           reason: { type: "string", description: "Short public evidence for the tags, such as the bio or recent posts." }) } } } },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } },
+    { name: "add_to_list", title: "Add to a list",
+      description: "Add up to 50 existing people to the owner's lists: a custom list they made, or a tier (Getting to know, Circle, Inner circle) for someone on no tier yet. Use Getting to know for people the owner has started talking with and Circle for active accounts in their niche they should reply to weekly. Only the owner creates lists and moves people between tiers. #{APPLY_NOTE}",
+      inputSchema: { type: "object", required: %w[assignments], properties: {
+        run_id: { type: "string" },
+        assignments: { type: "array", maxItems: 50, items: { type: "object", required: %w[list], properties: PERSON_REF.merge(
+          list: { type: "string", description: "List name from get_owner_profile." },
+          reason: { type: "string", description: "Short public evidence, such as what they post about or the exchanges seen." }) } } } },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } },
+    { name: "get_tend", title: "Who to tend",
+      description: "People on the owner's lists who are due a reply (past the list's cadence since the owner's last confirmed reply, or never replied), each with their newest unanswered post from the last two days, plus who is coming up. Use it to tell the owner exactly whom to reply to today.",
+      inputSchema: { type: "object", properties: {
+        list: { type: "string", description: "Only this list, by name. Defaults to all lists with a cadence." },
+        limit: { type: "integer", minimum: 1, maximum: 50 } } },
+      annotations: { readOnlyHint: true } },
     { name: "add_note", title: "Add a note",
       description: "Add a short note to a person's private notes in Xtend, such as what they are building or what to ask next time. It is marked as yours and placed below the owner's own notes, which never change. #{APPLY_NOTE}",
       inputSchema: { type: "object", required: %w[text], properties: PERSON_REF.merge(
@@ -121,7 +136,7 @@ class Mcp::Tools
         weeks_ago: { type: "integer", minimum: 0, maximum: Network::Week::MAX_WEEKS_AGO, description: "0 (default) is the seven days ending today." } } },
       annotations: { readOnlyHint: true } },
     { name: "get_growth_plan", title: "Growth plan",
-      description: "The owner's growth plan: follower goal, start, this week's follower and profile-visit checkpoints against what Xtend saw, the week's checklist (ticked from data or by the owner), and their circle (people tagged circle) with who they replied to this week. Use it in weekly reviews to judge progress against the plan; tag new circle people with add_tags.",
+      description: "The owner's growth plan: follower goal, start, this week's follower and profile-visit checkpoints against what Xtend saw, the week's checklist (ticked from data or by the owner), and their circle (people on the Circle and Inner circle tiers) with who they replied to this week. Use it in weekly reviews to judge progress against the plan; add new circle people with add_to_list.",
       inputSchema: { type: "object", properties: {
         week: { type: "integer", minimum: 1, maximum: Outreach::Growth::WEEKS, description: "Plan week; default is the current one." } } },
       annotations: { readOnlyHint: true } },
@@ -185,10 +200,12 @@ class Mcp::Tools
   end
 
   def get_owner_profile(_args)
+    List.ensure_tiers!
     { demo: @demo, handle: X::Connection.current&.username, interests: @workspace.interests,
       session_goal: "Replies on #{Outreach::Session::TARGET} distinct new target posts per session. Follow-ups in existing exchanges do not count.",
       discovery_filters: ["English only", "Posted in the last 7 days", "At most 50 replies", "No crypto, airdrops, engagement bait, follow-for-follow, or pure promotion", "No automated accounts"],
       tags: Tag.by_use.limit(200).map { |tag| { name: tag.name, people: tag.people_count } },
+      lists: List.ordered.includes(:memberships).map { |list| { name: list.name, tier: list.tier, people: list.members_count, capacity: list.capacity, reply_every_days: list.cadence_days, purpose: list.purpose }.compact },
       shared_categories: { notes: @workspace.mcp_share_notes, dm_metadata: @workspace.mcp_share_dms },
       rules: "Reading or proposing never sends anything. The owner replies manually on X." }
   end
@@ -228,7 +245,11 @@ class Mcp::Tools
     else raise Invalid, "Unknown filter."
     end
     people = people.tagged(args["tag"].to_s) if args["tag"].present?
-    page = people.includes(:pin, :follow_protection, :reply_events, :tags).offset(offset).limit(limit + 1).to_a
+    if args["list"].present?
+      list = List.lookup(args["list"]) or raise Invalid, "Unknown list. Use a list name from get_owner_profile."
+      people = people.in_list(list)
+    end
+    page = people.includes(:pin, :follow_protection, :reply_events, :tags, :lists).offset(offset).limit(limit + 1).to_a
     more = page.size > limit
     page = page.first(limit)
     interactions = Person::Interactions.index(page)
@@ -330,6 +351,26 @@ class Mcp::Tools
     assignments = args["assignments"]
     raise Invalid, "assignments must be an array of 1 to 50 items." unless assignments.is_a?(Array) && assignments.size.between?(1, AI::Intake::MAX_TAG_ITEMS)
     intake(args).call("tags" => assignments).slice(:run_id, :tags)
+  end
+
+  def add_to_list(args)
+    assignments = args["assignments"]
+    raise Invalid, "assignments must be an array of 1 to 50 items." unless assignments.is_a?(Array) && assignments.size.between?(1, AI::Intake::MAX_TAG_ITEMS)
+    intake(args).call("lists" => assignments).slice(:run_id, :lists)
+  end
+
+  def get_tend(args)
+    list = args["list"].presence && (List.lookup(args["list"]) or raise Invalid, "Unknown list. Use a list name from get_owner_profile.")
+    tend = Network::Tend.new(list: list)
+    limit = bounded(args["limit"], 25, 50)
+    item = ->(entry) {
+      { handle: entry.person.handle, person_id: entry.person.id, followers: entry.person.followers_count, lists: entry.lists.map(&:name),
+        reply_every_days: entry.cadence_days, last_reply_at: entry.last_reply_at&.iso8601, days_since_reply: entry.days_since,
+        fresh_post: entry.fresh_post && { url: "https://x.com/#{entry.person.handle}/status/#{entry.fresh_post.x_id}",
+          text: CGI.unescapeHTML(entry.fresh_post.body).first(500), published_at: entry.fresh_post.published_at.iso8601, reply_count: entry.fresh_post.reply_count }.compact }.compact
+    }
+    { due: tend.due.first(limit).map(&item), coming_up: tend.upcoming.first(10).map { { handle: _1.person.handle, due_in_days: _1.due_in } },
+      coverage: "Due counts only replies Xtend confirmed; fresh posts are only those collected in the last two days." }
   end
 
   def add_note(args)
@@ -547,6 +588,7 @@ class Mcp::Tools
     latest = interactions.signals.reject { |signal| signal.channel == "dm" && !@workspace.mcp_share_dms }.first
     { id: person.id, handle: person.handle, name: person.name, description: person.description&.first(300),
       followers: person.followers_count, follow_state: person.follow_state(graph), reply_state: person.reply_state, tags: person.tags.map(&:name),
+      lists: person.lists.map(&:name),
       pinned: person.pin.present?, keep_following: person.follow_protection.present?,
       last_interaction: latest && { channel: latest.channel, direction: latest.direction, at: latest.at.iso8601, approximate: latest.approximate? } }
   end

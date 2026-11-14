@@ -1,0 +1,81 @@
+<% content_for :title, "Tend" %>
+<h1 class="sr-only">Tend</h1>
+<% due = @tend.due %>
+<% upcoming = @tend.upcoming %>
+<div class="flex flex-col gap-inset">
+  <div class="flex flex-wrap items-center gap-related">
+    <%= people_views :tend %>
+    <% if @lists.any? %>
+      <%= form_with url: people_tend_path, method: :get, class: "ms-auto", data: { controller: "auto-submit", turbo_action: "replace" } do %>
+        <%= lc_select [ [ "All lists", "" ], *@lists.map { |list| [ "#{list.name} · every #{pluralize(list.cadence_days, 'day')}", list.id ] } ], name: "list", selected: @list&.id, size: :sm, aria: { label: "List" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if @tend.items.empty? %>
+    <%= lc_empty_state title: "Nobody to tend yet.", text: "Put people on your Circle or Inner circle, or give a list a reply cadence, and they show up here when they're due.", icon: "chat-bubble-left-right", card: true do %>
+      <%= lc_button_link_to "Open lists", lists_path, variant: :secondary, icon: "user-group" %>
+    <% end %>
+  <% else %>
+    <%= lc_card padding: :none, class: "overflow-hidden" do %>
+      <div class="flex items-baseline justify-between gap-related px-inset pt-content">
+        <h2 class="<%= lc_text_class(size: :label) %>">Due now</h2>
+        <span class="text-small text-muted-foreground"><%= pluralize(due.size, "person", plural: "people") %> · <%= due.count(&:fresh_post) %> with a post to reply to</span>
+      </div>
+      <% if due.empty? %>
+        <p class="px-inset pb-content text-small text-muted-foreground">You're caught up. Everyone here had a reply from you within their cadence.</p>
+      <% else %>
+        <ul class="flex flex-col divide-y divide-border">
+          <% due.each do |item| %>
+            <% person = item.person %>
+            <li class="flex items-start gap-content px-inset py-content">
+              <%= link_to person_avatar(person, ring: person.follow_state), person, tabindex: -1, aria: { hidden: true } %>
+              <div class="flex min-w-0 grow flex-col gap-tight">
+                <p class="flex flex-wrap items-center gap-x-related gap-y-tight text-small">
+                  <%= person_link person, class: "font-semibold hover:underline" %>
+                  <span class="text-muted-foreground">@<%= person.handle %><% if person.followers_count %> · <%= compact_count person.followers_count %><% end %></span>
+                  <% item.lists.each do |list| %><%= list.tier? ? tier_badge(list) : lc_badge(list.name, shape: :pill, class: "bg-tile text-muted-foreground") %><% end %>
+                </p>
+                <% if item.fresh_post %>
+                  <%= link_to "https://x.com/i/status/#{item.fresh_post.x_id}", target: "_blank", rel: "noopener noreferrer", class: "block max-w-prose rounded-xl bg-tile px-related py-tight text-small hover:text-primary", title: "Reply on X" do %>
+                    <span class="line-clamp-3"><%= CGI.unescapeHTML(item.fresh_post.body).squish %></span>
+                    <span class="mt-tight block text-caption text-muted-foreground"><%= time_ago_in_words item.fresh_post.published_at %> ago<% if item.fresh_post.reply_count %> · <%= pluralize(item.fresh_post.reply_count, "reply") %><% end %></span>
+                  <% end %>
+                <% else %>
+                  <p class="text-caption text-muted-foreground">No new post collected in the last two days. Check their profile for something to reply to.</p>
+                <% end %>
+                <% if person.notes.present? %><p class="line-clamp-1 text-caption"><span class="text-muted-foreground">Notes: </span><%= person.notes %></p><% end %>
+              </div>
+              <div class="flex shrink-0 flex-col items-end gap-related">
+                <span class="text-caption <%= item.last_reply_at ? 'text-warning' : 'text-muted-foreground' %>" title="<%= item.last_reply_at ? "Your last reply: #{item.last_reply_at.strftime('%-d %b')}" : 'No reply from you seen' %>"><%= due_label item %></span>
+                <% if item.fresh_post %>
+                  <%= lc_button_link_to "Reply on X", "https://x.com/i/status/#{item.fresh_post.x_id}", size: :sm, icon: "arrow-top-right-on-square", icon_position: :end, target: "_blank", rel: "noopener noreferrer" %>
+                <% else %>
+                  <%= lc_button_link_to "Profile", person.profile_url, size: :sm, variant: :secondary, icon: "arrow-top-right-on-square", icon_position: :end, target: "_blank", rel: "noopener noreferrer" %>
+                <% end %>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    <% end %>
+
+    <% if upcoming.any? %>
+      <%= lc_card do %>
+        <div class="flex flex-col gap-content">
+          <h2 class="<%= lc_text_class(size: :label) %>">Coming up</h2>
+          <ul class="grid gap-x-inset gap-y-related md:grid-cols-2 xl:grid-cols-3">
+            <% upcoming.each do |item| %>
+              <li class="flex items-center gap-related">
+                <%= link_to person_avatar(item.person, size: :sm), item.person, tabindex: -1, aria: { hidden: true } %>
+                <span class="min-w-0 grow truncate text-small"><%= person_link item.person %></span>
+                <span class="shrink-0 text-caption text-muted-foreground"><%= due_label item %></span>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    <% end %>
+    <p class="text-caption text-muted-foreground">Due counts days since your last confirmed reply to them. Replies Xtend hasn't seen yet don't count, so a fresh capture or mentions check can clear people from here.</p>
+  <% end %>
+</div>

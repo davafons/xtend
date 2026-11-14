@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_150000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -160,6 +160,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_140000) do
     t.index ["person_id", "first_snapshot_id"], name: "index_follower_periods_on_person_id_and_first_snapshot_id", unique: true
     t.index ["person_id"], name: "one_open_follow_period_per_person", unique: true, where: "ended_by IS NULL"
     t.index ["workspace_id"], name: "index_follower_periods_on_workspace_id"
+  end
+
+  create_table "list_memberships", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "list_id", null: false
+    t.integer "person_id", null: false
+    t.string "source", default: "owner", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["list_id", "person_id"], name: "index_list_memberships_on_list_id_and_person_id", unique: true
+    t.index ["person_id"], name: "index_list_memberships_on_person_id"
+    t.index ["workspace_id"], name: "index_list_memberships_on_workspace_id"
+  end
+
+  create_table "lists", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.string "name", null: false
+    t.string "tier"
+    t.integer "cadence_days"
+    t.integer "capacity"
+    t.text "purpose"
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["workspace_id", "name"], name: "index_lists_on_workspace_id_and_name", unique: true
+    t.index ["workspace_id", "tier"], name: "index_lists_on_workspace_id_and_tier", unique: true, where: "tier IS NOT NULL"
   end
 
   create_table "oauth_authorization_codes", force: :cascade do |t|

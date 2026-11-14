@@ -13,6 +13,8 @@ class Person < ApplicationRecord
   has_many :person_tags, dependent: :destroy
   has_many :reminders, -> { order(:due_on, :id) }, dependent: :destroy
   has_many :tags, -> { order(:name) }, through: :person_tags
+  has_many :list_memberships, dependent: :destroy
+  has_many :lists, -> { ordered }, through: :list_memberships
 
   before_validation { self.handle = handle.to_s.delete_prefix("@").downcase.strip }
   validates :handle, presence: true, uniqueness: { scope: :workspace_id }, format: { with: /\A[a-z0-9_]{1,15}\z/ }
@@ -23,6 +25,7 @@ class Person < ApplicationRecord
   scope :alphabetical, -> { order(:name) }
   scope :pinned, -> { joins(:pin) }
   scope :tagged, ->(name) { where(id: PersonTag.joins(:tag).where(tags: { name: Tag.normalize(name) }).select(:person_id)) }
+  scope :in_list, ->(list) { where(id: ListMembership.where(list: list).select(:person_id)) }
   scope :untagged, -> { where.not(id: PersonTag.select(:person_id)) }
   # People you exchanged a reply or a DM with in a time range, in either direction.
   scope :talked_between, ->(range) {
@@ -107,6 +110,15 @@ class Person < ApplicationRecord
     else
       "No observed replies"
     end
+  end
+
+  # The ladder rung they're on (Getting to know, Circle, Inner circle), or nil.
+  def tier_list
+    lists.loaded? ? lists.find(&:tier?) : lists.where.not(tier: nil).first
+  end
+
+  def custom_lists
+    lists.loaded? ? lists.reject(&:tier?) : lists.where(tier: nil)
   end
 
   def follow_state(graph = Follow::Graph.latest)

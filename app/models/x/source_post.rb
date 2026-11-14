@@ -5,6 +5,21 @@ class X::SourcePost < ApplicationRecord
   # Posts read from the X API. Captured and archived posts never queue paid lookups.
   scope :collected, -> { joins(:x_sync_run).where(x_sync_runs: { mode: %w[backfill refresh] }) }
 
+  # Each author's newest top-level post since a time that the owner hasn't replied to: { author_x_id => post }.
+  def self.fresh_unanswered(author_x_ids, since: 48.hours.ago)
+    answered = ReplyEvent.where(direction: "outgoing").select(:target_x_id)
+    where(author_x_id: author_x_ids.compact, repost: false, reply_to_x_id: nil, published_at: since..)
+      .where.not(x_id: answered).order(published_at: :desc).group_by(&:author_x_id).transform_values(&:first)
+  end
+
+  # Each author's newest top-level post ever collected: { author_x_id => post }.
+  def self.latest_by(author_x_ids)
+    newest = where(author_x_id: author_x_ids.compact, repost: false, reply_to_x_id: nil).group(:author_x_id).maximum(:published_at)
+    return {} if newest.empty?
+    where(author_x_id: newest.keys, published_at: newest.values, repost: false, reply_to_x_id: nil)
+      .select { newest[_1.author_x_id] == _1.published_at }.index_by(&:author_x_id)
+  end
+
   COUNTS = %i[like_count repost_count quote_count bookmark_count view_count].freeze
 
   # details come from browser captures: counts, media, links, and quote/repost ids. Counts only move forward in

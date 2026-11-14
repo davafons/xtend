@@ -1,0 +1,30 @@
+<%# Where this person sits: their tier on the ladder and any custom lists. %>
+<%# locals: (person:) %>
+<% custom = person.custom_lists.to_a %>
+<% others = List.custom.where.not(id: custom.map(&:id)).to_a %>
+<%= lc_card padding: :sm do %>
+  <div class="flex flex-col gap-related">
+    <h2 class="flex items-center justify-between text-small text-muted-foreground">
+      Lists
+      <%= link_to "Manage", lists_path, class: "text-caption text-primary hover:underline" %>
+    </h2>
+    <%= tier_buttons person %>
+    <% if custom.any? %>
+      <div class="flex flex-wrap gap-tight">
+        <% custom.each do |list| %>
+          <%= lc_badge shape: :pill, class: "bg-tile text-foreground" do %>
+            <%= link_to list.name, list, class: "hover:underline" %>
+            <%= button_to list_membership_path(list, person), method: :delete, form: { class: "contents" }, class: "ms-tight inline-flex text-muted-foreground hover:text-foreground", aria: { label: "Remove from #{list.name}" } do %><%= lc_icon "x-mark", options: { class: "size-3", "aria-hidden": true } %><% end %>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+    <% if others.any? %>
+      <%= form_with url: list_memberships_path(others.first), method: :post, class: "flex items-center gap-tight", data: { controller: "list-picker" } do %>
+        <%= hidden_field_tag :person_id, person.id %>
+        <%= lc_select others.map { |list| [ list.name, list_memberships_path(list) ] }, name: "_list", size: :sm, aria: { label: "Add to a list" }, class: "grow", data: { action: "list-picker#pick" } %>
+        <%= lc_button "Add", type: :submit, size: :sm, variant: :secondary %>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

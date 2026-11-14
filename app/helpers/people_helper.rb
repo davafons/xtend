@@ -1,5 +1,5 @@
 module PeopleHelper
-  FILTER_KEYS = %i[q state follow filter tag from to sort].freeze
+  FILTER_KEYS = %i[q state follow filter tag list from to sort].freeze
 
   def people_filter_params(**changes)
     params.permit(*FILTER_KEYS).to_h.symbolize_keys.merge(changes).compact_blank
@@ -80,6 +80,42 @@ module PeopleHelper
     lc_hovercard(src: person_card_path(person), class: options.delete(:wrapper_class)) do |card|
       attributes = options.merge(data: (options[:data] || {}).merge(card[:data]))
       block ? link_to(person, **attributes, &block) : link_to(name || person.name, person, **attributes)
+    end
+  end
+
+  # The ways to look at your people: the table, who's due, the board, and your lists.
+  def people_views(current)
+    view_tabs "People views", [
+      [ "All people", people_path, current == :table ],
+      [ "Tend", people_tend_path, current == :tend ],
+      [ "Board", people_board_path, current == :board ],
+      [ "Lists", lists_path, current == :lists ]
+    ]
+  end
+
+  def tier_badge(list)
+    return unless list&.tier?
+    lc_badge(list.name, shape: :pill, class: list.tier == "getting_to_know" ? "bg-tile text-muted-foreground" : "bg-primary/15 text-primary")
+  end
+
+  # "Due 4 days ago", "Due today", "In 3 days", or "Never replied".
+  def due_label(item)
+    return "Never replied" unless item.last_reply_at
+    return "In #{pluralize(item.due_in, 'day')}" unless item.due?
+    overdue = item.days_since - item.cadence_days
+    overdue.zero? ? "Due today" : "#{pluralize(overdue, 'day')} overdue"
+  end
+
+  # Buttons to place a person on a tier: the current one is pressed and takes them off it; the others move them there.
+  def tier_buttons(person, size: :sm)
+    current = person.tier_list
+    tag.div(class: "flex flex-wrap gap-tight", role: "group", aria: { label: "Tier for #{person.name}" }) do
+      safe_join((@_tiers ||= List.tiers.to_a).reverse.map do |list|
+        on = current&.id == list.id
+        button_to(list.name, on ? list_membership_path(list, person) : list_memberships_path(list),
+          method: on ? :delete : :post, params: (on ? {} : { person_id: person.id }), form: { class: "contents" },
+          class: lc_toggle_class(active: on, size: size), aria: { pressed: on }, title: on ? "Take them off #{list.name}" : "Move them to #{list.name}")
+      end)
     end
   end
 end

@@ -3,14 +3,13 @@
 # post a day with a story or a build update twice a week, and a weekly look at X analytics.
 #
 # Each week has follower and profile-visit checkpoints and a checklist. Xtend ticks what it can see (replies, replies
-# to your circle, your posts, X analytics opened, circle people pinned); you tick the rest. Followers come from the
+# to your circle, your posts, X analytics opened, your inner circle filled); you tick the rest. Followers come from the
 # newest count Xtend has by each week's end (X's own count on your profile, X analytics, or a complete follower
 # check), and visits from X analytics, so a week without them shows as missing, not zero.
 class Outreach::Growth
   WEEKS = 16
   DEFAULT_GOAL = 1_000
-  CIRCLE_TAG = "circle"
-  CIRCLE_PINS = 10
+  INNER_CIRCLE = List::TIERS.dig("inner", :capacity)
   # Share of the way from start to goal by the end of a week: slow at first, faster as replies compound.
   CURVE = { 0 => 0.0, 1 => 0.012, 2 => 0.036, 4 => 0.108, 8 => 0.337, 12 => 0.639, 16 => 1.0 }.freeze
   # Profile visits to aim for in a week, from X analytics.
@@ -26,8 +25,8 @@ class Outreach::Growth
   SETUP = {
     "profile" => [ "Your bio says what you build and for whom", "Your profile is the landing page every good reply sends people to.", :manual ],
     "pinned_post" => [ "A story post pinned on your profile", "Visitors decide in seconds; a story with a number tells them why to follow.", :manual ],
-    "pins" => [ "Your top #{CIRCLE_PINS} circle people pinned in Xtend", "Their fresh posts then lead Outreach's Reply now.", :auto ],
-    "notifications" => [ "X notifications on for those #{CIRCLE_PINS}", "Replies in a post's first hour are the ones that get seen.", :manual ]
+    "inner" => [ "Your inner circle filled (#{INNER_CIRCLE} people)", "Their fresh posts then lead Outreach's Reply now and Tend.", :auto ],
+    "notifications" => [ "X notifications on for your inner circle", "Replies in a post's first hour are the ones that get seen.", :manual ]
   }.freeze
   WEEKLY = {
     "replies" => [ "#{REPLIES} replies (#{Outreach::Session::TARGET} a day, five days)", "Below 1,000 followers, replies are most of the work.", :auto ],
@@ -98,13 +97,13 @@ class Outreach::Growth
     to_circle = replies.where(person_id: circle.select(:id)).count
     posts = own_posts(range)
     opened = analytics_opened?(range)
-    pinned = circle.where(id: Pin.select(:person_id)).count
+    inner = Person.in_list(List.tier("inner")).count
     {
       "replies" => [ total >= REPLIES, "#{total} of #{REPLIES}" ],
       "circle" => [ total.positive? && to_circle >= total * CIRCLE_SHARE, total.positive? ? "#{to_circle} of #{total} (#{(to_circle * 100.0 / total).round}%)" : "No replies yet" ],
       "posts" => [ posts >= POSTS, "#{posts} of #{POSTS}" ],
       "analytics" => [ opened, opened ? "Collected this week" : "Not this week" ],
-      "pins" => [ pinned >= CIRCLE_PINS, "#{pinned} of #{CIRCLE_PINS} pinned" ]
+      "inner" => [ inner >= INNER_CIRCLE, "#{inner} of #{INNER_CIRCLE}" ]
     }
   end
 
@@ -126,17 +125,15 @@ class Outreach::Growth
 
   def circle_members(number = [ current_week, 1 ].max)
     range = week_range(number)
-    people = circle.includes(:pin, :tags).to_a
+    people = circle.includes(:pin, :tags, :lists).to_a
     replied = ReplyEvent.where(direction: "outgoing", person_id: people.map(&:id), occurred_at: range).distinct.pluck(:person_id).to_set
     last = ReplyEvent.where(direction: "outgoing", person_id: people.map(&:id)).group(:person_id).maximum(:occurred_at)
-    answered = ReplyEvent.where(direction: "outgoing").select(:target_x_id)
-    fresh = X::SourcePost.where(author_x_id: people.map(&:x_id).compact, repost: false, reply_to_x_id: nil, published_at: 48.hours.ago..)
-      .where.not(x_id: answered).order(published_at: :desc).group_by(&:author_x_id).transform_values(&:first)
+    fresh = X::SourcePost.fresh_unanswered(people.map(&:x_id))
     people.map { CircleMember.new(_1, replied.include?(_1.id), last[_1.id], fresh[_1.x_id]) }
-      .sort_by { [ _1.replied_this_week ? 1 : 0, _1.fresh_post ? 0 : 1, _1.person.pin ? 0 : 1, _1.person.name.downcase ] }
+      .sort_by { [ _1.replied_this_week ? 1 : 0, _1.fresh_post ? 0 : 1, _1.person.tier_list&.tier == "inner" ? 0 : 1, _1.person.name.downcase ] }
   end
 
-  def circle = Person.tagged(CIRCLE_TAG)
+  def circle = List.circle_people
 
   private
 

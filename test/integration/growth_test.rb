@@ -17,7 +17,7 @@ class GrowthTest < ActionDispatch::IntegrationTest
     assert_equal 170, Current.workspace.growth_start_followers
 
     ada = Person.create!(x_id: "7", handle: "ada", name: "Ada")
-    ada.add_tags!([ "circle" ])
+    List.tier("circle").add!(ada)
     get growth_path
     assert_response :success
     assert_select "h2", text: /Week 1 of 16/

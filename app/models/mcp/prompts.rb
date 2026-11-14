@@ -58,7 +58,7 @@ class Mcp::Prompts
         1. get_week_review (weeks_ago 0, and 1 to compare), get_x_analytics with period 30d, and get_growth_plan.
         2. Explain what worked and what didn't: which replies brought profile visits or follows, to whom, and when; how the week
            compares with the one before; and, if a growth plan is running, where the owner stands against this week's checkpoint
-           and checklist and which circle people they haven't replied to. Use only the numbers returned, and say when coverage is partial.
+           and checklist and which circle people they haven't replied to (get_tend lists who is due on every list). Use only the numbers returned, and say when coverage is partial.
         3. For people who've gone quiet or have replies waiting, get_person_context, then set_reminder for the ones worth
            reconnecting with, with a concrete reason, spread over the next week.
         4. Suggest 3 changes for next week (who to reply to, when, what to post), grounded in the numbers.
@@ -94,10 +94,27 @@ class Mcp::Prompts
       description: "Find fresh public posts worth a reply and add them to Outreach.",
       text: <<~TEXT
         Find posts the owner could reply to today.
+        0. get_tend first: people on their lists who are due, with a fresh post, are the best replies of the day. List them
+           with the post URL before searching further.
         1. get_session_state and list_known_posts to skip what they have already seen or answered, get_owner_profile for their
            interests and discovery filters, and get_x_analytics for the account sizes their replies pay off with.
         2. Search public X for English posts from the last two days with few replies where they could add something useful.
         3. propose_candidate_posts with real URLs, the text as observed, and one concrete reason each.
+      TEXT
+    },
+    "build_circle" => {
+      title: "Build your circle",
+      description: "Find the people in your niche worth tending and put them on your lists.",
+      text: <<~TEXT
+        Fill the owner's lists with people worth building real connections with.
+        1. get_owner_profile for their interests and lists, get_x_analytics for the account sizes their replies pay off with,
+           and list_people with list Circle, Inner circle, and Getting to know to see who is already there.
+        2. Find candidates from evidence: list_people filter replied (two-way exchanges first), get_network for people their
+           people talk to, and list_network_posts (who seen, period 7d) for active accounts in their niche with real posts,
+           mostly 500 to 20K followers. Skip follow-for-follow, "let's connect" and engagement-bait accounts.
+        3. add_to_list: Getting to know for people they've exchanged replies with, Circle for active niche accounts they
+           should reply to weekly (aim for 30 to 50 in Circle), and fitting custom lists. Give each a short evidence reason.
+        4. Suggest up to 10 Circle people for the Inner circle, with why. Only the owner moves people between tiers.
       TEXT
     }
   }.freeze

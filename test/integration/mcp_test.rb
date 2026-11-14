@@ -286,4 +286,25 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_not Current.workspace.reload.mcp_apply_changes
     assert_equal "staged", tool("add_tags", { "assignments" => [{ "handle" => "builder", "tags" => ["rails"] }] })["structuredContent"]["tags"].first["status"]
   end
+
+  test "AI adds people to lists with an undo, sees who's due, and never moves the owner's tiers" do
+    List.create!(name: "Rails folks")
+    assert_includes tool("get_owner_profile")["structuredContent"]["lists"].map { _1["name"] }, "Rails folks"
+
+    result = tool("add_to_list", "assignments" => [ { "handle" => "builder", "list" => "Circle", "reason" => "posts about Rails" },
+      { "handle" => "builder", "list" => "Rails folks" }, { "handle" => "builder", "list" => "Nope" } ])["structuredContent"]
+    assert_equal %w[applied applied rejected], result["lists"].map { _1["status"] }
+    assert_equal "Circle", @person.reload.tier_list.name
+
+    moved = tool("add_to_list", "assignments" => [ { "handle" => "builder", "list" => "Inner circle" } ])["structuredContent"]
+    assert_equal "rejected", moved["lists"].first["status"]
+
+    due = tool("get_tend")["structuredContent"]
+    assert_equal [ "builder" ], due["due"].map { _1["handle"] }
+    people = tool("list_people", "list" => "circle")["structuredContent"]
+    assert_equal [ "builder" ], people["people"].map { _1["handle"] }
+
+    AI::Proposal.where(kind: "list").find_each(&:undo!)
+    assert_empty @person.reload.lists
+  end
 end

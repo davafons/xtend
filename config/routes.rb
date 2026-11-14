@@ -3,6 +3,13 @@ Rails.application.routes.draw do
   root "people#index"
 
   # Core
+  namespace :people do
+    resource :tend, only: :show
+    resource :board, only: :show
+  end
+  resources :lists, except: %i[ new edit ] do
+    resources :memberships, only: [ :create, :destroy ], controller: "list_memberships"
+  end
   resources :people, only: [ :index, :show, :new, :create, :update ] do
     resource :pin, only: [ :create, :destroy ]
     resource :follow_protection, only: [ :create, :destroy ], controller: "follow/protections"

@@ -9,14 +9,15 @@ class Network::Graph
   OUTSIDE_MIN_PEOPLE = 2
   OUTSIDE_LIMIT = 150
 
-  attr_reader :period, :scope, :kinds, :tag, :include_owner, :outside
+  attr_reader :period, :scope, :kinds, :tag, :list, :include_owner, :outside
 
-  def initialize(period: "90d", scope: "all", kinds: X::Interaction::KINDS, tag: nil, include_owner: true, outside: false)
+  def initialize(period: "90d", scope: "all", kinds: X::Interaction::KINDS, tag: nil, list: nil, include_owner: true, outside: false)
     @period = PERIODS.key?(period) ? period : "90d"
     @scope = SCOPES.key?(scope) ? scope : "all"
     @kinds = Array(kinds).map(&:to_s) & KINDS
     @kinds = X::Interaction::KINDS.dup if @kinds.empty?
     @tag = tag.presence
+    @list = List.find_by(id: list) if list.present?
     @include_owner = include_owner
     @outside = outside
     @owner = Current.workspace.owner_x_id.to_s
@@ -69,6 +70,7 @@ class Network::Graph
   def scoped_people
     people = Person.where.not(x_id: nil).includes(:tags, :pin)
     people = people.tagged(tag) if tag
+    people = people.in_list(list) if list
     graph = Follow::Graph.latest
     following = graph.following_ids_query
     followers = graph.follower_ids_query

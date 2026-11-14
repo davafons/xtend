@@ -59,7 +59,7 @@
                   <%= lc_copy_button "Copy", value: "#{request.base_url}/mcp", variant: :ghost, size: :sm, aria: { label: "Copy the MCP address" } %>
                 </div>
               <% when :growth %>
-                <p>Set a follower goal on <%= link.("Growth", growth_path) %>, and tag the people you most want to be seen by <%= tag_chip Outreach::Growth::CIRCLE_TAG %>.</p>
+                <p>Set a follower goal on <%= link.("Growth", growth_path) %>, and add the people you most want to be seen by to your <%= link.("Circle", lists_path) %>.</p>
               <% end %>
             </div>
           </div>

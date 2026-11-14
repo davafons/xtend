@@ -1,0 +1,54 @@
+<% content_for :title, "Board" %>
+<h1 class="sr-only">Board</h1>
+<% graph = Follow::Graph.latest %>
+<div class="flex flex-col gap-inset">
+  <div class="flex flex-wrap items-center gap-related">
+    <%= people_views :board %>
+    <p class="ms-auto text-caption text-muted-foreground">From replies Xtend has seen. Move people up when the conversation is real.</p>
+  </div>
+
+  <div class="overflow-x-auto pb-related" tabindex="0" role="region" aria-label="Relationship board">
+    <div class="grid min-w-[64rem] grid-cols-5 items-start gap-content">
+      <% @columns.each do |column| %>
+        <section aria-labelledby="column-<%= column.key %>" class="flex flex-col gap-related rounded-2xl bg-tile p-related">
+          <header class="flex flex-col gap-tight px-tight">
+            <h2 id="column-<%= column.key %>" class="flex items-baseline justify-between gap-related text-label">
+              <%= column.label %>
+              <span class="text-small tabular-nums text-muted-foreground"><%= column.total %></span>
+            </h2>
+            <p class="text-caption text-muted-foreground"><%= column.description %></p>
+          </header>
+          <% if column.people.empty? %>
+            <p class="px-tight py-related text-caption text-muted-foreground">Nobody here.</p>
+          <% end %>
+          <% column.people.each do |person| %>
+            <%= lc_card padding: :sm, class: "gap-related" do %>
+              <div class="flex items-center gap-related">
+                <%= link_to person_avatar(person, size: :sm, ring: person.follow_state(graph)), person, tabindex: -1, aria: { hidden: true } %>
+                <div class="min-w-0 grow">
+                  <p class="flex items-center gap-tight">
+                    <%= person_link person, class: "truncate text-small font-semibold hover:underline" %>
+                    <% if person.tier_list&.tier == "inner" %><%= lc_icon "star", variant: :solid, options: { class: "size-3.5 shrink-0 text-primary", "aria-label": "Inner circle" } %><% end %>
+                  </p>
+                  <p class="truncate text-caption text-muted-foreground">
+                    <% if person.reply_events.any? %><span class="text-you"><%= person.outgoing_count %></span>/<%= person.incoming_count %> · <%= relative_day person.last_interaction_at %><% else %>@<%= person.handle %><% end %>
+                  </p>
+                </div>
+                <% if column.next_list %>
+                  <%= lc_icon_button_to "Move #{person.name} to #{column.next_list.name}", list_memberships_path(column.next_list), params: { person_id: person.id }, icon: "arrow-right", size: :sm, title: "To #{column.next_list.name}" %>
+                <% end %>
+              </div>
+            <% end %>
+          <% end %>
+          <% if column.total > column.people.size %>
+            <% more = { "replied" => people_path(state: "You replied only"), "two_way" => people_path(state: "Two-way"),
+              "getting_to_know" => list_path(List.tier("getting_to_know")), "circle" => list_path(List.tier("circle")) }[column.key] %>
+            <p class="px-tight text-caption text-muted-foreground">
+              <%= column.total - column.people.size %> more.<% if more %> <%= link_to "See all", more, class: "text-primary hover:underline" %><% end %>
+            </p>
+          <% end %>
+        </section>
+      <% end %>
+    </div>
+  </div>
+</div>

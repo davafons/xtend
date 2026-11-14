@@ -1,0 +1,111 @@
+<% content_for :title, @list.name %>
+<div class="flex flex-col gap-inset">
+  <div class="flex flex-wrap items-center gap-related">
+    <%= people_views :lists %>
+  </div>
+
+  <%= lc_card do %>
+    <div class="flex flex-wrap items-start gap-content">
+      <%= lc_icon_button_link_to "All lists", lists_path, icon: "arrow-left", title: "All lists" %>
+      <div class="min-w-0 grow">
+        <h1 class="flex flex-wrap items-baseline gap-x-related <%= lc_heading_class(size: :heading) %>">
+          <%= @list.name %>
+          <span class="text-small font-normal tabular-nums <%= @list.over_capacity? ? 'text-warning' : 'text-muted-foreground' %>">
+            <%= pluralize(@people.size, "person", plural: "people") %><% if @list.capacity %> of <%= @list.capacity %><% end %><% if @list.cadence_days %> · reply every <%= pluralize(@list.cadence_days, "day") %><% end %>
+          </span>
+        </h1>
+        <% if @list.purpose.present? %><p class="max-w-prose text-small text-muted-foreground"><%= @list.purpose %></p><% end %>
+        <% if @list.over_capacity? %><p class="text-caption text-warning">Over the <%= @list.capacity %> you set. A tier this size is hard to keep up with; move a few people down.</p><% end %>
+      </div>
+      <div class="flex flex-wrap items-center gap-related">
+        <% if @list.cadence_days %><%= lc_button_link_to "Tend", people_tend_path(list: @list.id), variant: :secondary, size: :sm, icon: "chat-bubble-left-right" %><% end %>
+        <%= lc_button_link_to "Network map", network_path(list: @list.id, period: "all"), variant: :secondary, size: :sm, icon: "share" %>
+      </div>
+    </div>
+
+    <%= lc_collapsible title: "Settings", card: false do %>
+      <%= form_with model: @list, class: "flex flex-wrap items-end gap-related" do %>
+        <% unless @list.tier? %>
+          <%= lc_field label: "Name", id: "list-name" do |field| %>
+            <%= lc_input name: "list[name]", value: @list.name, maxlength: List::NAME_LENGTH, required: true, size: :sm, **field %>
+          <% end %>
+        <% end %>
+        <%= lc_field label: "Purpose", id: "list-purpose", class: "grow" do |field| %>
+          <%= lc_input name: "list[purpose]", value: @list.purpose, placeholder: "Why these people, what you want from tending them", size: :sm, **field %>
+        <% end %>
+        <%= lc_field label: "Reply every (days)", id: "list-cadence" do |field| %>
+          <%= lc_input name: "list[cadence_days]", type: "number", value: @list.cadence_days, min: 1, max: 365, placeholder: "None", size: :sm, class: "w-28", **field %>
+        <% end %>
+        <%= lc_field label: "Capacity", id: "list-capacity" do |field| %>
+          <%= lc_input name: "list[capacity]", type: "number", value: @list.capacity, min: 1, max: 1000, placeholder: "None", size: :sm, class: "w-28", **field %>
+        <% end %>
+        <%= lc_button "Save", type: :submit, size: :sm, variant: :secondary %>
+      <% end %>
+      <% unless @list.tier? %>
+        <div class="mt-content">
+          <%= lc_button_to "Delete list", list_path(@list), method: :delete, variant: :ghost, tone: :destructive, size: :sm, icon: "trash", form: { data: { turbo_confirm: "Delete #{@list.name}? The people stay in Xtend." } } %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <%= form_with url: list_memberships_path(@list), class: "flex flex-wrap items-center gap-related" do %>
+      <%= lc_input name: "handle", placeholder: "@handle or x.com profile link", size: :sm, required: true, aria: { label: "Add someone by X handle" }, class: "w-72" %>
+      <%= lc_button "Add", type: :submit, size: :sm, variant: :secondary, icon: "plus" %>
+      <p class="text-caption text-muted-foreground">Or add people from their page, the board, or Move up suggestions.</p>
+    <% end %>
+  <% end %>
+
+  <% if @people.empty? %>
+    <%= lc_empty_state title: "Nobody on #{@list.name} yet.", text: (@list.tier? ? List::TIERS.dig(@list.tier, :purpose) : "Add people by handle above, or from their page."), icon: "user-group", card: true %>
+  <% else %>
+    <div class="grid gap-content md:grid-cols-2 xl:grid-cols-3">
+      <% @people.each do |person| %>
+        <% item = @tend&.dig(person.id) %>
+        <% post = @latest[person.x_id] %>
+        <%= lc_card padding: :sm do %>
+          <div class="flex items-start gap-related">
+            <%= link_to person_avatar(person, ring: person.follow_state(@graph)), person, tabindex: -1, aria: { hidden: true } %>
+            <div class="min-w-0 grow">
+              <p class="flex items-center gap-tight">
+                <%= person_link person, class: "truncate text-label font-semibold hover:underline" %>
+                <% unless @list.tier? %><%= tier_badge person.tier_list %><% end %>
+              </p>
+              <p class="truncate text-caption text-muted-foreground">@<%= person.handle %><% if person.followers_count %> · <%= compact_count person.followers_count %> followers<% end %></p>
+            </div>
+            <%= lc_icon_button_link_to "Open @#{person.handle} on X", person.profile_url, icon: "arrow-top-right-on-square", size: :sm, target: "_blank", rel: "noopener noreferrer", title: "Open on X" %>
+          </div>
+
+          <p class="text-caption text-muted-foreground">
+            <% if item %><span class="<%= item.due? && item.last_reply_at ? 'text-warning' : '' %>"><%= due_label item %></span> · <% end %>
+            <% if person.reply_events.any? %>
+              <span class="text-you"><%= person.outgoing_count %></span> from you · <%= person.incoming_count %> from them · last <%= relative_day person.last_interaction_at %>
+            <% else %>
+              No replies seen yet
+            <% end %>
+          </p>
+
+          <% if item&.fresh_post || post %>
+            <% shown = item&.fresh_post || post %>
+            <%= link_to "https://x.com/i/status/#{shown.x_id}", target: "_blank", rel: "noopener noreferrer", class: "block rounded-xl bg-tile px-related py-tight text-small hover:text-primary", title: "Open on X" do %>
+              <span class="line-clamp-3"><%= CGI.unescapeHTML(shown.body).squish %></span>
+              <span class="mt-tight block text-caption text-muted-foreground"><%= item&.fresh_post ? "New, not replied to" : "Latest post" %> · <%= time_ago_in_words shown.published_at %> ago</span>
+            <% end %>
+          <% end %>
+
+          <% if person.notes.present? %><p class="line-clamp-2 text-small"><span class="text-muted-foreground">Notes: </span><%= person.notes %></p><% end %>
+          <% if person.tags.any? %>
+            <div class="flex flex-wrap gap-tight"><% person.tags.first(4).each do |tag| %><%= tag_chip tag.name %><% end %></div>
+          <% end %>
+
+          <div class="mt-auto">
+            <% if @list.tier? %>
+              <%= tier_buttons person %>
+            <% else %>
+              <%= lc_button_to "Remove", list_membership_path(@list, person), method: :delete, variant: :ghost, size: :sm, icon: "x-mark" %>
+            <% end %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

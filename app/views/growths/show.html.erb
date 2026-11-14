@@ -8,7 +8,7 @@
     <div class="flex max-w-prose flex-col gap-content">
       <h2 class="<%= lc_text_class(size: :label) %>">Start a growth plan</h2>
       <p class="text-small">
-        <%= Outreach::Growth::WEEKS %> weeks, reply first. Below 1,000 followers, most new followers come from good, early replies to a circle of accounts in your niche, so the plan is mostly that: replies to your <%= tag_chip Outreach::Growth::CIRCLE_TAG %> people, answering everyone who replies, one post a day with a story or a build update each week, and a weekly look at X analytics.
+        <%= Outreach::Growth::WEEKS %> weeks, reply first. Below 1,000 followers, most new followers come from good, early replies to a circle of accounts in your niche, so the plan is mostly that: replies to the people in your <%= link_to "circle", lists_path, class: "text-primary hover:underline" %>, answering everyone who replies, one post a day with a story or a build update each week, and a weekly look at X analytics.
       </p>
       <p class="text-small text-muted-foreground">
         Xtend ticks what it can see from your data and marks each week's follower and profile-visit checkpoints. It starts from
@@ -134,7 +134,7 @@
         </h2>
         <% if members.none? %>
           <p class="text-small text-muted-foreground">
-            Tag the 30 to 50 people you want to be seen by <%= tag_chip Outreach::Growth::CIRCLE_TAG %>: active accounts in your niche, about 1K to 20K followers, and mutuals you already talk with. Or ask your AI to find them.
+            Add the 30 to 50 people you want to be seen by to your <%= link_to "Circle and Inner circle", lists_path, class: "text-primary hover:underline" %>: active accounts in your niche, about 1K to 20K followers, and mutuals you already talk with. Or ask your AI to find them.
           </p>
         <% else %>
           <ul class="flex flex-col divide-y divide-border">
@@ -147,7 +147,7 @@
                     <%= link_to person.name, person, class: "font-semibold hover:underline" %>
                     <span class="text-muted-foreground">@<%= person.handle %></span>
                     <% if person.followers_count %><span class="text-caption text-muted-foreground"><%= number_to_human person.followers_count, format: "%n%u", units: { thousand: "K", million: "M" }, precision: 2 %></span><% end %>
-                    <% if person.pin %><%= lc_icon "bookmark", options: { class: "size-3.5 text-primary", "aria-label": "Pinned" } %><% end %>
+                    <% if person.tier_list&.tier == "inner" %><span class="text-caption text-primary">Inner circle</span><% end %>
                   </p>
                   <% if member.fresh_post %>
                     <%= link_to CGI.unescapeHTML(member.fresh_post.body).squish.truncate(140), "https://x.com/i/status/#{member.fresh_post.x_id}", target: "_blank", rel: "noopener noreferrer",

@@ -6,6 +6,9 @@
 <%= form_with url: network_path, method: :get, class: "flex flex-wrap items-center gap-related", data: { controller: "auto-submit", turbo_action: "replace" } do %>
   <%= lc_select Network::Graph::PERIODS.keys.map { |key| [ { "30d" => "Last 30 days", "90d" => "Last 90 days", "1y" => "Last year", "all" => "All time" }.fetch(key), key ] }, name: "period", selected: @graph.period, size: :sm, aria: { label: "Period" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <%= lc_select Network::Graph::SCOPES.map { |key, label| [ label, key ] }, name: "scope", selected: @graph.scope, size: :sm, aria: { label: "Who" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+  <% if @lists.any? %>
+    <%= lc_select [ [ "Any list", "" ], *@lists.map { |list| [ list.name, list.id ] } ], name: "list", selected: @graph.list&.id, size: :sm, aria: { label: "List" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
+  <% end %>
   <% if @tags.any? %>
     <%= lc_select [ [ "Any tag", "" ], *@tags.map { |tag| [ "##{tag.name}", tag.name ] } ], name: "tag", selected: @graph.tag, size: :sm, aria: { label: "Tag" }, data: { action: "auto-submit#submit" }, class: "w-auto field-sizing-content" %>
   <% end %>

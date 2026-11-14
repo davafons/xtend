@@ -1,4 +1,4 @@
-# A change an AI assistant made or proposed for a person: profile facts, a recap, tags, a note, or a reminder.
+# A change an AI assistant made or proposed for a person: profile facts, a recap, tags, a list, a note, or a reminder.
 #
 # With the workspace's "AI applies changes" setting on, a change from the connector applies at once (status
 # "applied") and records in `applied` exactly what it changed, so undo! reverses only that and leaves anything the
@@ -6,9 +6,9 @@
 # Either way it only touches Xtend's own records: nothing here reaches X.
 class AI::Proposal < ApplicationRecord
   include WorkspaceScoped
-  KINDS = %w[profile recap tags note reminder].freeze
+  KINDS = %w[profile recap tags list note reminder].freeze
   STATUSES = %w[pending accepted applied dismissed undone].freeze
-  LABELS = { "profile" => "Profile facts", "recap" => "Recap", "tags" => "Tags", "note" => "Note", "reminder" => "Reminder" }.freeze
+  LABELS = { "profile" => "Profile facts", "recap" => "Recap", "tags" => "Tags", "list" => "List", "note" => "Note", "reminder" => "Reminder" }.freeze
   belongs_to :person
   validates :kind, inclusion: { in: KINDS }
   validates :status, inclusion: { in: STATUSES }
@@ -39,13 +39,15 @@ class AI::Proposal < ApplicationRecord
   end
 
   # Reverses what this change did, as far as it is still there: tags it added, profile fields it filled that still
-  # hold its value, the note text it appended, the reminder it created unless already done.
+  # hold its value, the list place it added, the note text it appended, the reminder it created unless already done.
   def undo!
     raise ArgumentError, "Only an applied or accepted change can be undone." unless undoable?
     transaction do
       case kind
       when "tags"
         person.person_tags.joins(:tag).where(tags: { name: applied["tags"] }, source: "ai").destroy_all
+      when "list"
+        ListMembership.find_by(id: applied["membership_id"], source: "ai")&.destroy!
       when "profile"
         restore = applied.fetch("fields", {}).select { |key, value| person[key].to_s == value.to_s }
         person.update!(restore.transform_values { nil }) if restore.any?
@@ -70,6 +72,8 @@ class AI::Proposal < ApplicationRecord
         { "fields" => fields }
       when "tags"
         { "tags" => person.add_tags!(payload["tags"], source: "ai").map(&:name) }
+      when "list"
+        { "membership_id" => List.find_by(id: payload["list_id"])&.add!(person, source: "ai")&.id }
       when "note"
         text = "AI, #{Date.current.strftime('%-d %b %Y')}: #{payload['text']}"
         person.update!(notes: [ person.notes.presence, text ].compact.join("\n\n"))
