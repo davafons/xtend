@@ -22,4 +22,15 @@ class WeekTest < ActionDispatch::IntegrationTest
     assert_select "p", text: /No X analytics for this week/
     assert_select "p", text: /None of this week's replies have X analytics yet/
   end
+
+  test "Outreach asks for X analytics after a week without them, and stops once they're fresh" do
+    get outreach_path
+    assert_select "#analytics-stale", text: /X analytics not collected yet/
+    X::AccountDay.create!(day: Date.yesterday, observed_at: 8.days.ago, counts: {})
+    get outreach_path
+    assert_select "#analytics-stale", text: /last collected/
+    X::AccountDay.create!(day: Date.current, observed_at: 1.hour.ago, counts: {})
+    get outreach_path
+    assert_select "#analytics-stale", count: 0
+  end
 end

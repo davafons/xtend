@@ -21,6 +21,8 @@ const CONTEXT_MAX_HANDLES = 100;
 // Long enough for x.com's profile responses to reach the queue.
 const SAVE_NOW_DELAY_MS = 1500;
 const contextCache = new Map();
+// Your side of the context: whether now is a busy hour for your audience, and how fresh your X analytics are.
+let accountCache = null;
 let sendTimer = null;
 
 // Storage updates run one at a time so concurrent captures can't overwrite each other's counters.
@@ -91,6 +93,7 @@ function listMessages(result) {
 // x.com tabs drop what they showed and ask again, since a batch can add people, replies, and follow states.
 async function staleContext() {
   contextCache.clear();
+  accountCache = null;
   const xTabs = await chrome.tabs.query({ url: "https://x.com/*" }).catch(() => []);
   for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "context-stale" }).catch(() => {});
 }
@@ -176,6 +179,7 @@ async function context(handles) {
     const chunk = missing.slice(i, i + CONTEXT_MAX_HANDLES);
     const answer = await readContext(chunk);
     if (!answer.ok) return { people, error: answer.error };
+    if (answer.body.you) accountCache = { you: answer.body.you, at: now };
     for (const [handle, answered] of Object.entries(answer.body.people || {})) {
       const person = { ...answered, follow_checked_at: answer.body.follow_checked_at || null };
       contextCache.set(handle, { person, at: now });
@@ -183,6 +187,18 @@ async function context(handles) {
     }
   }
   return { people };
+}
+
+// The account part alone, cached like people. Asking with no handles returns only it.
+async function account() {
+  const current = await settings();
+  if (!current.overlay) return { off: true };
+  if (!current.token) return { error: "not connected" };
+  if (accountCache && Date.now() - accountCache.at < CONTEXT_TTL_MS) return { you: accountCache.you };
+  const answer = await readContext([]);
+  if (!answer.ok) return { error: answer.error };
+  accountCache = { you: answer.body.you, at: Date.now() };
+  return { you: answer.body.you };
 }
 
 async function readContext(handles, retry = true) {
@@ -332,6 +348,11 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (message.type === "context") {
     if (sender.id !== chrome.runtime.id || !sender.tab?.url?.startsWith("https://x.com/") || !Array.isArray(message.handles)) return false;
     context(message.handles).then(reply, () => reply({ error: "failed" }));
+    return true;
+  }
+  if (message.type === "account") {
+    if (sender.id !== chrome.runtime.id || !sender.tab?.url?.startsWith("https://x.com/")) return false;
+    account().then(reply, () => reply({ error: "failed" }));
     return true;
   }
   // Everything else comes from the popup and options page. Content scripts run in x.com's renderer, so they get

@@ -7,7 +7,7 @@
     <div class="flex flex-wrap items-baseline justify-between gap-related">
       <h2 class="<%= lc_text_class(size: :label) %>">From X analytics</h2>
       <% if analytics.any? %>
-        <span class="text-caption text-muted-foreground">As X reported on <%= analytics.observed_at.strftime("%-d %b, %H:%M") %></span>
+        <span class="text-caption <%= X::Analytics.stale? ? 'text-warning' : 'text-muted-foreground' %>">As X reported on <%= analytics.observed_at.strftime("%-d %b, %H:%M") %><% if X::Analytics.stale? %> · <%= link_to "open Analytics on x.com to refresh", X::Analytics::URL, target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline" %><% end %></span>
       <% end %>
     </div>
     <% if !analytics.any? %>

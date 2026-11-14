@@ -1,6 +1,9 @@
 // Shows what Xtend knows about the people x.com puts on screen: a ring in their follow relationship's color around
-// every avatar, a small badge after their handle on posts and in lists, a line in X's own hover card, and a card at the top of the sidebar on a profile. It reads only the handles
-// already on the page and asks the background worker, which asks Xtend; it never changes what X shows or sends.
+// every avatar, a small badge after their handle on posts and in lists, a line in X's own hover card, a card at the
+// top of the sidebar on a profile, and a panel above the reply box with the person you're answering. A line at the top
+// of the sidebar says whether now is a busy hour for your audience and when X analytics need opening again. It reads
+// only the handles already on the page and asks the background worker, which asks Xtend; it never changes what X
+// shows or sends, and never types into the reply box.
 // Everything it adds lives in closed shadow roots, so x.com's styles and scripts can't reach it.
 (() => {
   const SCAN_DELAY_MS = 150;
@@ -24,6 +27,8 @@
     kept: "M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z",
     bell: "M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0",
     open: "M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25",
+    clock: "M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+    chart: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z",
   };
   const SHORT_FOLLOW = {
     Mutual: "Mutual", "You follow": "You follow", "You follow | follow-back unknown": "You follow",
@@ -60,6 +65,15 @@
     .hover { display: flex; flex-direction: column; gap: 6px; margin: 0 16px 14px; padding-top: 10px;
       border-top: 1px solid color-mix(in oklab, currentColor 18%, transparent); font-size: 13px; }
     .hover .notes { -webkit-line-clamp: 2; }
+    .status { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px; border-radius: 16px; font-size: 13px;
+      border: 1px solid color-mix(in oklab, currentColor 18%, transparent); }
+    .status .line { align-items: flex-start; } .status svg { margin-top: 2px; }
+    .good { color: ${COLORS.both}; }
+    .reply { display: flex; flex-direction: column; gap: 6px; margin: 4px 16px 8px; padding: 10px 12px; border-radius: 14px; font-size: 13px;
+      background: color-mix(in oklab, currentColor 6%, transparent); }
+    .reply .notes { -webkit-line-clamp: 3; }
+    .quote { color: ${COLORS.muted}; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .reply a.quote { color: ${COLORS.muted}; font-size: 13px; display: -webkit-box; }
   `;
 
   const people = new Map();
@@ -69,6 +83,11 @@
   let status = { off: false, error: null };
   let scanTimer = null;
   let requesting = false;
+  // Your side: the busy-hour level and X analytics freshness, asked again every few minutes.
+  const ACCOUNT_TTL_MS = 5 * 60 * 1000;
+  let you = null;
+  let youAt = 0;
+  let accountRequesting = false;
 
   // --- reading the page ---
 
@@ -107,18 +126,55 @@
     const header = document.querySelector('[data-testid="primaryColumn"] [data-testid="UserName"]');
     const profile = header && handleIn(header);
     if (profile) found.push({ kind: "card", handle: profile, element: document.documentElement, place: (host) => placeCard(host, header) });
+    for (const area of document.querySelectorAll('[data-testid="tweetTextarea_0_label"]')) {
+      const reply = replyTarget(area);
+      if (reply) found.push({ kind: "reply", handle: reply.handle, element: area, place: (host) => reply.composer.before(host) });
+    }
+    if (document.querySelector('[data-testid="sidebarColumn"]')) found.push({ kind: "status", handle: "", element: document.documentElement, place: placeStatus });
     return found;
+  }
+
+  // Who a reply box answers: the post shown in a reply dialog, or the post on a post page for the inline box. A new
+  // post's composer answers nobody and gets no panel.
+  function replyTarget(area) {
+    const dialog = area.closest('[role="dialog"]');
+    let handle = null;
+    if (dialog) {
+      const name = dialog.querySelector('article [data-testid="User-Name"]');
+      handle = name && handleIn(name);
+    } else if (area.closest('[data-testid="primaryColumn"]')) {
+      handle = /^\/(\w{1,15})\/status\/\d+/.exec(location.pathname)?.[1]?.toLowerCase();
+    }
+    if (!handle || handle === ownHandle()) return null;
+    // The composer row: the closest block that also holds the reply button.
+    let composer = area;
+    while (composer.parentElement && !composer.parentElement.querySelector('[data-testid="tweetButtonInline"], [data-testid="tweetButton"]')) composer = composer.parentElement;
+    composer = composer.parentElement || area;
+    return { handle, composer };
+  }
+
+  // The sidebar module column, under X's search box, or null on a window too narrow for a sidebar.
+  function sidebarAnchor() {
+    const sidebar = document.querySelector('[data-testid="sidebarColumn"]');
+    const module = sidebar?.querySelector("aside, section[role=region]");
+    let block = module;
+    while (block?.parentElement && block.parentElement !== sidebar && block.parentElement.childElementCount < 3) block = block.parentElement;
+    return block && [...block.parentElement.children].find((child) =>
+      !child.dataset.xtendHost && child.textContent.trim() && !child.querySelector("form[role=search]") && getComputedStyle(child).position !== "fixed");
+  }
+
+  function placeStatus(host) {
+    const card = document.querySelector('[data-xtend-host="card"]');
+    if (card) return card.before(host);
+    sidebarAnchor()?.before(host);
   }
 
   // At the top of the sidebar, under X's search box (fixed, with an empty spacer behind it); beside the profile
   // header when the window is too narrow for a sidebar.
   function placeCard(host, header) {
-    const sidebar = document.querySelector('[data-testid="sidebarColumn"]');
-    const module = sidebar?.querySelector("aside, section[role=region]");
-    let block = module;
-    while (block?.parentElement && block.parentElement !== sidebar && block.parentElement.childElementCount < 3) block = block.parentElement;
-    const first = block && [...block.parentElement.children].find((child) =>
-      !child.dataset.xtendHost && child.textContent.trim() && !child.querySelector("form[role=search]") && getComputedStyle(child).position !== "fixed");
+    const status = document.querySelector('[data-xtend-host="status"]');
+    if (status) return status.after(host);
+    const first = sidebarAnchor();
     if (first) first.before(host);
     else header.after(host);
   }
@@ -262,6 +318,57 @@
       person.notes ? el("p", "notes", el("span", "muted", "Your notes: "), person.notes) : null, reminderLine(person));
   }
 
+  const time = (iso) => new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+
+  function link(text, href, className = null) {
+    const node = el("a", className, text);
+    Object.assign(node, { href, target: "_blank", rel: "noopener" });
+    return node;
+  }
+
+  // Busy now or when it gets busier, and a nudge when X analytics haven't been opened in a week. Nothing when
+  // neither applies, so the sidebar stays X's own.
+  function statusLine(you) {
+    if (!you) return null;
+    const lines = [];
+    const timing = you.timing;
+    if (timing?.level === "busy") lines.push(el("div", "line good", svg("clock"), "Your audience is usually busy now. A good hour to reply."));
+    else if (timing) {
+      const later = timing.next_busy_at ? ` Busier from ${time(timing.next_busy_at)}${new Date(timing.next_busy_at).toDateString() !== new Date().toDateString() ? " tomorrow" : ""}.` : "";
+      lines.push(el("div", "line muted", svg("clock"), `${timing.level === "quiet" ? "Usually quiet now." : "A usual hour for your audience."}${later}`));
+    }
+    const analytics = you.analytics;
+    if (analytics?.stale && !location.pathname.startsWith("/i/account_analytics")) {
+      const when = analytics.last_seen_at ? `last collected ${agoLong(analytics.last_seen_at)}` : "not collected yet";
+      lines.push(el("div", "line warning", svg("chart"),
+        el("span", null, `X analytics ${when}. `, link("Open Analytics", analytics.url))));
+    }
+    if (!lines.length) return null;
+    const brand = el("span", "brand", "xtend");
+    return el("div", "status", brand, ...lines);
+  }
+
+  // Above the reply box: where you stand with them, your last exchange, and your notes, so the reply can pick up the
+  // thread. A first reply says so, since that's the one that counts toward a session.
+  function replyPanel(person) {
+    if (!person.known) {
+      return el("div", "reply", el("div", "row", el("span", "brand", "xtend"), el("span", "muted", "Not in Xtend yet · your first reply to them")));
+    }
+    const exchange = person.last_exchange;
+    const first = !person.replies.from_you;
+    const head = el("div", "row", el("span", "brand", "xtend"), followBadge(person), repliesItem(person),
+      first ? el("span", "badge you", "First reply to them") : null,
+      person.pinned ? el("span", "badge you", svg("pin"), "Pinned") : null);
+    let last = null;
+    if (exchange) {
+      const who = exchange.direction === "outgoing" ? el("span", "you", "You") : el("span", "them", person.name || `@${person.handle}`);
+      last = el("div", null, el("div", "line muted", "Last exchange · ", who, ` · ${agoLong(exchange.at)}`),
+        exchange.text ? link(`“${exchange.text}”`, exchange.url, "quote") : null);
+    }
+    return el("div", "reply", head, last, tags(person),
+      person.notes ? el("p", "notes", el("span", "muted", "Your notes: "), person.notes) : null, reminderLine(person));
+  }
+
   // The ring sits on X's own avatar container, following its shape (round for people, rounded square for companies).
   const RING = { both: COLORS.both, you: COLORS.you, them: COLORS.them };
   let viewer;
@@ -303,7 +410,7 @@
     node.dataset.xtendHost = kind;
     node.dataset.handle = handle;
     node.style.cssText = kind === "chip" ? "display:inline-flex;align-items:center;margin-inline-start:6px;flex-shrink:0"
-      : kind === "card" ? "display:block;margin-bottom:16px" : "display:block";
+      : kind === "card" || kind === "status" ? "display:block;margin-bottom:16px" : "display:block";
     const root = node.attachShadow({ mode: "closed" });
     const style = document.createElement("style");
     style.textContent = STYLE;
@@ -320,8 +427,17 @@
       person = { ...person, handle: target.handle };
       if (!saving.has(target.handle)) saveNow(target.handle);
     }
+    if (target.kind === "status") {
+      const content = statusLine(you);
+      if (!content) return;
+      const { node, root } = host("status", "");
+      root.append(content);
+      node.dataset.state = statusState();
+      return target.place(node);
+    }
     const content = target.kind === "chip" ? person?.known && chip(person)
       : target.kind === "hover" ? person && hoverSection(person)
+      : target.kind === "reply" ? person && replyPanel(person)
       : card(person);
     if (!content) return;
     const { node, root } = host(target.kind, target.handle);
@@ -338,6 +454,13 @@
       const person = people.get(target.handle);
       return target.element.dataset.xtendRing === `${target.element.dataset.testid}|${person ? `${person.meaning}:${person.follow}` : "none"}`;
     }
+    if (target.kind === "status") {
+      const existing = document.querySelector('[data-xtend-host="status"]');
+      if (existing?.isConnected && existing.dataset.state === statusState()) return true;
+      if (!existing && !statusLine(you)) return true;
+      existing?.remove();
+      return false;
+    }
     if (target.kind === "card") {
       const existing = document.querySelector('[data-xtend-host="card"]');
       const state = people.has(target.handle) ? `data:${saving.get(target.handle) || ""}` : "error";
@@ -352,13 +475,18 @@
     return false;
   }
 
+  // What the status line shows, so a scan redraws it only when that changes (the hour, or fresh analytics).
+  const statusState = () => you ? JSON.stringify([you.timing, you.analytics?.stale, new Date().getHours(), location.pathname.startsWith("/i/account_analytics")]) : "";
+
   function scan() {
     scanTimer = null;
     if (status.off) return;
+    if (!youAt || Date.now() - youAt > ACCOUNT_TTL_MS) requestAccount();
     const pending = targets().filter((target) => !current(target));
-    const missing = [...new Set(pending.map((target) => target.handle))].filter((handle) => !people.has(handle) && !asked.has(handle));
+    const missing = [...new Set(pending.filter((target) => target.kind !== "status").map((target) => target.handle))]
+      .filter((handle) => !people.has(handle) && !asked.has(handle));
     for (const target of pending) {
-      if (people.has(target.handle) || (target.kind === "card" && status.error)) render(target);
+      if (target.kind === "status" || people.has(target.handle) || (target.kind === "card" && status.error)) render(target);
     }
     if (missing.length && !requesting) request(missing);
   }
@@ -385,6 +513,18 @@
     schedule();
   }
 
+  async function requestAccount() {
+    if (accountRequesting) return;
+    accountRequesting = true;
+    youAt = Date.now();
+    try {
+      const answer = await chrome.runtime.sendMessage({ type: "account" });
+      if (answer?.you) you = answer.you;
+    } catch {}
+    accountRequesting = false;
+    schedule();
+  }
+
   async function saveNow(handle) {
     saving.set(handle, "pending");
     try {
@@ -407,6 +547,7 @@
     if (message?.type !== "context-stale") return;
     people.clear();
     asked.clear();
+    youAt = 0;
     status = { off: false, error: null };
     clear();
     schedule();

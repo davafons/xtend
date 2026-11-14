@@ -1,22 +1,36 @@
-<%# Whether now is one of your audience's busier hours, from X analytics' impressions heatmap. %>
+<%# Whether now is one of your audience's busier hours, from X analytics' impressions heatmap, and a nudge when X
+    analytics haven't been opened for a week, since nothing collects them on its own. %>
 <%# locals: (hours:) -%>
-<% if hours.collected? %>
-  <% level = hours.level %>
-  <% upcoming = hours.next_busy unless level == :busy %>
+<% collected_at = X::Analytics.last_collected_at %>
+<% stale = X::Analytics.stale?(collected_at) %>
+<% if hours.collected? || stale %>
   <%= lc_card do %>
-    <p class="flex items-start gap-related text-small">
-      <%= lc_icon "clock", options: { class: "mt-0.5 size-4 shrink-0 #{level == :busy ? 'text-success' : 'text-muted-foreground'}", "aria-hidden": true } %>
-      <span>
-        <% if level == :busy %>
-          <span class="font-semibold text-success">Your audience is usually busy now.</span> A good hour to reply.
-        <% else %>
-          <span class="font-semibold"><%= level == :quiet ? "Usually quiet now." : "A usual hour for your audience." %></span>
-          <% if upcoming %>Busier from <%= upcoming.strftime("%H:%M") %><%= " tomorrow" if upcoming.to_date != Date.current %>.<% end %>
-        <% end %>
-        <span class="block text-caption text-muted-foreground" title="Average impressions per hour of the week over the four weeks before <%= hours.newest.strftime('%-d %b') %>">
-          From your X analytics heatmap<%= ", last collected #{hours.newest.strftime('%-d %b')}; open Analytics → Audience on x.com to refresh" if hours.stale? %>.
-        </span>
-      </span>
-    </p>
+    <div class="flex flex-col gap-related text-small">
+      <% if hours.collected? %>
+        <% level = hours.level %>
+        <% upcoming = hours.next_busy unless level == :busy %>
+        <p class="flex items-start gap-related">
+          <%= lc_icon "clock", options: { class: "mt-0.5 size-4 shrink-0 #{level == :busy ? 'text-success' : 'text-muted-foreground'}", "aria-hidden": true } %>
+          <span title="Average impressions per hour of the week over the four weeks before <%= hours.newest.strftime('%-d %b') %>, from your X analytics heatmap">
+            <% if level == :busy %>
+              <span class="font-semibold text-success">Your audience is usually busy now.</span> A good hour to reply.
+            <% else %>
+              <span class="font-semibold"><%= level == :quiet ? "Usually quiet now." : "A usual hour for your audience." %></span>
+              <% if upcoming %>Busier from <%= upcoming.strftime("%H:%M") %><%= " tomorrow" if upcoming.to_date != Date.current %>.<% end %>
+            <% end %>
+          </span>
+        </p>
+      <% end %>
+      <% if stale %>
+        <p class="flex items-start gap-related" id="analytics-stale">
+          <%= lc_icon "chart-bar", options: { class: "mt-0.5 size-4 shrink-0 text-warning", "aria-hidden": true } %>
+          <span>
+            <span class="font-semibold">X analytics <%= collected_at ? "last collected #{relative_day(collected_at)}" : "not collected yet" %>.</span>
+            <%= link_to "Open Analytics on x.com", X::Analytics::URL, target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline" %>
+            <span class="text-muted-foreground">(Overview, Content, and Audience) with the extension on, so timing and what paid off stay current.</span>
+          </span>
+        </p>
+      <% end %>
+    </div>
   <% end %>
 <% end %>

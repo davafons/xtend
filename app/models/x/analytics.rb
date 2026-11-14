@@ -6,6 +6,18 @@
 class X::Analytics
   OPERATIONS = %w[accountOverviewDailyQuery contentPageQuery audienceOverviewDataQuery].freeze
   LEGACY_METRICS = %w[VideoViews MediaViews].freeze
+  URL = "https://x.com/i/account_analytics/overview"
+  # Nothing collects X analytics on its own, so after this long without a visit the app asks for one.
+  STALE_AFTER = 7.days
+
+  # When the extension last saved anything from X's analytics pages, or nil.
+  def self.last_collected_at
+    [ X::AccountDay.maximum(:observed_at), X::PostAnalytic.maximum(:observed_at), X::AnalyticsHour.maximum(:observed_at) ].compact.max
+  end
+
+  def self.stale?(at = last_collected_at)
+    at.nil? || at < STALE_AFTER.ago
+  end
 
   attr_reader :operation
 

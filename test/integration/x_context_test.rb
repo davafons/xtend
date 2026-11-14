@@ -31,6 +31,25 @@ class XContextTest < ActionDispatch::IntegrationTest
     assert_equal people_url(tag: "ruby"), context.dig("tags", 0, "url")
     assert_equal [ "Ask about the talk", true ], context["reminder"].values_at("reason", "due")
     assert_equal person_url(ada), context["url"]
+    assert_equal [ "incoming", "https://x.com/i/status/7002" ], context["last_exchange"].values_at("direction", "url")
+  end
+
+  test "the extension reads your side: whether now is a busy hour and whether X analytics need opening again" do
+    read_context("")
+    you = response.parsed_body["you"]
+    assert_nil you["timing"], "no heatmap, no timing"
+    assert_equal [ nil, true, "https://x.com/i/account_analytics/overview" ], you["analytics"].values_at("last_seen_at", "stale", "url")
+
+    now = Time.current.beginning_of_hour
+    (0...(28 * 24)).each do |offset|
+      hour = now - offset.hours
+      X::AnalyticsHour.create!(metric: "Impressions", hour: hour, value: hour.hour == now.hour ? 40 : 2, observed_at: 1.day.ago)
+    end
+    read_context("")
+    you = response.parsed_body["you"]
+    assert_equal "busy", you.dig("timing", "level")
+    assert_nil you.dig("timing", "next_busy_at")
+    assert_equal false, you.dig("analytics", "stale")
   end
 
   test "with complete follow lists, someone Xtend has no person for follows neither way as of the older check" do
