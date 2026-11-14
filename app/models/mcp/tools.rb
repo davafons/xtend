@@ -1,6 +1,7 @@
 # Tools that any MCP client (Grok Bot, Claude, ChatGPT, ...) can call. Reads are bounded and scoped by the owner's sharing
-# choices; writes stage research through AI::Intake or save post drafts. No tool posts, follows, messages, applies
-# changes without owner review, or runs paid X reads. AI::* is the internal name for all AI research.
+# choices. Writes go through AI::Intake (tags, recaps, profile facts, notes, reminders), which applies them at once
+# with an undo when the owner lets AI apply changes and stages them for review otherwise, or save post drafts and
+# unverified reply targets. Every write stays inside Xtend: no tool posts, follows, messages, or runs paid X reads.
 class Mcp::Tools
   class Invalid < StandardError; end
 
@@ -23,6 +24,7 @@ class Mcp::Tools
   }.freeze
 
   MAX_VARIATIONS = 10
+  APPLY_NOTE = "Applies at once with an undo when the owner lets AI apply changes, otherwise waits for his review; the result says which."
 
   DEFINITIONS = [
     { name: "get_owner_profile", title: "Owner interests and rules",
@@ -61,27 +63,68 @@ class Mcp::Tools
       inputSchema: { type: "object", required: %w[posts], properties: {
         run_id: { type: "string" }, posts: { type: "array", maxItems: 20, items: CANDIDATE } } },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } },
-    { name: "propose_person_facts", title: "Propose profile facts",
-      description: "Stage public profile facts for an existing person. Accepted facts only fill fields Xtend does not have.",
+    { name: "fill_profile_facts", title: "Fill profile facts",
+      description: "Add public profile facts for an existing person. They only fill fields Xtend does not have; X-collected data and the owner's edits always win. #{APPLY_NOTE}",
       inputSchema: { type: "object", properties: PERSON_REF.merge(
         name: { type: "string" }, description: { type: "string" }, location: { type: "string" },
         website_url: { type: "string" }, followers_count: { type: "integer" }, following_count: { type: "integer" },
         observed_at: { type: "string" }, run_id: { type: "string" }) },
       annotations: { readOnlyHint: false, destructiveHint: false } },
-    { name: "propose_recap", title: "Propose a person recap",
-      description: "Stage a short evidence-linked summary of who someone is and what they are working on, for the owner to review.",
+    { name: "save_recap", title: "Save a person recap",
+      description: "Save a short evidence-linked summary of who someone is and what they are working on. It shows on their page as AI research. #{APPLY_NOTE}",
       inputSchema: { type: "object", required: %w[summary], properties: PERSON_REF.merge(
         summary: { type: "string", maxLength: 1500 },
         evidence_urls: { type: "array", maxItems: 10, items: { type: "string" } }, run_id: { type: "string" }) },
       annotations: { readOnlyHint: false, destructiveHint: false } },
-    { name: "propose_tags", title: "Propose tags",
-      description: "Stage tags for up to 50 existing people, such as a city, role, or topic, so the owner can group them. Reuse tags from get_owner_profile where they fit. Nothing applies until the owner accepts.",
+    { name: "add_tags", title: "Add tags",
+      description: "Add tags to up to 50 existing people, such as a city, role, or topic, so the owner can group them. Reuse tags from get_owner_profile where they fit. Existing tags are never removed. #{APPLY_NOTE}",
       inputSchema: { type: "object", required: %w[assignments], properties: {
         run_id: { type: "string" },
         assignments: { type: "array", maxItems: 50, items: { type: "object", required: %w[tags], properties: PERSON_REF.merge(
           tags: { type: "array", maxItems: 8, items: { type: "string", maxLength: 40 } },
           reason: { type: "string", description: "Short public evidence for the tags, such as the bio or recent posts." }) } } } },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true } },
+    { name: "add_note", title: "Add a note",
+      description: "Add a short note to a person's private notes in Xtend, such as what they are building or what to ask next time. It is marked as yours and placed below the owner's own notes, which never change. #{APPLY_NOTE}",
+      inputSchema: { type: "object", required: %w[text], properties: PERSON_REF.merge(
+        text: { type: "string", maxLength: AI::Intake::NOTE_LENGTH }, run_id: { type: "string" }) },
+      annotations: { readOnlyHint: false, destructiveHint: false } },
+    { name: "set_reminder", title: "Set a reminder",
+      description: "Remind the owner to do something about a person on a day, such as following up on a launch. It shows on Outreach and the weekly review when due. It never sends anything. #{APPLY_NOTE}",
+      inputSchema: { type: "object", required: %w[reason due_on], properties: PERSON_REF.merge(
+        reason: { type: "string", maxLength: Reminder::REASON_LENGTH }, due_on: { type: "string", description: "YYYY-MM-DD, today to a year ahead." },
+        run_id: { type: "string" }) },
+      annotations: { readOnlyHint: false, destructiveHint: false } },
+    { name: "list_ai_changes", title: "Changes AI made",
+      description: "Recent tags, notes, reminders, recaps, and profile facts any AI applied or proposed, with their status (applied, accepted, pending, dismissed, undone). Check it before writing so you don't repeat work, and use the ids with undo_ai_change.",
+      inputSchema: { type: "object", properties: {
+        status: { type: "string", enum: AI::Proposal::STATUSES }, limit: { type: "integer", minimum: 1, maximum: 50 } } },
+      annotations: { readOnlyHint: true } },
+    { name: "undo_ai_change", title: "Undo an AI change",
+      description: "Reverse a change an AI applied, by id from list_ai_changes, such as a wrong tag. Only the change itself is reversed; anything the owner edited since stays.",
+      inputSchema: { type: "object", required: %w[id], properties: { id: { type: "integer" } } },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true } },
+    { name: "get_follow_review_batch", title: "Follow review batch",
+      description: "The next accounts the owner follows that cleanup suggests reviewing (inactive, never interacted, or quiet), with bio, follow state, tags, last interaction, and their latest collected posts. Use it to judge which fit his interests; mark ones that don't with the off-topic tag via add_tags. The owner decides who to unfollow, on X.",
+      inputSchema: { type: "object", properties: {
+        reason: { type: "string", enum: Follow::Cleanup::REASONS.keys, description: "Defaults to inactive." },
+        limit: { type: "integer", minimum: 1, maximum: 50 } } },
+      annotations: { readOnlyHint: true } },
+    { name: "get_x_analytics", title: "X analytics",
+      description: "X's own analytics as the extension saved them from x.com: daily totals (impressions, profile visits, follows, engagements), what the owner's replies brought by the size of the account he answered, his best replies and posts, his audience's busy hours of the week, and who he reached (followers vs not, countries). Use it to find what works.",
+      inputSchema: { type: "object", properties: {
+        period: { type: "string", enum: Network::Activity::PERIODS.keys, description: "Defaults to 30d." } } },
+      annotations: { readOnlyHint: true } },
+    { name: "get_week_review", title: "Week in review",
+      description: "One week: replies sent, new targets, answers seen, replies to the owner, X analytics totals, follower changes, best reply and post, and what's next (replies waiting, reminders due, people gone quiet).",
+      inputSchema: { type: "object", properties: {
+        weeks_ago: { type: "integer", minimum: 0, maximum: Network::Week::MAX_WEEKS_AGO, description: "0 (default) is the seven days ending today." } } },
+      annotations: { readOnlyHint: true } },
+    { name: "get_task", title: "Task instructions",
+      description: "Step-by-step instructions for one of Xtend's tasks, for clients without MCP prompts: #{Mcp::Prompts.names.join(', ')}. Follow them with the other tools.",
+      inputSchema: { type: "object", required: %w[task], properties: {
+        task: { type: "string", enum: Mcp::Prompts.names }, handle: { type: "string", description: "For research_person." } } },
+      annotations: { readOnlyHint: true } },
     { name: "list_network_posts", title: "Network posts",
       description: "Posts from the owner's network that he collected or scrolled past on x.com, with the counts last seen (likes, reposts, replies, quotes, bookmarks, views). Use them as references for style and topics. Counts are not live, and coverage is only what was captured.",
       inputSchema: { type: "object", properties: PERSON_REF.merge(
@@ -270,18 +313,106 @@ class Mcp::Tools
     intake(args).call("posts" => posts).slice(:run_id, :posts)
   end
 
-  def propose_person_facts(args)
+  def fill_profile_facts(args)
     intake(args).call("profiles" => [args.except("run_id")]).slice(:run_id, :profiles)
   end
 
-  def propose_recap(args)
+  def save_recap(args)
     intake(args).call("recaps" => [args.except("run_id")]).slice(:run_id, :recaps)
   end
 
-  def propose_tags(args)
+  def add_tags(args)
     assignments = args["assignments"]
     raise Invalid, "assignments must be an array of 1 to 50 items." unless assignments.is_a?(Array) && assignments.size.between?(1, AI::Intake::MAX_TAG_ITEMS)
     intake(args).call("tags" => assignments).slice(:run_id, :tags)
+  end
+
+  def add_note(args)
+    intake(args).call("notes" => [args.except("run_id")]).slice(:run_id, :notes)
+  end
+
+  def set_reminder(args)
+    intake(args).call("reminders" => [args.except("run_id")]).slice(:run_id, :reminders)
+  end
+
+  def list_ai_changes(args)
+    status = args["status"].presence
+    raise Invalid, "status must be one of #{AI::Proposal::STATUSES.join(', ')}." if status && !AI::Proposal::STATUSES.include?(status)
+    changes = AI::Proposal.includes(:person).order(created_at: :desc)
+    changes = changes.where(status: status) if status
+    { apply_changes: @workspace.mcp_apply_changes,
+      changes: changes.limit(bounded(args["limit"], 25, 50)).map { |change| change_summary(change) } }
+  end
+
+  def undo_ai_change(args)
+    change = AI::Proposal.find_by(id: args["id"]) or raise Invalid, "Change not found. Use an id from list_ai_changes."
+    return { undone: true, change: change_summary(change) } if change.status == "undone"
+    raise Invalid, "Only applied or accepted changes can be undone; this one is #{change.status}." unless change.undoable?
+    change.undo!
+    { undone: true, change: change_summary(change) }
+  end
+
+  def get_follow_review_batch(args)
+    cleanup = Follow::Cleanup.new(reason: args["reason"])
+    return { ready: false, note: "No complete following list yet, so there is nothing to review." } unless cleanup.ready?
+    people = cleanup.candidates(bounded(args["limit"], 25, 50))
+    posts = cleanup.recent_posts(people)
+    graph = Follow::Graph.latest
+    interactions = Person::Interactions.index(people)
+    { ready: true, reason: cleanup.reason, reason_label: Follow::Cleanup::REASONS[cleanup.reason], matching: cleanup.counts[cleanup.reason],
+      interests: @workspace.interests, off_topic_tag: AI::Classification::OFF_TOPIC,
+      people: people.map do |person|
+        person_summary(person, graph, interactions.fetch(person.id)).merge(
+          followers_count: person.followers_count, last_posted_at: person.last_posted_at&.iso8601,
+          recent_posts: posts.fetch(person.x_id, []).map { |post| { text: CGI.unescapeHTML(post.body).first(400), published_at: post.published_at.iso8601 } })
+      end,
+      note: "Unknown activity is never inactive, and no collected interaction is not proof of none." }
+  end
+
+  def get_x_analytics(args)
+    period = Network::Activity::PERIODS.key?(args["period"]) ? args["period"] : "30d"
+    analytics = Network::XAnalytics.new(Network::Activity.new(period: period))
+    return { collected: false, note: "No X analytics saved yet. The owner opens Analytics on x.com with the extension on to collect them." } unless analytics.any?
+    payoff = Outreach::Payoff.new
+    hours = Network::ActiveHours.new
+    audience = analytics.audience
+    { collected: true, period: period, days_collected: analytics.covered_days, as_of: analytics.observed_at&.iso8601,
+      totals: analytics.totals, engagement_rate: analytics.engagement_rate&.round(4),
+      replies: { counted: analytics.replies.size, totals: analytics.reply_totals, timing: analytics.reply_timing(hours),
+        by_account_size: payoff.bands.values.map { |band| band.to_h.merge(per_reply: band.per_reply.round(2)) },
+        best: analytics.best_replies.first(8).map { |reply| { to: reply.event.person.handle, url: "https://x.com/i/status/#{reply.event.x_id}",
+          text: CGI.unescapeHTML(reply.analytics.body.to_s).first(280), impressions: reply.impressions, profile_visits: reply.visits, follows: reply.follows } } },
+      top_posts: analytics.posts.map { |post| { url: "https://x.com/i/status/#{post.post_x_id}", text: CGI.unescapeHTML(post.body.to_s).first(280),
+        published_at: post.published_at&.iso8601, metrics: post.metrics } },
+      busy_hours: hours.collected? ? busy_hours(hours) : nil,
+      audience: audience && { from_non_followers: audience.outside_network_share&.round(3), english_speaking: audience.english_share&.round(3),
+        top_countries: audience.countries(8).map { |code, share| { country: code, share: share.round(3) } } },
+      note: "Figures are X's own, as of when the owner last opened each analytics page; days not collected are missing, not zero." }
+  end
+
+  def get_week_review(args)
+    weeks_ago = Integer(args["weeks_ago"] || 0, exception: false)
+    raise Invalid, "weeks_ago must be 0 to #{Network::Week::MAX_WEEKS_AGO}." unless weeks_ago&.between?(0, Network::Week::MAX_WEEKS_AGO)
+    week = Network::Week.new(weeks_ago: weeks_ago)
+    reply = week.best_reply
+    totals = week.analytics_totals if week.analytics_days.any?
+    { from: week.starts_at.to_date.iso8601, to: week.ends_at.to_date.iso8601,
+      did: { replies: week.replies.count, new_targets: week.new_targets, follow_ups: week.follow_ups, people_talked_with: week.people_count },
+      brought: { replies_to_you: week.replies_to_you, answered: week.answers_seen, answers_may_be_missing: week.answers_incomplete?,
+        analytics_days: week.analytics_days.size, analytics: totals&.slice(:impressions, :profile_visits, :follows, :engagements),
+        follower_change: week.follower_change&.then { |gained, lost| { gained: gained, lost: lost } } },
+      best_reply: reply && { to: reply.event.person.handle, url: "https://x.com/i/status/#{reply.event.x_id}", text: CGI.unescapeHTML(reply.analytics.body.to_s).first(280),
+        impressions: reply.impressions, profile_visits: reply.visits, follows: reply.follows },
+      best_post: week.best_post&.then { |post| post.merge(url: "https://x.com/i/status/#{post[:x_id]}", body: CGI.unescapeHTML(post[:body].to_s).first(280)) },
+      next: { replies_waiting: week.waiting_count,
+        reminders_due: week.reminders.map { |reminder| { person: reminder.person.handle, reason: reminder.reason, due_on: reminder.due_on.iso8601 } },
+        gone_quiet: week.gone_quiet.map { |prospect| { person: prospect.handle, person_id: prospect.person&.id, detail: prospect.reasons.find { _1.key == "quiet" }&.detail } } } }
+  end
+
+  def get_task(args)
+    Mcp::Prompts.get(args["task"], args.slice("handle"))
+  rescue ArgumentError => error
+    raise Invalid, error.message
   end
 
   def list_network_posts(args)
@@ -349,6 +480,18 @@ class Mcp::Tools
   end
 
   private
+
+  def busy_hours(hours)
+    days = %w[Mon Tue Wed Thu Fri Sat Sun]
+    busy = hours.slots.select { |(wday, hour), _| hours.level(Time.current.beginning_of_week + wday.days + hour.hours) == :busy }
+    { time_zone: Time.zone.tzinfo.name, as_of: hours.newest&.iso8601,
+      busiest: busy.sort_by { |_, value| -value }.first(12).map { |(wday, hour), value| { day: days[wday], hour: hour, average_impressions: value.round(1) } } }
+  end
+
+  def change_summary(change)
+    { id: change.id, kind: change.kind, status: change.status, person: { id: change.person.id, handle: change.person.handle },
+      change: change.payload, at: change.created_at.iso8601, via: change.via, undone_at: change.undone_at&.iso8601 }.compact
+  end
 
   def variation_texts(texts)
     texts = Array(texts).map { |text| text.to_s.strip.first(5000) }.reject(&:blank?) if texts.is_a?(Array)

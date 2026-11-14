@@ -1,0 +1,11 @@
+<%# Xtend's tasks, which a connected assistant runs with its own reads and writes. Saying the phrase is enough. %>
+<%= lc_list_section "Tasks for your AI", id: "tasks", class: "scroll-mt-section", footnote: "Say or paste the request in any assistant connected to Xtend. It reads what it needs through the connector and writes the results back here; nothing to paste in either direction. Assistants that support MCP prompts also list these as commands." do %>
+  <%= lc_list_group do %>
+    <% Mcp::Prompts::TASKS.each do |name, task| %>
+      <% phrase = ai_task_phrase(name, **(task[:arguments] ? { handle: "handle" } : {})) %>
+      <%= lc_list_row task[:title], icon: lc_icon("sparkles", options: { class: "text-ai", "aria-hidden": true }), subtitle: task[:description] do %>
+        <%= lc_copy_button value: phrase, icon_only: true, variant: :ghost, size: :sm, aria: { label: "Copy request: #{phrase}" }, title: phrase %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>

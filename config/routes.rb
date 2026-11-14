@@ -64,6 +64,7 @@ Rails.application.routes.draw do
     resources :intakes, only: :create
     resources :proposals, only: :update do
       patch :review, on: :collection
+      resource :undo, only: :create
     end
   end
 

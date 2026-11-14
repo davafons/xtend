@@ -19,7 +19,7 @@ class AI::Classification
     interests = Current.workspace.interests
     prompt(people, intro: "Tag these X accounts I follow so I can decide which to keep following.",
       extra: "Also add the tag \"#{OFF_TOPIC}\" when neither their profile nor their recent posts relate to anything I care about: #{interests.join('; ')}. Look at their recent posts, not only the bio. Do not add it to someone who posts about these topics even occasionally.",
-      connector: "If the xtend MCP connector is available, call propose_tags for these handles instead of answering in text.")
+      connector: "If the xtend MCP connector is available, call add_tags for these handles instead of answering in text.")
   end
 
   def self.prompt(people = batch, intro: "Tag these X accounts so I can group the people I follow and who follow me.", extra: nil,

@@ -1,0 +1,31 @@
+<%# What assistants changed in Xtend, newest first, each undoable, plus whether they may apply changes at all. %>
+<% workspace = Current.workspace %>
+<% changes = AI::Proposal.where.not(status: "pending").includes(:person).order(created_at: :desc).limit(30) %>
+<%= lc_list_section "Changes AI made", id: "changes", class: "scroll-mt-section", footnote: "Tags, notes, reminders, recaps, and profile facts. Undo reverses only that change; anything you edited since stays. AI never posts, follows, or messages on X." do %>
+  <%= lc_list_group do %>
+    <%= lc_list_row "AI applies changes", icon: "bolt", subtitle: workspace.mcp_apply_changes ? "On: connected assistants change Xtend directly, and you can undo each change" : "Off: each change waits for you to accept it" do %>
+      <%= lc_button_to workspace.mcp_apply_changes ? "Ask me first" : "Apply directly", settings_path, method: :patch, params: { "workspace[mcp_apply_changes]" => !workspace.mcp_apply_changes }, variant: :secondary, size: :sm %>
+    <% end %>
+    <% changes.each do |change| %>
+      <%= lc_list_row do %>
+        <div class="flex items-center gap-heading">
+          <%= person_avatar change.person, size: :sm %>
+          <div class="min-w-0 grow">
+            <p class="truncate text-small">
+              <span class="font-semibold text-ai"><%= change.label %></span>
+              <%= person_link change.person, change.person.name, class: "hover:underline" %>
+              <span class="text-muted-foreground">· <%= { "applied" => "applied", "accepted" => "accepted by you", "dismissed" => "dismissed", "undone" => "undone" }.fetch(change.status) %> <%= relative_day(change.reviewed_at || change.created_at) %></span>
+            </p>
+            <p class="truncate text-caption text-muted-foreground <%= 'line-through' if change.status == 'undone' %>"><%= ai_change_summary(change) %></p>
+          </div>
+          <% if change.undoable? %>
+            <%= lc_button_to "Undo", ai_proposal_undo_path(change), variant: :ghost, size: :sm, icon: "arrow-uturn-left", aria: { label: "Undo #{change.label.downcase} for #{change.person.name}" } %>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+    <% if changes.empty? %>
+      <%= lc_list_row "Nothing yet", icon: "clock", subtitle: "Changes appear here as assistants make them." %>
+    <% end %>
+  <% end %>
+<% end %>

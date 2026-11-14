@@ -59,7 +59,7 @@ class McpTest < ActionDispatch::IntegrationTest
   test "tools are listed with schemas and none can act on X" do
     names = rpc("tools/list")["result"]["tools"].map { |definition| definition["name"] }
     assert_equal Mcp::Tools.names, names
-    assert names.none? { |name| name.match?(/post_reply|follow|unfollow|send|message|delete/) }
+    assert names.none? { |name| name.match?(/post_reply|\A(un)?follow|send|message|delete/) }
     instructions = rpc("initialize", { protocolVersion: "2025-06-18" })["result"]["instructions"]
     assert_no_match(/grok/i, instructions + Mcp::Tools.definitions.to_json.gsub(/AI::\w+/, ""))
   end
@@ -129,20 +129,22 @@ class McpTest < ActionDispatch::IntegrationTest
   end
 
   test "an assistant can read tags, list untagged people, and propose tags for review" do
+    Current.workspace.update!(mcp_apply_changes: false)
     @person.add_tags!("tokyo")
     Person.resolve_profile!(profile(x_id: "556", handle: "other", name: "Other"))
     assert_equal [{ "name" => "tokyo", "people" => 1 }], tool("get_owner_profile")["structuredContent"]["tags"]
     assert_equal ["other"], tool("list_people", { "filter" => "untagged" })["structuredContent"]["people"].map { |person| person["handle"] }
     assert_equal [["builder", ["tokyo"]]], tool("list_people", { "tag" => "tokyo" })["structuredContent"]["people"].map { |person| [person["handle"], person["tags"]] }
-    result = tool("propose_tags", { "assignments" => [{ "handle" => "other", "tags" => ["designer"], "reason" => "Bio" }] })
+    result = tool("add_tags", { "assignments" => [{ "handle" => "other", "tags" => ["designer"], "reason" => "Bio" }] })
     assert_equal "staged", result["structuredContent"]["tags"].first["status"]
     assert_empty Tag.where(name: "designer")
-    assert tool("propose_tags", { "assignments" => [] })["isError"]
+    assert tool("add_tags", { "assignments" => [] })["isError"]
   end
 
-  test "an assistant sees what still awaits review, and nothing applies until the owner accepts" do
-    tool("propose_tags", { "assignments" => [{ "handle" => "builder", "tags" => ["rails"], "reason" => "Bio" }] })
-    tool("propose_recap", { "handle" => "builder", "summary" => "Ships Rails tools." })
+  test "with AI changes set to ask first, an assistant sees what awaits review, and nothing applies until the owner accepts" do
+    Current.workspace.update!(mcp_apply_changes: false)
+    tool("add_tags", { "assignments" => [{ "handle" => "builder", "tags" => ["rails"], "reason" => "Bio" }] })
+    tool("save_recap", { "handle" => "builder", "summary" => "Ships Rails tools." })
     tool("propose_candidate_posts", { "posts" => [{ "url" => "https://x.com/builder/status/8101", "text" => "How do you test Rails jobs?",
       "published_at" => 1.hour.ago.iso8601, "match_reason" => "Rails testing question" }] })
     pending = tool("list_pending_proposals")["structuredContent"]
@@ -207,5 +209,77 @@ class McpTest < ActionDispatch::IntegrationTest
     overview = tool("get_network").fetch("structuredContent")
     assert_equal [ { "from" => "bob", "to" => "alice", "interactions" => { "reply" => 1 } } ], overview["busiest_pairs"]
     assert_equal alice.id, overview["most_connected"].first["person_id"]
+  end
+
+  test "by default an assistant's tags, notes, reminders, and recaps apply at once, and each can be undone without touching the owner's own" do
+    @person.add_tags!("tokyo")
+    result = tool("add_tags", { "assignments" => [{ "handle" => "builder", "tags" => ["tokyo", "rails"], "reason" => "Bio" }] })["structuredContent"]
+    assert_equal "applied", result["tags"].first["status"]
+    assert_equal %w[rails tokyo], @person.reload.tags.map(&:name)
+    tool("add_note", { "handle" => "builder", "text" => "Launching a Rails job queue in December." })
+    assert_match(/\APrivate note\n\nAI, .*: Launching a Rails job queue in December\.\z/, @person.reload.notes)
+    tool("set_reminder", { "person_id" => @person.id, "reason" => "Ask how the launch went", "due_on" => 2.weeks.from_now.to_date.iso8601 })
+    assert_equal [ "Ask how the launch went" ], @person.reminders.map(&:reason)
+    assert tool("set_reminder", { "handle" => "builder", "reason" => "Too late", "due_on" => "2020-01-01" })["structuredContent"]["reminders"].first["status"] == "rejected"
+    tool("save_recap", { "handle" => "builder", "summary" => "Ships Rails tools." })
+    assert_equal "Ships Rails tools.", @person.ai_proposals.latest_recap.payload["summary"]
+
+    changes = tool("list_ai_changes")["structuredContent"]
+    assert changes["apply_changes"]
+    assert_equal %w[recap reminder note tags], changes["changes"].map { _1["kind"] }
+    changes["changes"].each { |change| assert tool("undo_ai_change", { "id" => change["id"] })["structuredContent"]["undone"] }
+    @person.reload
+    assert_equal %w[tokyo], @person.tags.map(&:name), "The owner's own tag stays"
+    assert_equal "Private note", @person.notes
+    assert_empty @person.reminders
+    assert_nil @person.ai_proposals.latest_recap
+    assert tool("undo_ai_change", { "id" => 0 })["isError"]
+  end
+
+  test "Xtend's tasks are served as prompts and through get_task, filled from the tools" do
+    assert rpc("initialize", { protocolVersion: "2025-06-18" })["result"]["capabilities"].key?("prompts")
+    prompts = rpc("prompts/list")["result"]["prompts"]
+    assert_equal Mcp::Prompts.names, prompts.map { _1["name"] }
+    assert_equal [ { "name" => "handle", "description" => "Their X handle, without @.", "required" => true } ], prompts.find { _1["name"] == "research_person" }["arguments"]
+    text = rpc("prompts/get", { name: "research_person", arguments: { handle: "@builder" } })["result"]["messages"].first["content"]["text"]
+    assert_match "Research @builder for the owner.", text
+    assert_match "list_ai_changes", text
+    assert_equal(-32602, rpc("prompts/get", { name: "research_person" })["error"]["code"])
+    assert_equal(-32602, rpc("prompts/get", { name: "nope" })["error"]["code"])
+    task = tool("get_task", { "task" => "weekly_review" })["structuredContent"]
+    assert_match "get_week_review", task["messages"].first["content"]["text"]
+    # Every tool a prompt names exists.
+    Mcp::Prompts::TASKS.each_value do |definition|
+      definition[:text].scan(/\b(?:get|list|add|save|set|fill|propose|undo)_\w+/).uniq.each { |name| assert_includes Mcp::Tools.names, name, "#{name} in a prompt" }
+    end
+  end
+
+  test "an assistant reads the week, X analytics, and the follow review, saying when data is missing" do
+    assert_equal false, tool("get_x_analytics")["structuredContent"]["collected"]
+    assert_equal false, tool("get_follow_review_batch")["structuredContent"]["ready"]
+    week = tool("get_week_review")["structuredContent"]
+    assert_equal Date.current.iso8601, week["to"]
+    assert_equal 0, week.dig("did", "replies")
+    assert tool("get_week_review", { "weeks_ago" => 99 })["isError"]
+
+    X::AccountDay.create!(day: Date.yesterday, observed_at: Time.current, counts: { "Displayed" => { "false" => 120 }, "Follow" => { "false" => 2 } })
+    analytics = tool("get_x_analytics", { "period" => "7d" })["structuredContent"]
+    assert_equal 120, analytics.dig("totals", "impressions")
+    assert_equal 2, analytics.dig("totals", "follows")
+  end
+
+  test "the AI page lists tasks and changes, toggles applying, and undoes a change" do
+    tool("add_tags", { "assignments" => [{ "handle" => "builder", "tags" => ["rails"] }] })
+    get ai_connector_path
+    assert_select "#tasks", text: /Review who you follow/
+    assert_select "button[aria-label=?]", "Copy request: Run the Xtend task weekly_review."
+    assert_select "#changes", text: /Tags\s*A Builder/
+    post ai_proposal_undo_path(AI::Proposal.last)
+    assert_empty @person.reload.tags
+    get person_path(@person)
+    assert_select "button[aria-label=?]", "Copy a request for your AI to research A Builder"
+    patch settings_path, params: { workspace: { mcp_apply_changes: false } }
+    assert_not Current.workspace.reload.mcp_apply_changes
+    assert_equal "staged", tool("add_tags", { "assignments" => [{ "handle" => "builder", "tags" => ["rails"] }] })["structuredContent"]["tags"].first["status"]
   end
 end

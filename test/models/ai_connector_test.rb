@@ -117,7 +117,7 @@ class AIConnectorTest < ActiveSupport::TestCase
   test "profile proposals fill only empty fields and recaps need acceptance" do
     person = Person.resolve_profile!(profile(x_id: "555", handle: "newbuilder", name: "Real Name"))
     person.update!(description: "From X")
-    result = AI::Intake.new(via: "mcp").call(
+    result = AI::Intake.new(via: "mcp", apply: false).call(
       "profiles" => [{ "handle" => "newbuilder", "description" => "Grok bio", "location" => "Tokyo", "followers_count" => 900 }, { "handle" => "unknown" }],
       "recaps" => [{ "person_id" => person.id, "summary" => "Builds Rails tools.", "evidence_urls" => ["https://x.com/newbuilder/status/1"] },
         { "person_id" => person.id, "summary" => "Bad evidence", "evidence_urls" => ["https://evil.example/1"] }])
@@ -131,6 +131,20 @@ class AIConnectorTest < ActiveSupport::TestCase
     assert_equal ["From X", "Tokyo", 900], [person.description, person.location, person.followers_count]
     assert_equal "Builds Rails tools.", person.ai_proposals.latest_recap.payload["summary"]
     assert_equal 0, ReplyEvent.count
+  end
+
+  test "applied profile facts fill only empty fields, and undo clears only the values it filled and the owner hasn't changed" do
+    person = Person.resolve_profile!(profile(x_id: "555", handle: "newbuilder", name: "Real Name"))
+    person.update!(description: "From X")
+    result = AI::Intake.new(via: "mcp").call("profiles" => [{ "handle" => "newbuilder", "description" => "AI bio", "location" => "Tokyo", "website_url" => "https://a.example" }])
+    assert_equal "applied", result[:profiles].first[:status]
+    change = person.ai_proposals.applied.sole
+    assert_equal({ "location" => "Tokyo", "website_url" => "https://a.example" }, change.applied["fields"])
+    person.reload.update!(website_url: "https://mine.example")
+    change.undo!
+    person.reload
+    assert_equal [ "From X", nil, "https://mine.example" ], [ person.description, person.location, person.website_url ]
+    assert_equal "undone", change.status
   end
 
   test "pasted AI answers are read from the JSON block inside prose" do

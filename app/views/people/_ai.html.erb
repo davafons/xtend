@@ -1,41 +1,58 @@
 <% recap = person.ai_proposals.latest_recap %>
 <% pending = person.ai_proposals.pending.order(:created_at) %>
-<% if recap || pending.any? %>
-  <%= lc_card padding: :sm do %>
-    <div class="flex flex-col gap-content">
+<% applied = person.ai_proposals.in_effect.where.not(kind: "recap").order(created_at: :desc).limit(5) %>
+<%= lc_card padding: :sm do %>
+  <div class="flex flex-col gap-content">
+    <div class="flex items-center justify-between gap-related">
       <h2 class="flex items-center gap-tight text-small font-semibold text-ai"><%= lc_icon "sparkles", options: { class: "size-4", "aria-hidden": true } %>AI</h2>
-      <% if recap %>
-        <div>
-          <p class="whitespace-pre-line text-small"><%= recap.payload["summary"] %></p>
-          <p class="mt-tight text-caption text-muted-foreground" title="AI research, not collected evidence">Accepted <%= relative_day recap.reviewed_at %></p>
-        </div>
-      <% end %>
-      <% pending.each do |proposal| %>
-        <div class="flex flex-col gap-related rounded-2xl bg-tile p-content text-small">
-          <p class="font-semibold"><%= { "recap" => "Proposed recap", "tags" => "Proposed tags", "profile" => "Proposed profile facts" }.fetch(proposal.kind) %></p>
-          <% if proposal.kind == "tags" %>
-            <div class="flex flex-wrap gap-1.5"><% proposal.payload["tags"].each do |name| %><%= tag_chip name %><% end %></div>
-            <% if proposal.payload["reason"] %><p class="text-caption text-muted-foreground"><%= proposal.payload["reason"] %></p><% end %>
-          <% elsif proposal.kind == "recap" %>
-            <p class="whitespace-pre-line"><%= proposal.payload["summary"] %></p>
-            <% Array(proposal.payload["evidence_urls"]).each do |url| %>
-              <% unless demo? %><%= link_to url.truncate(48), url, target: "_blank", rel: "noopener noreferrer", class: "text-caption text-primary hover:underline" %><% end %>
-            <% end %>
-          <% else %>
-            <dl class="grid grid-cols-[auto_1fr] gap-x-heading gap-y-tight">
-              <% proposal.payload.except("observed_at").each do |key, value| %>
-                <dt class="text-muted-foreground"><%= key.humanize %></dt>
-                <dd><%= value %><% if person[key].present? %> <span class="text-caption text-muted-foreground">(you already have a value; it stays)</span><% end %></dd>
-              <% end %>
-            </dl>
-            <p class="text-caption text-muted-foreground">Accepting fills only empty fields. X-collected data and your edits always win.</p>
-          <% end %>
-          <div class="flex gap-related">
-            <%= lc_button_to "Accept", ai_proposal_path(proposal), method: :patch, params: { decision: "accept" }, variant: :secondary, size: :sm, icon: "check" %>
-            <%= lc_button_to "Dismiss", ai_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, variant: :ghost, size: :sm, icon: "x-mark" %>
-          </div>
-        </div>
-      <% end %>
+      <%= lc_copy_button "Research", value: ai_task_phrase(:research_person, handle: person.handle), variant: :ghost, size: :sm,
+        title: "Copy “#{ai_task_phrase(:research_person, handle: person.handle)}” for your connected AI", aria: { label: "Copy a request for your AI to research #{person.name}" } %>
     </div>
-  <% end %>
+    <% if recap %>
+      <div>
+        <p class="whitespace-pre-line text-small"><%= recap.payload["summary"] %></p>
+        <p class="mt-tight flex items-center gap-related text-caption text-muted-foreground" title="AI research, not collected evidence">
+          <%= recap.status == "applied" ? "Written by AI" : "Accepted" %> <%= relative_day recap.reviewed_at %>
+          <%= lc_button_to "Undo", ai_proposal_undo_path(recap), variant: :ghost, size: :sm, aria: { label: "Remove the AI recap" } %>
+        </p>
+      </div>
+    <% elsif pending.none? && applied.none? %>
+      <%= lc_text "Nothing from AI yet. Copy the request and send it to your connected assistant to research them.", size: :small, tone: :muted %>
+    <% end %>
+    <% applied.each do |change| %>
+      <div class="flex items-center gap-related text-small">
+        <span class="shrink-0 font-semibold text-ai"><%= change.label %></span>
+        <span class="min-w-0 grow truncate text-muted-foreground" title="<%= ai_change_summary(change) %>"><%= ai_change_summary(change) %></span>
+        <%= lc_button_to "Undo", ai_proposal_undo_path(change), variant: :ghost, size: :sm, aria: { label: "Undo AI #{change.label.downcase}" } %>
+      </div>
+    <% end %>
+    <% pending.each do |proposal| %>
+      <div class="flex flex-col gap-related rounded-2xl bg-tile p-content text-small">
+        <p class="font-semibold">Proposed <%= proposal.label.downcase %></p>
+        <% if proposal.kind == "tags" %>
+          <div class="flex flex-wrap gap-1.5"><% proposal.payload["tags"].each do |name| %><%= tag_chip name %><% end %></div>
+          <% if proposal.payload["reason"] %><p class="text-caption text-muted-foreground"><%= proposal.payload["reason"] %></p><% end %>
+        <% elsif proposal.kind == "recap" %>
+          <p class="whitespace-pre-line"><%= proposal.payload["summary"] %></p>
+          <% Array(proposal.payload["evidence_urls"]).each do |url| %>
+            <% unless demo? %><%= link_to url.truncate(48), url, target: "_blank", rel: "noopener noreferrer", class: "text-caption text-primary hover:underline" %><% end %>
+          <% end %>
+        <% elsif proposal.kind.in?(%w[note reminder]) %>
+          <p class="whitespace-pre-line"><%= ai_change_summary(proposal) %></p>
+        <% else %>
+          <dl class="grid grid-cols-[auto_1fr] gap-x-heading gap-y-tight">
+            <% proposal.payload.except("observed_at").each do |key, value| %>
+              <dt class="text-muted-foreground"><%= key.humanize %></dt>
+              <dd><%= value %><% if person[key].present? %> <span class="text-caption text-muted-foreground">(you already have a value; it stays)</span><% end %></dd>
+            <% end %>
+          </dl>
+          <p class="text-caption text-muted-foreground">Accepting fills only empty fields. X-collected data and your edits always win.</p>
+        <% end %>
+        <div class="flex gap-related">
+          <%= lc_button_to "Accept", ai_proposal_path(proposal), method: :patch, params: { decision: "accept" }, variant: :secondary, size: :sm, icon: "check" %>
+          <%= lc_button_to "Dismiss", ai_proposal_path(proposal), method: :patch, params: { decision: "dismiss" }, variant: :ghost, size: :sm, icon: "x-mark" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
 <% end %>

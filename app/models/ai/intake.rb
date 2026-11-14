@@ -1,6 +1,8 @@
-# Accepts research from an AI assistant, either through the MCP connector or a pasted JSON block.
+# Accepts research and changes from an AI assistant, either through the MCP connector or a pasted JSON block.
 # AI data is research, not evidence: it never creates replies, follow state, progress, or coverage,
-# and it never overwrites X-sourced fields or the owner's edits.
+# and it never overwrites X-sourced fields or the owner's edits. From the connector, with the workspace's
+# mcp_apply_changes on, tags, recaps, profile facts, notes, and reminders apply at once and can be undone;
+# otherwise, and always for pasted results, they wait for the owner to accept them.
 class AI::Intake
   class Invalid < StandardError; end
   FORMAT = "xtend-grok-v1"
@@ -10,6 +12,7 @@ class AI::Intake
   MAX_BYTES = 100.kilobytes
   HOSTS = %w[x.com www.x.com twitter.com www.twitter.com mobile.twitter.com mobile.x.com].freeze
   PROFILE_FIELDS = %w[name description location website_url followers_count following_count].freeze
+  NOTE_LENGTH = 1000
 
   def self.status_url(value)
     uri = URI.parse(value.to_s.strip)
@@ -35,8 +38,9 @@ class AI::Intake
     raise Invalid, "The JSON block could not be read. Ask the assistant to repeat it without changes."
   end
 
-  def initialize(via:, run_id: nil)
+  def initialize(via:, run_id: nil, apply: via == "mcp" && Current.workspace.mcp_apply_changes)
     @via = via
+    @apply = apply
     @run_id = run_id.presence&.to_s&.first(80) || SecureRandom.uuid
   end
   attr_reader :run_id
@@ -47,7 +51,9 @@ class AI::Intake
       posts: Array.wrap(document["posts"]).then { |rows| bounded(rows) }.map { |row| post(row) },
       profiles: Array.wrap(document["profiles"]).then { |rows| bounded(rows) }.map { |row| profile(row) },
       recaps: Array.wrap(document["recaps"]).then { |rows| bounded(rows) }.map { |row| recap(row) },
-      tags: Array.wrap(document["tags"]).then { |rows| bounded(rows, MAX_TAG_ITEMS) }.map { |row| tags(row) }
+      tags: Array.wrap(document["tags"]).then { |rows| bounded(rows, MAX_TAG_ITEMS) }.map { |row| tags(row) },
+      notes: Array.wrap(document["notes"]).then { |rows| bounded(rows) }.map { |row| note(row) },
+      reminders: Array.wrap(document["reminders"]).then { |rows| bounded(rows) }.map { |row| reminder(row) }
     }
   end
 
@@ -97,9 +103,7 @@ class AI::Intake
     observed_at = time(row["observed_at"]) || Time.current
     AI::Proposal.transaction do
       AI::Proposal.pending.where(person: person, kind: "profile").destroy_all
-      proposal = AI::Proposal.create!(person: person, kind: "profile", via: @via, run_id: run_id,
-        payload: facts.merge("observed_at" => [observed_at, Time.current].min.iso8601))
-      result("staged", person.handle, "Proposal #{proposal.id} awaits review.")
+      stage(person, "profile", facts.merge("observed_at" => [observed_at, Time.current].min.iso8601))
     end
   end
 
@@ -111,9 +115,7 @@ class AI::Intake
     return rejected("summary must be 1 to 1,500 characters.", person.handle) unless summary.length.between?(1, 1500)
     urls = Array.wrap(row["evidence_urls"]).first(10).map(&:to_s)
     return rejected("evidence_urls must be public x.com status URLs.", person.handle) unless urls.all? { |url| self.class.status_url(url) }
-    proposal = AI::Proposal.create!(person: person, kind: "recap", via: @via, run_id: run_id,
-      payload: { "summary" => summary, "evidence_urls" => urls })
-    result("staged", person.handle, "Proposal #{proposal.id} awaits review.")
+    stage(person, "recap", { "summary" => summary, "evidence_urls" => urls })
   end
 
   # Tags are staged per person; only tags the person does not have yet are proposed.
@@ -126,13 +128,43 @@ class AI::Intake
     return rejected("tags must list 1 to #{MAX_TAGS_PER_PERSON} short labels.", person.handle) if names.empty?
     AI::Proposal.transaction do
       AI::Proposal.pending.where(person: person, kind: "tags").destroy_all
-      proposal = AI::Proposal.create!(person: person, kind: "tags", via: @via, run_id: run_id,
-        payload: { "tags" => names, "reason" => row["reason"].to_s.strip.first(300).presence }.compact)
-      result("staged", person.handle, "Proposal #{proposal.id} awaits review.")
+      stage(person, "tags", { "tags" => names, "reason" => row["reason"].to_s.strip.first(300).presence }.compact)
     end
   end
 
+  # A note is added below the owner's own notes, marked as AI's, never replacing them.
+  def note(row)
+    return rejected("Each note must be an object.") unless row.is_a?(Hash)
+    person = find_person(row)
+    return rejected("Unknown person. Use a person_id or handle Xtend already has.", row["handle"]) unless person
+    text = row["text"].to_s.strip
+    return rejected("text must be 1 to #{NOTE_LENGTH} characters.", person.handle) unless text.length.between?(1, NOTE_LENGTH)
+    stage(person, "note", { "text" => text })
+  end
+
+  def reminder(row)
+    return rejected("Each reminder must be an object.") unless row.is_a?(Hash)
+    person = find_person(row)
+    return rejected("Unknown person. Use a person_id or handle Xtend already has.", row["handle"]) unless person
+    reason = row["reason"].to_s.strip
+    return rejected("reason must be 1 to #{Reminder::REASON_LENGTH} characters.", person.handle) unless reason.length.between?(1, Reminder::REASON_LENGTH)
+    due_on = Date.iso8601(row["due_on"].to_s) rescue nil
+    return rejected("due_on must be a date (YYYY-MM-DD) from today to a year ahead.", person.handle) unless due_on&.between?(Date.current, 1.year.from_now.to_date)
+    stage(person, "reminder", { "reason" => reason, "due_on" => due_on.iso8601 })
+  end
+
   private
+
+  # Records the change; applies it when allowed, otherwise leaves it for the owner.
+  def stage(person, kind, payload)
+    proposal = AI::Proposal.create!(person: person, kind: kind, via: @via, run_id: run_id, payload: payload)
+    if @apply
+      proposal.apply!
+      result("applied", person.handle, "Change #{proposal.id} applied; the owner can undo it.")
+    else
+      result("staged", person.handle, "Proposal #{proposal.id} awaits review.")
+    end
+  end
 
   def bounded(rows, maximum = MAX_ITEMS)
     raise Invalid, "Send up to #{maximum} items of each kind at a time." if rows.size > maximum

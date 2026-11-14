@@ -7,7 +7,7 @@ class SettingsController < ApplicationController
 
   def update
     @workspace = Current.workspace
-    if @workspace.update(params.require(:workspace).permit(:name, :builder_interests, :posting_notes, :monthly_budget_cents, :mcp_share_notes, :mcp_share_dms))
+    if @workspace.update(params.require(:workspace).permit(:name, :builder_interests, :posting_notes, :monthly_budget_cents, :mcp_share_notes, :mcp_share_dms, :mcp_apply_changes))
       redirect_back_or_to settings_path, notice: "Workspace settings saved."
     else
       redirect_back_or_to settings_path, alert: @workspace.errors.full_messages.to_sentence

@@ -29,11 +29,14 @@
     <% end %>
   <% end %>
 
-  <%= lc_list_section "Tag people with AI", footnote: "Your assistant suggests tags such as a city, role, or topic. Paste the prompt into Grok or any AI, or let a connected assistant tag people directly. Tags apply only when you accept them; your own tags never change." do %>
+  <%= lc_list_section "Tag people with AI", footnote: "Your assistant tags people by city, role, or topic. A connected assistant does it directly from the request; without the connector, paste the prompt into any AI and its answer below. Your own tags never change." do %>
     <%= lc_list_group do %>
       <% if batch.any? %>
-        <%= lc_list_row "Tagging prompt", icon: "clipboard-document", subtitle: "#{pluralize(batch.size, "untagged person", plural: "untagged people")}, followers first | copy again after each import" do %>
-          <%= lc_copy_button "Copy", value: AI::Classification.prompt(batch), variant: :secondary, size: :sm, aria: { label: "Copy tagging prompt" } %>
+        <%= lc_list_row "Ask your connected AI", icon: lc_icon("sparkles", options: { class: "text-ai", "aria-hidden": true }), subtitle: "“#{ai_task_phrase(:tag_people)}” | #{pluralize(batch.size, "untagged person", plural: "untagged people")}" do %>
+          <%= lc_copy_button "Copy", value: ai_task_phrase(:tag_people), variant: :secondary, size: :sm, aria: { label: "Copy request for your AI" } %>
+        <% end %>
+        <%= lc_list_row "Tagging prompt, without the connector", icon: "clipboard-document", subtitle: "Followers first | copy again after each import" do %>
+          <%= lc_copy_button "Copy", value: AI::Classification.prompt(batch), variant: :ghost, size: :sm, aria: { label: "Copy tagging prompt" } %>
         <% end %>
         <%= lc_list_row padded: false do %>
           <%= lc_collapsible card: false, indicator: :chevron, summary_class: "px-content sm:px-inset text-small font-normal text-muted-foreground" do |collapsible| %>

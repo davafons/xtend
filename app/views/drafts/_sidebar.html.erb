@@ -24,11 +24,8 @@
   <%= lc_card do %>
     <div class="flex flex-col gap-heading">
       <%= lc_heading "Angles from AI", level: 2, size: :subheading %>
-      <%= lc_text "A prompt with your focus areas, recent posts, and open drafts.", size: :small, tone: :muted %>
-      <div class="flex items-center gap-related">
-        <%= lc_copy_button "Copy prompt", value: ideas.ai_prompt, variant: :secondary, size: :sm %>
-      </div>
-      <%= lc_collapsible title: "Read the prompt", card: false, indicator: :chevron, button: { variant: :ghost, size: :sm } do %><p class="whitespace-pre-wrap rounded-2xl bg-tile p-content text-caption"><%= ideas.ai_prompt %></p><% end %>
+      <%= lc_text "Your connected AI reads your focus areas, what worked, and your network's posts, and saves ideas here.", size: :small, tone: :muted %>
+      <%= ai_task_copy :post_ideas, fallback: ideas.ai_prompt %>
     </div>
   <% end %>
 </aside>

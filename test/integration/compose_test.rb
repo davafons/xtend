@@ -24,7 +24,7 @@ class ComposeTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_draft_path(Draft.last)
     get ideas_drafts_path
     assert_response :success
-    assert_includes response.body, "Copy prompt"
+    assert_includes response.body, "Run the Xtend task post_ideas."
     get new_draft_path
     assert_response :success
   end

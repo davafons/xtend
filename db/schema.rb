@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_120000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -22,6 +22,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_110000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
+    t.json "applied", default: {}, null: false
+    t.datetime "undone_at"
     t.index ["person_id", "kind", "status"], name: "index_ai_proposals_on_person_id_and_kind_and_status"
     t.index ["workspace_id"], name: "index_ai_proposals_on_workspace_id"
   end
@@ -382,6 +384,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_110000) do
     t.datetime "owner_counts_seen_at"
     t.datetime "captured_at"
     t.json "last_capture"
+    t.boolean "mcp_apply_changes", default: true, null: false
   end
 
   create_table "x_account_days", force: :cascade do |t|

@@ -1,22 +1,18 @@
 # A minimal MCP server over Streamable HTTP, answering JSON-RPC requests with JSON (no SSE stream).
-# Supports initialize, ping, tools/list, and tools/call. Tools live in Mcp::Tools.
+# Supports initialize, ping, tools/list, tools/call, prompts/list, and prompts/get. Tools live in Mcp::Tools, prompts
+# (Xtend's tasks) in Mcp::Prompts.
 class Mcp::Server
   PROTOCOL_VERSIONS = %w[2025-06-18 2025-03-26 2024-11-05].freeze
   INSTRUCTIONS = <<~TEXT.squish
     Xtend, the owner's X relationship app, shared with whichever AI assistant he connects. Read tools return collected evidence with coverage
     limits: missing history is not proof that nothing happened, and an unknown follow state is not a non-follow.
-    Write tools only stage proposals for the owner to review or save drafts of his own posts in Compose. They never post,
-    reply, follow, unfollow, or message anyone, never apply tags or profile changes, and cannot mark replies as sent.
-    Start with get_owner_profile for his interests, rules, and tag vocabulary, and call list_pending_proposals before
-    proposing so you add to his review queue instead of repeating it.
-    Useful work: (1) Tag people: list_people with filter "untagged", then propose_tags with short public evidence,
-    reusing existing tags. (2) Find reply targets: get_session_state and list_known_posts to skip duplicates, public
-    X search, then propose_candidate_posts with real source URLs and observed facts. (3) Research someone:
-    get_person_context and get_interaction_history, then propose_recap with evidence URLs or propose_person_facts.
-    (4) Draft posts: list_network_posts for topics and style that work in his network, list_post_drafts for open
-    ideas, then save_post_idea or add_post_variations; for a recap of his week, use his own posts there (author "david", period "7d").
-    When the owner shares a post idea, save it with save_post_idea, adding variations if he asks.
-    Omit facts you did not observe instead of guessing.
+    Write tools change only Xtend: tags, recaps, profile facts, notes, reminders, post drafts, and unverified reply targets.
+    When the owner lets AI apply changes they apply at once and he can undo each one; otherwise they wait for his review, and
+    each result says which. Nothing here posts, replies, follows, unfollows, messages, or marks a reply as sent.
+    Start with get_owner_profile for his interests, rules, and tag vocabulary, and call list_ai_changes before writing so
+    you don't repeat work. For a whole task, use a prompt or get_task: #{Mcp::Prompts.names.join(', ')}.
+    When the owner shares a post idea, save it with save_post_idea, adding variations if he asks. For a recap of his week,
+    use get_week_review. Omit facts you did not observe instead of guessing.
   TEXT
 
   Error = Class.new(StandardError) do
@@ -44,14 +40,24 @@ class Mcp::Server
     when "initialize"
       requested = params["protocolVersion"]
       { protocolVersion: PROTOCOL_VERSIONS.include?(requested) ? requested : PROTOCOL_VERSIONS.first,
-        capabilities: { tools: { listChanged: false } },
+        capabilities: { tools: { listChanged: false }, prompts: { listChanged: false } },
         serverInfo: { name: "xtend", title: "Xtend", version: "0.1.0" },
         instructions: INSTRUCTIONS }
     when "ping" then {}
     when "tools/list" then { tools: Mcp::Tools.definitions }
     when "tools/call" then call_tool(params)
+    when "prompts/list" then { prompts: Mcp::Prompts.definitions }
+    when "prompts/get" then get_prompt(params)
     else raise Error.new(-32601, "Unknown method: #{method.to_s.first(80)}")
     end
+  end
+
+  def get_prompt(params)
+    arguments = params["arguments"] || {}
+    raise Error.new(-32602, "arguments must be an object.") unless arguments.is_a?(Hash)
+    Mcp::Prompts.get(params["name"].to_s, arguments)
+  rescue ArgumentError => error
+    raise Error.new(-32602, error.message)
   end
 
   def call_tool(params)
