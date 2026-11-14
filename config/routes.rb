@@ -31,6 +31,10 @@ Rails.application.routes.draw do
   resource :timeline, only: :show, controller: "timeline"
   resource :insights, only: :show
   resource :week, only: :show
+  resource :growth, only: %i[show update]
+  namespace :growth do
+    resource :check, only: %i[create destroy]
+  end
   resource :search, only: :show
   resource :settings, only: [ :show, :update ]
   resource :appearance, only: :update

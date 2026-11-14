@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_130000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -238,6 +238,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_120000) do
     t.index ["workspace_id", "x_id"], name: "index_outreach_candidates_on_workspace_id_and_x_id", unique: true
   end
 
+  create_table "outreach_growth_checks", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "week", null: false
+    t.string "key", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["workspace_id", "week", "key"], name: "index_outreach_growth_checks_on_workspace_id_and_week_and_key", unique: true
+    t.index ["workspace_id"], name: "index_outreach_growth_checks_on_workspace_id"
+  end
+
   create_table "outreach_sessions", force: :cascade do |t|
     t.date "anchor_day", null: false
     t.datetime "created_at", null: false
@@ -385,6 +395,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_120000) do
     t.datetime "captured_at"
     t.json "last_capture"
     t.boolean "mcp_apply_changes", default: true, null: false
+    t.integer "growth_goal"
+    t.date "growth_started_on"
+    t.integer "growth_start_followers"
   end
 
   create_table "x_account_days", force: :cascade do |t|
@@ -652,6 +665,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_120000) do
   add_foreign_key "oauth_tokens", "oauth_grants"
   add_foreign_key "outreach_candidates", "people"
   add_foreign_key "outreach_candidates", "workspaces"
+  add_foreign_key "outreach_growth_checks", "workspaces"
   add_foreign_key "outreach_sessions", "workspaces"
   add_foreign_key "outreach_targets", "outreach_sessions"
   add_foreign_key "outreach_targets", "reply_events"

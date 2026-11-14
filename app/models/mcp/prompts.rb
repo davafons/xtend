@@ -55,9 +55,10 @@ class Mcp::Prompts
       description: "Review your week, explain what worked, and set up next week's follow-ups.",
       text: <<~TEXT
         Review the owner's week on X.
-        1. get_week_review (weeks_ago 0, and 1 to compare) and get_x_analytics with period 30d.
+        1. get_week_review (weeks_ago 0, and 1 to compare), get_x_analytics with period 30d, and get_growth_plan.
         2. Explain what worked and what didn't: which replies brought profile visits or follows, to whom, and when; how the week
-           compares with the one before. Use only the numbers returned, and say when coverage is partial.
+           compares with the one before; and, if a growth plan is running, where the owner stands against this week's checkpoint
+           and checklist and which circle people he hasn't replied to. Use only the numbers returned, and say when coverage is partial.
         3. For people who've gone quiet or have replies waiting, get_person_context, then set_reminder for the ones worth
            reconnecting with, with a concrete reason, spread over the next week.
         4. Suggest 3 changes for next week (who to reply to, when, what to post), grounded in the numbers.

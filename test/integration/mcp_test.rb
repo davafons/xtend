@@ -259,6 +259,12 @@ class McpTest < ActionDispatch::IntegrationTest
     assert_equal Date.current.iso8601, week["to"]
     assert_equal 0, week.dig("did", "replies")
     assert tool("get_week_review", { "weeks_ago" => 99 })["isError"]
+    assert_equal false, tool("get_growth_plan")["structuredContent"]["started"]
+    Current.workspace.update!(growth_goal: 1000, growth_started_on: Date.current, growth_start_followers: 170)
+    plan = tool("get_growth_plan")["structuredContent"]
+    assert_equal [ 1, 180 ], [ plan.dig("week", "number"), plan.dig("week", "checkpoint") ]
+    assert_includes plan["checklist"].map { _1["key"] }, "story"
+    assert tool("get_growth_plan", { "week" => 17 })["isError"]
 
     X::AccountDay.create!(day: Date.yesterday, observed_at: Time.current, counts: { "Displayed" => { "false" => 120 }, "Follow" => { "false" => 2 } })
     analytics = tool("get_x_analytics", { "period" => "7d" })["structuredContent"]

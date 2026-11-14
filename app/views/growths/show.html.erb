@@ -1,0 +1,214 @@
+<% content_for :title, "Growth" %>
+<% growth = @growth %>
+<% day = ->(date) { date.strftime(date.year == Date.current.year ? "%-d %b" : "%-d %b %Y") } %>
+
+<% unless growth.started? %>
+  <h1 class="<%= lc_heading_class(size: :heading) %>">Growth</h1>
+  <%= lc_card do %>
+    <div class="flex max-w-prose flex-col gap-content">
+      <h2 class="<%= lc_text_class(size: :label) %>">Start a growth plan</h2>
+      <p class="text-small">
+        <%= Outreach::Growth::WEEKS %> weeks, reply first. Below 1,000 followers, most new followers come from good, early replies to a circle of accounts in your niche, so the plan is mostly that: replies to your <%= tag_chip Outreach::Growth::CIRCLE_TAG %> people, answering everyone who replies, one post a day with a story or a build update each week, and a weekly look at X analytics.
+      </p>
+      <p class="text-small text-muted-foreground">
+        Xtend ticks what it can see from your data and marks each week's follower and profile-visit checkpoints. It starts from
+        <% if growth.followers %>your <%= number_with_delimiter growth.followers %> followers (<%= growth.latest_followers[2] %>, <%= relative_day growth.latest_followers[1] %>)<% else %>zero, because Xtend has no follower count yet: open your profile on x.com with the capture extension on<% end %>.
+      </p>
+      <%= form_with url: growth_path, method: :patch, class: "flex flex-wrap items-end gap-related" do %>
+        <%= lc_field label: "Follower goal", id: "growth-goal" do |field| %>
+          <%= lc_input name: "growth[goal]", type: "number", value: Outreach::Growth::DEFAULT_GOAL, min: 1, step: 10, class: "w-32", **field %>
+        <% end %>
+        <%= lc_button "Start the plan", type: "submit", icon: "arrow-trending-up" %>
+      <% end %>
+    </div>
+  <% end %>
+<% else %>
+  <% week = growth.week(@week) %>
+  <% weeks = growth.weeks %>
+  <% current = growth.current_week %>
+  <% latest = growth.latest_followers %>
+  <div class="flex flex-wrap items-center justify-between gap-heading">
+    <h1 class="<%= lc_heading_class(size: :heading) %>">
+      Growth <span class="text-muted-foreground font-normal">to <%= number_with_delimiter growth.goal %> followers</span>
+    </h1>
+    <div class="flex items-center gap-related">
+      <% if @week > 1 %><%= lc_button_link_to "Earlier", growth_path(week: @week - 1), variant: :secondary, size: :sm, icon: "chevron-left" %><% end %>
+      <% if @week < Outreach::Growth::WEEKS %><%= lc_button_link_to "Later", growth_path(week: @week + 1), variant: :secondary, size: :sm, icon: "chevron-right", icon_position: :end %><% end %>
+    </div>
+  </div>
+
+  <div class="grid gap-inset lg:grid-cols-[2fr_3fr]">
+    <%= lc_card do %>
+      <div class="flex flex-col gap-content">
+        <h2 class="<%= lc_text_class(size: :label) %>">
+          Week <%= @week %> of <%= Outreach::Growth::WEEKS %>
+          <span class="font-normal text-muted-foreground"><%= day.(week.starts_on) %>–<%= day.(week.ends_on) %><%= " · this week" if @week == current %></span>
+        </h2>
+        <%= lc_stats do %>
+          <%= lc_stat label: "followers", title: (latest && "#{latest[2]}, #{latest[1].strftime('%-d %b %Y, %H:%M')}") do %>
+            <span class="text-warning"><%= week.followers ? number_with_delimiter(week.followers) : "—" %></span>
+          <% end %>
+          <%= lc_stat number_with_delimiter(week.followers_target), label: "checkpoint" %>
+          <%= lc_stat label: "profile visits", title: "From X analytics, #{pluralize(week.analytics_days, 'day')} of 7 collected" do %>
+            <%= week.visits || "—" %><span class="text-muted-foreground"> / <%= week.visits_target %></span>
+          <% end %>
+        <% end %>
+        <p class="text-small">
+          <% if week.starts_on > Date.current %>
+            Starts <%= day.(week.starts_on) %>.
+          <% elsif week.followers.nil? %>
+            No follower count yet for this week. Open your profile or Analytics on x.com with the capture extension on.
+          <% elsif growth.on_track?(week) %>
+            <span class="text-success">On track</span>: <%= number_with_delimiter week.followers - week.followers_target %> above the checkpoint.
+          <% else %>
+            <span class="text-warning"><%= number_with_delimiter week.followers_target - week.followers %> below</span> the checkpoint.
+            <%= @week < 4 ? "Early weeks are slow; keep the replies going." : "Look at who you reply to and how before adding volume." %>
+          <% end %>
+        </p>
+        <% if (review = Outreach::Growth::REVIEWS[@week]) %>
+          <div class="rounded-2xl bg-tile p-content text-small"><span class="font-semibold">Review week.</span> <%= review.delete_prefix("First review: ").delete_prefix("Main review: ") %></div>
+        <% end %>
+        <% if week.visits.nil? %>
+          <p class="text-caption text-muted-foreground">No X analytics for this week yet. <%= link_to "Open Analytics on x.com", X::Analytics::URL, target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline" %> with the capture extension on.</p>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= lc_card do %>
+      <div class="flex flex-col gap-content">
+        <h2 class="<%= lc_text_class(size: :label) %>">Pace</h2>
+        <% seen = weeks.map { |item| item.followers if item.starts_on <= Date.current } %>
+        <%= chart :line, label: "Followers against the plan, by week", missing: "No count yet",
+          labels: [ "Start", *weeks.map { "Week #{_1.number}" } ],
+          titles: [ "Start, #{day.(growth.started_on)}", *weeks.map { "Week #{_1.number}, to #{day.(_1.ends_on)}" } ],
+          series: [
+            { name: "Plan", meaning: :neutral, values: [ growth.start_followers, *weeks.map(&:followers_target) ] },
+            { name: "Followers", meaning: :them, values: [ growth.start_followers, *seen ] }
+          ] %>
+        <p class="text-caption text-muted-foreground">
+          From <%= number_with_delimiter growth.start_followers %> on <%= day.(growth.started_on) %>. Slow at first: about <%= number_with_delimiter weeks[3].followers_target %> by week 4 and <%= number_with_delimiter weeks[7].followers_target %> by week 8, faster as replies compound. Followers are the newest count Xtend had by each week's end.
+        </p>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="grid gap-inset lg:grid-cols-2">
+    <%= lc_card do %>
+      <div class="flex flex-col gap-content">
+        <h2 class="<%= lc_text_class(size: :label) %>">Checklist</h2>
+        <ul class="flex flex-col gap-content">
+          <% growth.checklist(@week).each do |key, label, why, kind, done, detail| %>
+            <li class="flex items-start gap-related" id="growth-<%= key %>">
+              <%= lc_icon(done ? "check-circle" : "stop", options: { class: "mt-0.5 size-5 shrink-0 #{done ? 'text-success' : 'text-muted-foreground'}", "aria-hidden": true }) %>
+              <div class="min-w-0 grow">
+                <p class="text-small font-semibold">
+                  <span class="sr-only"><%= done ? "Done:" : "To do:" %></span><%= label %>
+                  <% if detail %><span class="font-normal text-muted-foreground"> · <%= detail %></span><% end %>
+                </p>
+                <p class="text-caption text-muted-foreground"><%= why %></p>
+              </div>
+              <% if kind == :manual %>
+                <% if done %>
+                  <%= lc_button_to "Undo", growth_check_path, method: :delete, params: { week: @week, key: key }, variant: :ghost, size: :sm, aria: { label: "Mark “#{label}” not done" } %>
+                <% else %>
+                  <%= lc_button_to "Done", growth_check_path, params: { week: @week, key: key }, variant: :secondary, size: :sm, icon: "check", aria: { label: "Mark “#{label}” done" } %>
+                <% end %>
+              <% else %>
+                <span class="shrink-0 text-caption text-muted-foreground" title="Xtend ticks this from your data">Auto</span>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+        <p class="text-caption text-muted-foreground">
+          Replies are the ones Xtend confirmed on X. Do them in <%= link_to "Outreach", outreach_path, class: "text-primary hover:underline" %>, write posts in <%= link_to "Compose", drafts_path, class: "text-primary hover:underline" %>, and see what they brought in <%= link_to "Week in review", week_path, class: "text-primary hover:underline" %>.
+        </p>
+      </div>
+    <% end %>
+
+    <%= lc_card do %>
+      <% members = growth.circle_members(@week) %>
+      <div class="flex flex-col gap-content">
+        <h2 class="flex items-center justify-between gap-related <%= lc_text_class(size: :label) %>">
+          Your circle
+          <% if members.any? %><span class="font-normal text-muted-foreground"><%= members.count(&:replied_this_week) %> of <%= members.size %> replied to in week <%= @week %></span><% end %>
+        </h2>
+        <% if members.none? %>
+          <p class="text-small text-muted-foreground">
+            Tag the 30 to 50 people you want to be seen by <%= tag_chip Outreach::Growth::CIRCLE_TAG %>: active accounts in your niche, about 1K to 20K followers, and mutuals you already talk with. Or ask your AI to find them.
+          </p>
+        <% else %>
+          <ul class="flex flex-col divide-y divide-border">
+            <% members.each do |member| %>
+              <% person = member.person %>
+              <li class="flex items-start gap-related py-related">
+                <%= link_to person_avatar(person, size: :sm, ring: person.follow_state), person, tabindex: -1, aria: { hidden: true } %>
+                <div class="min-w-0 grow">
+                  <p class="flex flex-wrap items-center gap-x-related text-small">
+                    <%= link_to person.name, person, class: "font-semibold hover:underline" %>
+                    <span class="text-muted-foreground">@<%= person.handle %></span>
+                    <% if person.followers_count %><span class="text-caption text-muted-foreground"><%= number_to_human person.followers_count, format: "%n%u", units: { thousand: "K", million: "M" }, precision: 2 %></span><% end %>
+                    <% if person.pin %><%= lc_icon "bookmark", options: { class: "size-3.5 text-primary", "aria-label": "Pinned" } %><% end %>
+                  </p>
+                  <% if member.fresh_post %>
+                    <%= link_to CGI.unescapeHTML(member.fresh_post.body).squish.truncate(140), "https://x.com/i/status/#{member.fresh_post.x_id}", target: "_blank", rel: "noopener noreferrer",
+                      class: "block text-caption text-muted-foreground hover:text-foreground", title: "Posted #{time_ago_in_words member.fresh_post.published_at} ago, not replied to. Open on X" %>
+                  <% end %>
+                </div>
+                <span class="shrink-0 text-caption <%= member.replied_this_week ? 'text-you' : 'text-muted-foreground' %>">
+                  <% if member.replied_this_week %>Replied<% elsif member.last_reply_at %>Last <%= relative_day member.last_reply_at %><% else %>Never replied<% end %>
+                </span>
+              </li>
+            <% end %>
+          </ul>
+          <p class="text-caption text-muted-foreground">People you haven't replied to this week come first, then those with a post from the last two days you haven't answered.</p>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <%= lc_card do %>
+    <div class="flex flex-col gap-content">
+      <h2 class="<%= lc_text_class(size: :label) %>">Checkpoints</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-small tabular-nums">
+          <thead class="text-left text-muted-foreground">
+            <tr class="border-b border-border">
+              <th scope="col" class="py-tight pe-content font-normal">Week</th>
+              <th scope="col" class="py-tight pe-content font-normal">Dates</th>
+              <th scope="col" class="py-tight pe-content text-right font-normal">Followers</th>
+              <th scope="col" class="py-tight pe-content text-right font-normal">Checkpoint</th>
+              <th scope="col" class="py-tight pe-content text-right font-normal">Visits</th>
+              <th scope="col" class="py-tight text-right font-normal">Aim</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% weeks.each do |item| %>
+              <% past = item.starts_on <= Date.current %>
+              <tr class="border-b border-border last:border-0 <%= 'font-semibold' if item.number == @week %>">
+                <td class="py-tight pe-content"><%= link_to item.number, growth_path(week: item.number), class: "text-primary hover:underline" %><% if Outreach::Growth::REVIEWS[item.number] %> <span class="text-caption font-normal text-muted-foreground">review</span><% end %></td>
+                <td class="py-tight pe-content text-muted-foreground"><%= day.(item.starts_on) %>–<%= day.(item.ends_on) %></td>
+                <td class="py-tight pe-content text-right <%= growth.on_track?(item) ? 'text-success' : ('text-warning' if item.followers) if past %>"><%= past && item.followers ? number_with_delimiter(item.followers) : "—" %></td>
+                <td class="py-tight pe-content text-right"><%= number_with_delimiter item.followers_target %></td>
+                <td class="py-tight pe-content text-right"><%= past && item.visits ? item.visits : "—" %></td>
+                <td class="py-tight text-right"><%= item.visits_target %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-caption text-muted-foreground">Aims, not forecasts. What you control each week is the checklist; judge the numbers at the review weeks, not every morning.</p>
+    </div>
+  <% end %>
+
+  <%= lc_collapsible indicator: :chevron, summary_class: "text-small text-muted-foreground" do |collapsible| %>
+    <% collapsible.summary do %>Change the plan<% end %>
+    <%= form_with url: growth_path, method: :patch, class: "flex flex-wrap items-end gap-related pt-related" do %>
+      <%= lc_field label: "Follower goal", id: "growth-goal" do |field| %>
+        <%= lc_input name: "growth[goal]", type: "number", value: growth.goal, min: 1, step: 10, class: "w-32", **field %>
+      <% end %>
+      <%= lc_checkbox "Restart from week 1 today", name: "growth[restart]", unchecked_value: nil %>
+      <%= lc_button "Save", type: "submit", variant: :secondary %>
+    <% end %>
+    <p class="mt-related text-caption text-muted-foreground">Restarting clears your ticks and starts from your follower count now.</p>
+  <% end %>
+<% end %>

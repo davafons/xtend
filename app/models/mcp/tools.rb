@@ -120,6 +120,11 @@ class Mcp::Tools
       inputSchema: { type: "object", properties: {
         weeks_ago: { type: "integer", minimum: 0, maximum: Network::Week::MAX_WEEKS_AGO, description: "0 (default) is the seven days ending today." } } },
       annotations: { readOnlyHint: true } },
+    { name: "get_growth_plan", title: "Growth plan",
+      description: "The owner's growth plan: follower goal, start, this week's follower and profile-visit checkpoints against what Xtend saw, the week's checklist (ticked from data or by the owner), and his circle (people tagged circle) with who he replied to this week. Use it in weekly reviews to judge progress against the plan; tag new circle people with add_tags.",
+      inputSchema: { type: "object", properties: {
+        week: { type: "integer", minimum: 1, maximum: Outreach::Growth::WEEKS, description: "Plan week; default is the current one." } } },
+      annotations: { readOnlyHint: true } },
     { name: "get_task", title: "Task instructions",
       description: "Step-by-step instructions for one of Xtend's tasks, for clients without MCP prompts: #{Mcp::Prompts.names.join(', ')}. Follow them with the other tools.",
       inputSchema: { type: "object", required: %w[task], properties: {
@@ -390,6 +395,24 @@ class Mcp::Tools
       note: "Figures are X's own, as of when the owner last opened each analytics page; days not collected are missing, not zero." }
   end
 
+  def get_growth_plan(args)
+    growth = Outreach::Growth.new
+    return { started: false, followers: growth.followers, note: "The owner hasn't started a growth plan; he starts one on Xtend's Growth page." } unless growth.started?
+    number = Integer(args["week"] || growth.current_week.clamp(1, Outreach::Growth::WEEKS), exception: false)
+    raise Invalid, "week must be 1 to #{Outreach::Growth::WEEKS}." unless number&.between?(1, Outreach::Growth::WEEKS)
+    week = growth.week(number)
+    { started_on: growth.started_on.iso8601, goal: growth.goal, start_followers: growth.start_followers, current_week: growth.current_week,
+      followers_now: growth.latest_followers&.then { |count, at, source| { count: count, at: at.iso8601, source: source } },
+      week: { number: number, from: week.starts_on.iso8601, to: week.ends_on.iso8601, followers: week.followers, checkpoint: week.followers_target,
+        on_track: growth.on_track?(week), profile_visits: week.visits, visits_aim: week.visits_target, analytics_days: week.analytics_days,
+        review: Outreach::Growth::REVIEWS[number] },
+      checklist: growth.checklist(number).map { |key, label, _why, kind, done, detail| { key: key, item: label, done: done, ticked_by: kind == :auto ? "Xtend" : "The owner", detail: detail }.compact },
+      circle: growth.circle_members(number).map { |member| { handle: member.person.handle, person_id: member.person.id, followers: member.person.followers_count,
+        replied_this_week: member.replied_this_week, last_reply_at: member.last_reply_at&.iso8601,
+        fresh_post: member.fresh_post && { url: "https://x.com/i/status/#{member.fresh_post.x_id}", text: CGI.unescapeHTML(member.fresh_post.body).first(280) } } },
+      note: "Checkpoints are aims, not forecasts. Followers are the newest count Xtend had by the week's end; missing means not collected." }
+  end
+
   def get_week_review(args)
     weeks_ago = Integer(args["weeks_ago"] || 0, exception: false)
     raise Invalid, "weeks_ago must be 0 to #{Network::Week::MAX_WEEKS_AGO}." unless weeks_ago&.between?(0, Network::Week::MAX_WEEKS_AGO)
@@ -523,7 +546,7 @@ class Mcp::Tools
   def person_summary(person, graph, interactions)
     latest = interactions.signals.reject { |signal| signal.channel == "dm" && !@workspace.mcp_share_dms }.first
     { id: person.id, handle: person.handle, name: person.name, description: person.description&.first(300),
-      follow_state: person.follow_state(graph), reply_state: person.reply_state, tags: person.tags.map(&:name),
+      followers: person.followers_count, follow_state: person.follow_state(graph), reply_state: person.reply_state, tags: person.tags.map(&:name),
       pinned: person.pin.present?, keep_following: person.follow_protection.present?,
       last_interaction: latest && { channel: latest.channel, direction: latest.direction, at: latest.at.iso8601, approximate: latest.approximate? } }
   end

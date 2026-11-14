@@ -11,7 +11,7 @@ module ApplicationHelper
 
   def navigation_sections
     [
-      [ "Work", [ [ "Outreach", outreach_path, "megaphone" ], [ "People", people_path, "users" ], [ "Replies to you", inbox_path, "inbox-arrow-down" ], [ "Compose", drafts_path, "pencil-square" ], [ "Week in review", week_path, "calendar-days" ] ] ],
+      [ "Work", [ [ "Outreach", outreach_path, "megaphone" ], [ "People", people_path, "users" ], [ "Replies to you", inbox_path, "inbox-arrow-down" ], [ "Compose", drafts_path, "pencil-square" ], [ "Week in review", week_path, "calendar-days" ], [ "Growth", growth_path, "arrow-trending-up" ] ] ],
       [ "Relationships", [ [ "Network", network_path, "share" ], [ "Timeline", timeline_path, "queue-list" ], [ "Follow review", follow_reviews_path, "user-minus" ], [ "Follow trials", follow_trials_path, "beaker" ], [ "Followers", follower_history_path, "chart-bar" ], [ "Insights", insights_path, "presentation-chart-line" ] ] ],
       [ "Data", [ [ "X data", x_sources_path, "circle-stack" ], [ "AI", ai_connector_path, "sparkles" ], [ "Spending", x_billing_cycles_path, "banknotes" ] ] ]
     ]
