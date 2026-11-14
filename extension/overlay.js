@@ -80,9 +80,11 @@
   // Profiles asked to be saved right away: "pending", then "done" so a profile X never sends is asked only once.
   const saving = new Map();
   const asked = new Set();
+  const RETRY_MS = 10 * 1000;
+  // People whose data a capture batch may have changed, asked again once they're on screen.
+  const staleHandles = new Set();
   let status = { off: false, error: null };
   let scanTimer = null;
-  let requesting = false;
   // Your side: the busy-hour level and X analytics freshness, asked again every few minutes.
   const ACCOUNT_TTL_MS = 5 * 60 * 1000;
   let you = null;
@@ -468,8 +470,16 @@
       existing?.remove();
       return false;
     }
-    const existing = placed.get(target.element);
-    if (existing?.isConnected && existing.dataset.handle === target.handle) return true;
+    // X can swap the element and keep the row our host sits in, so a host already inside is reused, and any extra
+    // one goes, rather than drawing a second badge next to it.
+    let existing = placed.get(target.element);
+    const inside = target.kind === "reply" ? [] : [...target.element.querySelectorAll(`[data-xtend-host="${target.kind}"]`)];
+    if (!existing?.isConnected) existing = inside.find((node) => node.dataset.handle === target.handle) || existing;
+    inside.forEach((node) => { if (node !== existing) node.remove(); });
+    if (existing?.isConnected && existing.dataset.handle === target.handle) {
+      placed.set(target.element, existing);
+      return true;
+    }
     existing?.remove();
     placed.delete(target.element);
     return false;
@@ -482,17 +492,19 @@
     scanTimer = null;
     if (status.off) return;
     if (!youAt || Date.now() - youAt > ACCOUNT_TTL_MS) requestAccount();
-    const pending = targets().filter((target) => !current(target));
+    const all = targets();
+    if (staleHandles.size) refresh([...new Set(all.filter((target) => target.kind !== "status").map((target) => target.handle))]);
+    const pending = all.filter((target) => !current(target));
     const missing = [...new Set(pending.filter((target) => target.kind !== "status").map((target) => target.handle))]
       .filter((handle) => !people.has(handle) && !asked.has(handle));
     for (const target of pending) {
       if (target.kind === "status" || people.has(target.handle) || (target.kind === "card" && status.error)) render(target);
     }
-    if (missing.length && !requesting) request(missing);
+    if (missing.length) request(missing);
   }
 
+  // Requests run side by side: each asks only for handles no other request is asking for.
   async function request(handles) {
-    requesting = true;
     handles.forEach((handle) => asked.add(handle));
     try {
       const answer = await chrome.runtime.sendMessage({ type: "context", handles });
@@ -506,9 +518,9 @@
     } catch {
       status = { off: false, error: "unreachable" };
     } finally {
-      // An unanswered handle can be asked again on a later scan.
-      handles.filter((handle) => !people.has(handle)).forEach((handle) => asked.delete(handle));
-      requesting = false;
+      // An unanswered handle (Xtend unreachable or busy) is asked again after a pause, not on every scan.
+      const unanswered = handles.filter((handle) => !people.has(handle));
+      if (unanswered.length) setTimeout(() => { unanswered.forEach((handle) => asked.delete(handle)); schedule(); }, RETRY_MS);
     }
     schedule();
   }
@@ -543,13 +555,45 @@
 
   const schedule = () => { scanTimer ||= setTimeout(scan, SCAN_DELAY_MS); };
 
+  // Redraws only the people whose context changed: their chips, cards, hover sections, and reply panels go, and the
+  // scan right after puts them back with the new data. Rings redraw themselves when the follow state changes.
+  function update(changed) {
+    const handles = Object.keys(changed);
+    if (!handles.length) return;
+    for (const [handle, person] of Object.entries(changed)) people.set(handle, person);
+    for (const node of document.querySelectorAll("[data-xtend-host]")) {
+      if (handles.includes(node.dataset.handle)) node.remove();
+    }
+    clearTimeout(scanTimer);
+    scan();
+  }
+
+  // The extension sends what changed for people on screen, after asking Xtend again.
+  async function refresh(onScreen) {
+    const handles = onScreen.filter((handle) => staleHandles.has(handle) && people.has(handle));
+    if (!handles.length) return;
+    handles.forEach((handle) => staleHandles.delete(handle));
+    try {
+      const answer = await chrome.runtime.sendMessage({ type: "context", handles });
+      const changed = Object.fromEntries(Object.entries(answer?.people || {})
+        .filter(([handle, person]) => JSON.stringify(person) !== JSON.stringify(people.get(handle))));
+      update(changed);
+    } catch {}
+  }
+
   chrome.runtime.onMessage.addListener((message) => {
+    if (message?.type === "context-update") return update(message.people || {});
     if (message?.type !== "context-stale") return;
-    people.clear();
-    asked.clear();
     youAt = 0;
     status = { off: false, error: null };
-    clear();
+    if (message.hard) {
+      people.clear();
+      asked.clear();
+      clear();
+      return schedule();
+    }
+    // A capture batch: keep what's shown, and redraw only what Xtend now says differently.
+    people.forEach((_, handle) => staleHandles.add(handle));
     schedule();
   });
 

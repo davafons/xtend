@@ -15,12 +15,22 @@ const MAX_BATCH_BYTES = 6 * 1024 * 1024;
 const ITEM_PREFIX = "q:";
 const SEND_DELAY_MS = 4000;
 const XTEND_TABS = ["https://xtend.example.com/*", "https://xtend.localhost/*"];
-// What Xtend knows about the people on screen, kept briefly so scrolling a timeline doesn't ask twice.
-const CONTEXT_TTL_MS = 3 * 60 * 1000;
+// What Xtend knows about the people on screen. A fresh answer is used as is; an older one (or one a capture batch may
+// have changed) is shown at once while it's asked again, and the tab gets the new answer if it differs. Kept in session
+// storage so it outlives the service worker, which Chrome stops after half a minute idle.
+const CONTEXT_FRESH_MS = 5 * 60 * 1000;
+const CONTEXT_KEEP_MS = 60 * 60 * 1000;
+const CONTEXT_MAX_ENTRIES = 2000;
 const CONTEXT_MAX_HANDLES = 100;
+const CACHE_KEY = "context";
 // Long enough for x.com's profile responses to reach the queue.
 const SAVE_NOW_DELAY_MS = 1500;
+// handle => { person, at, stale }
 const contextCache = new Map();
+// handle => the request already asking for it, so two tabs or two scans share one request.
+const inflight = new Map();
+let cacheLoaded = null;
+let cacheSaveTimer = null;
 // Your side of the context: whether now is a busy hour for your audience, and how fresh your X analytics are.
 let accountCache = null;
 let sendTimer = null;
@@ -90,12 +100,44 @@ function listMessages(result) {
   });
 }
 
-// x.com tabs drop what they showed and ask again, since a batch can add people, replies, and follow states.
-async function staleContext() {
-  contextCache.clear();
-  accountCache = null;
+function loadCache() {
+  return (cacheLoaded ||= chrome.storage.session.get(CACHE_KEY).then((stored) => {
+    const saved = stored[CACHE_KEY] || {};
+    const now = Date.now();
+    for (const [handle, entry] of Object.entries(saved.people || {})) {
+      if (now - entry.at < CONTEXT_KEEP_MS && !contextCache.has(handle)) contextCache.set(handle, entry);
+    }
+    accountCache ||= saved.you || null;
+  }).catch(() => {}));
+}
+
+function saveCache() {
+  cacheSaveTimer ||= setTimeout(() => {
+    cacheSaveTimer = null;
+    const now = Date.now();
+    const people = [...contextCache].filter(([, entry]) => now - entry.at < CONTEXT_KEEP_MS)
+      .sort((a, b) => b[1].at - a[1].at).slice(0, CONTEXT_MAX_ENTRIES);
+    contextCache.clear();
+    for (const [handle, entry] of people.reverse()) contextCache.set(handle, entry);
+    chrome.storage.session.set({ [CACHE_KEY]: { people: Object.fromEntries(contextCache), you: accountCache } }).catch(() => {});
+  }, 500);
+}
+
+// A batch can add people, replies, and follow states, so what's cached is asked again before it's trusted. Tabs keep
+// what they show and ask again for what's on screen. hard: the overlay was switched or the connection changed, so
+// tabs drop everything.
+async function staleContext({ hard = false } = {}) {
+  await loadCache();
+  if (hard) {
+    contextCache.clear();
+    accountCache = null;
+  } else {
+    for (const entry of contextCache.values()) entry.stale = true;
+    if (accountCache) accountCache.stale = true;
+  }
+  saveCache();
   const xTabs = await chrome.tabs.query({ url: "https://x.com/*" }).catch(() => []);
-  for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "context-stale" }).catch(() => {});
+  for (const tab of xTabs) chrome.tabs.sendMessage(tab.id, { type: "context-stale", hard }).catch(() => {});
 }
 
 async function announce(result) {
@@ -162,31 +204,59 @@ async function post(batch, retry = true) {
   return { status: response.status, ok: response.ok, body };
 }
 
-// Reads Xtend's context for handles x.com is showing: cached answers first, the rest in one request.
-async function context(handles) {
+// Reads Xtend's context for handles x.com is showing. Fresh cached answers and older ones come back at once; missing
+// handles are asked for before answering, and older ones are asked again afterwards, sending the tab what changed.
+async function context(handles, tabId) {
   const current = await settings();
   if (!current.overlay) return { off: true };
   if (!current.token) return { error: "not connected" };
+  await loadCache();
   const now = Date.now();
   const people = {};
   const missing = [];
+  const old = [];
   for (const handle of new Set(handles.map((handle) => String(handle).toLowerCase()).filter((handle) => /^\w{1,15}$/.test(handle)))) {
     const cached = contextCache.get(handle);
-    if (cached && now - cached.at < CONTEXT_TTL_MS) people[handle] = cached.person;
-    else missing.push(handle);
-  }
-  for (let i = 0; i < missing.length; i += CONTEXT_MAX_HANDLES) {
-    const chunk = missing.slice(i, i + CONTEXT_MAX_HANDLES);
-    const answer = await readContext(chunk);
-    if (!answer.ok) return { people, error: answer.error };
-    if (answer.body.you) accountCache = { you: answer.body.you, at: now };
-    for (const [handle, answered] of Object.entries(answer.body.people || {})) {
-      const person = { ...answered, follow_checked_at: answer.body.follow_checked_at || null };
-      contextCache.set(handle, { person, at: now });
-      people[handle] = person;
+    if (cached && now - cached.at < CONTEXT_KEEP_MS) {
+      people[handle] = cached.person;
+      if (cached.stale || now - cached.at >= CONTEXT_FRESH_MS) old.push(handle);
+    } else {
+      missing.push(handle);
     }
   }
-  return { people };
+  const asked = missing.length ? await fetchPeople(missing) : {};
+  Object.assign(people, asked.people);
+  if (old.length && tabId != null) {
+    const before = Object.fromEntries(old.map((handle) => [handle, JSON.stringify(people[handle])]));
+    fetchPeople(old).then((answer) => {
+      const changed = Object.fromEntries(Object.entries(answer.people).filter(([handle, person]) => JSON.stringify(person) !== before[handle]));
+      if (Object.keys(changed).length) chrome.tabs.sendMessage(tabId, { type: "context-update", people: changed }).catch(() => {});
+    });
+  }
+  return asked.error ? { people, error: asked.error } : { people };
+}
+
+// Asks Xtend about handles, joining any request already asking for one of them.
+async function fetchPeople(handles) {
+  const fresh = handles.filter((handle) => !inflight.has(handle));
+  for (let i = 0; i < fresh.length; i += CONTEXT_MAX_HANDLES) {
+    const chunk = fresh.slice(i, i + CONTEXT_MAX_HANDLES);
+    const request = readContext(chunk).then((answer) => {
+      if (!answer.ok) throw new Error(answer.error);
+      const at = Date.now();
+      if (answer.body.you) accountCache = { you: answer.body.you, at };
+      for (const [handle, answered] of Object.entries(answer.body.people || {})) {
+        contextCache.set(handle, { person: { ...answered, follow_checked_at: answer.body.follow_checked_at || null }, at });
+      }
+      saveCache();
+    }).finally(() => chunk.forEach((handle) => inflight.delete(handle)));
+    chunk.forEach((handle) => inflight.set(handle, request));
+  }
+  const results = await Promise.allSettled([...new Set(handles.map((handle) => inflight.get(handle)).filter(Boolean))]);
+  const failed = results.find((result) => result.status === "rejected");
+  const people = {};
+  for (const handle of handles) if (contextCache.has(handle)) people[handle] = contextCache.get(handle).person;
+  return failed ? { people, error: failed.reason?.message || "failed" } : { people };
 }
 
 // The account part alone, cached like people. Asking with no handles returns only it.
@@ -194,10 +264,12 @@ async function account() {
   const current = await settings();
   if (!current.overlay) return { off: true };
   if (!current.token) return { error: "not connected" };
-  if (accountCache && Date.now() - accountCache.at < CONTEXT_TTL_MS) return { you: accountCache.you };
+  await loadCache();
+  if (accountCache && !accountCache.stale && Date.now() - accountCache.at < CONTEXT_FRESH_MS) return { you: accountCache.you };
   const answer = await readContext([]);
-  if (!answer.ok) return { error: answer.error };
+  if (!answer.ok) return accountCache ? { you: accountCache.you } : { error: answer.error };
   accountCache = { you: answer.body.you, at: Date.now() };
+  saveCache();
   return { you: answer.body.you };
 }
 
@@ -342,12 +414,12 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id !== chrome.runtime.id || !sender.tab?.url?.startsWith("https://x.com/")) return false;
     const handle = String(message.handle || "").toLowerCase();
     new Promise((resolve) => setTimeout(resolve, SAVE_NOW_DELAY_MS)).then(() => flush()).catch(() => {})
-      .then(() => { contextCache.delete(handle); reply({ ok: true }); });
+      .then(() => { contextCache.delete(handle); saveCache(); reply({ ok: true }); });
     return true;
   }
   if (message.type === "context") {
     if (sender.id !== chrome.runtime.id || !sender.tab?.url?.startsWith("https://x.com/") || !Array.isArray(message.handles)) return false;
-    context(message.handles).then(reply, () => reply({ error: "failed" }));
+    context(message.handles, sender.tab.id).then(reply, () => reply({ error: "failed" }));
     return true;
   }
   if (message.type === "account") {
@@ -378,7 +450,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local" || !changes.settings) return;
   const before = changes.settings.oldValue || {};
   const after = changes.settings.newValue || {};
-  if (before.overlay !== after.overlay || before.token !== after.token || before.xtendUrl !== after.xtendUrl) staleContext();
+  if (before.overlay !== after.overlay || before.token !== after.token || before.xtendUrl !== after.xtendUrl) staleContext({ hard: true });
 });
 
 const schedule = () => chrome.alarms.create("flush", { periodInMinutes: 1 });
