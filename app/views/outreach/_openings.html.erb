@@ -1,40 +1,39 @@
-<%# Fresh posts worth a reply, each with why it is here. Replying happens on X. %>
-<%# locals: (prospects:, openings:) -%>
-<% if openings.to_a.empty? %>
+<%# Posts worth a reply, each with why it is here. Replying happens on X.
+    By default, today's share: the session's remaining replies, split into your circle and reach. all: every opening. %>
+<%# locals: (prospects:, openings:, today:, all: false) -%>
+<% if !all && today.remaining.zero? %>
+  <%= lc_empty_state title: "Done for today.", text: "#{Outreach::Session::TARGET} new targets replied to this session. More replies still help; they just don't count toward today.", icon: "check-circle", card: true do %>
+    <%= lc_button_link_to "Keep going", outreach_path(all: 1), variant: :secondary, size: :sm %>
+  <% end %>
+<% elsif all ? openings.to_a.empty? : today.empty? %>
   <%= lc_empty_state title: "No fresh posts to answer.", text: "Nothing unanswered in the last two days of collected posts from your people or discovery. Older posts aren't shown as current.", icon: "chat-bubble-oval-left", card: true %>
+<% elsif !all %>
+  <% groups = [
+    [ "Circle", today.circle, "People on your Circle lists. Being seen by the same people again and again is what turns replies into follows." ],
+    [ "Reach", today.reach, "Everyone else worth a reply: discovery picks and people around your network. Their readers find you here." ]
+  ].select { |_, list, _| list.any? } %>
+  <div class="flex flex-wrap items-baseline justify-between gap-x-heading gap-y-tight">
+    <p class="text-small text-muted-foreground"><span class="font-semibold text-foreground"><%= pluralize(today.size, "post") %> for the <%= today.remaining %> <%= "reply".pluralize(today.remaining) %> left today</span> · <%= today.circle.size %> circle, <%= today.reach.size %> reach</p>
+    <%= link_to "See the whole list", outreach_path(all: 1), class: "text-small text-primary hover:underline" %>
+  </div>
+  <% groups.each do |label, list, about| %>
+    <section class="flex flex-col gap-related" aria-label="<%= label %>">
+      <div>
+        <h2 class="text-label"><%= label %> <span class="font-normal tabular-nums text-muted-foreground"><%= list.size %></span></h2>
+        <p class="text-caption text-muted-foreground"><%= about %></p>
+      </div>
+      <%= lc_card padding: :none, class: "overflow-hidden" do %>
+        <ol class="flex flex-col divide-y divide-border">
+          <% list.each do |opening| %><%= render "outreach/opening", opening: opening, prospects: prospects %><% end %>
+        </ol>
+      <% end %>
+    </section>
+  <% end %>
 <% else %>
+  <div class="flex justify-end"><%= link_to (today.remaining.zero? ? "Today's done: back to the summary" : "Show today's #{today.remaining}"), outreach_path, class: "text-small text-primary hover:underline" %></div>
   <%= lc_card padding: :none, class: "overflow-hidden" do %>
     <ol class="flex flex-col divide-y divide-border">
-      <% openings.to_a.each do |opening| %>
-        <% post = opening.post %>
-        <% author = opening.author %>
-        <% captured = post.is_a?(X::SourcePost) %>
-        <%
-          why = []
-          why += opening.prospect.reasons.first(2).map { |reason| outreach_reason(reason) } if opening.prospect
-          if opening.discovery&.match_reason.present?
-            why << tag.span(class: "inline-flex min-w-0 items-center gap-tight", title: opening.discovery.match_reason) do
-              safe_join([ lc_icon("light-bulb", options: { class: "size-4 shrink-0", "aria-hidden": true }), tag.span(opening.discovery.match_reason, class: "truncate") ])
-            end
-          end
-          if opening.payoff
-            why << tag.span(class: "inline-flex min-w-0 items-center gap-tight text-success", title: "From X analytics on your past replies. #{opening.payoff}.") do
-              safe_join([ lc_icon("arrow-trending-up", options: { class: "size-4 shrink-0", "aria-hidden": true }), tag.span(opening.payoff, class: "truncate") ])
-            end
-          end
-          note = ("Counts as of #{post.metrics_observed_at.strftime('%-d %b, %H:%M')}" if captured && post.metrics_observed_at)
-        %>
-        <li class="px-inset py-3" id="opening_<%= opening.x_id %>">
-          <%= render "shared/x_post",
-            avatar: outreach_avatar(author, prospects.graph),
-            name: author.name, name_url: (author if author.is_a?(Person)), handle: author.handle, at: post.published_at,
-            context: (tag.span(safe_join(why), class: "flex min-w-0 flex-wrap items-center gap-x-heading text-small") if why.any?),
-            body: CGI.unescapeHTML(post.body),
-            source: (post if captured),
-            counts: captured ? { reply: post.reply_count, repost: post.repost_count, like: post.like_count, view: post.view_count, bookmark: post.bookmark_count } : { reply: post.reply_count },
-            counts_note: note, url: opening.url %>
-        </li>
-      <% end %>
+      <% openings.to_a.each do |opening| %><%= render "outreach/opening", opening: opening, prospects: prospects %><% end %>
     </ol>
   <% end %>
 <% end %>

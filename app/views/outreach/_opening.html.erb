@@ -1,0 +1,30 @@
+<%# One post worth a reply, with why it is here. Replying happens on X. %>
+<%# locals: (opening:, prospects:) -%>
+<% post = opening.post %>
+<% author = opening.author %>
+<% captured = post.is_a?(X::SourcePost) %>
+<%
+  why = []
+  why += opening.prospect.reasons.first(2).map { |reason| outreach_reason(reason) } if opening.prospect
+  if opening.discovery&.match_reason.present?
+    why << tag.span(class: "inline-flex min-w-0 items-center gap-tight", title: opening.discovery.match_reason) do
+      safe_join([ lc_icon("light-bulb", options: { class: "size-4 shrink-0", "aria-hidden": true }), tag.span(opening.discovery.match_reason, class: "truncate") ])
+    end
+  end
+  if opening.payoff
+    why << tag.span(class: "inline-flex min-w-0 items-center gap-tight text-success", title: "From X analytics on your past replies. #{opening.payoff}.") do
+      safe_join([ lc_icon("arrow-trending-up", options: { class: "size-4 shrink-0", "aria-hidden": true }), tag.span(opening.payoff, class: "truncate") ])
+    end
+  end
+  note = ("Counts as of #{post.metrics_observed_at.strftime('%-d %b, %H:%M')}" if captured && post.metrics_observed_at)
+%>
+<li class="px-inset py-3" id="opening_<%= opening.x_id %>">
+  <%= render "shared/x_post",
+    avatar: outreach_avatar(author, prospects.graph),
+    name: author.name, name_url: (author if author.is_a?(Person)), handle: author.handle, at: post.published_at,
+    context: (tag.span(safe_join(why), class: "flex min-w-0 flex-wrap items-center gap-x-heading text-small") if why.any?),
+    body: CGI.unescapeHTML(post.body),
+    source: (post if captured),
+    counts: captured ? { reply: post.reply_count, repost: post.repost_count, like: post.like_count, view: post.view_count, bookmark: post.bookmark_count } : { reply: post.reply_count },
+    counts_note: note, url: opening.url %>
+</li>

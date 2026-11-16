@@ -18,8 +18,32 @@ class Outreach::Openings
     @payoff = payoff
   end
 
+  # Today's share of the list: as many posts as the session still needs, split as the growth plan says between
+  # your circle (the Circle and Inner circle lists) and reach (everyone else). When one side runs short, the
+  # other fills its places. Each side keeps the ranking's order.
+  Today = Data.define(:circle, :reach, :remaining) do
+    def size = circle.size + reach.size
+    def empty? = size.zero?
+  end
+
+  def today(remaining)
+    circle, reach = ranked.partition { |opening| circle_ids.include?(opening.author&.x_id) }
+    circle_places = (remaining * Outreach::Growth::CIRCLE_SHARE).round
+    reach_places = remaining - circle_places
+    reach_places += [ circle_places - circle.size, 0 ].max
+    circle_places += [ reach_places - reach.size, 0 ].max
+    Today.new(circle.first(circle_places), reach.first(reach_places), remaining)
+  end
+
   def to_a
-    @openings ||= begin
+    @openings ||= ranked.first(LIMIT)
+  end
+
+  def size = to_a.size
+
+  # Every opening, best first.
+  def ranked
+    @ranked ||= begin
       seen = {}
       @prospects.all.each do |prospect|
         prospect.recent_posts.first(PER_AUTHOR).each do |post|
@@ -37,13 +61,15 @@ class Outreach::Openings
         points, reason = @payoff.lift(opening.author)
         points ? opening.with(score: opening.score + points, payoff: reason) : opening
       end
-      seen.values.sort_by { |opening| [ -opening.score, -opening.published_at.to_f ] }.first(LIMIT)
+      seen.values.sort_by { |opening| [ -opening.score, -opening.published_at.to_f ] }
     end
   end
 
-  def size = to_a.size
-
   private
+
+  def circle_ids
+    @circle_ids ||= List.circle_people.where.not(x_id: nil).pluck(:x_id).to_set
+  end
 
   # Up to 12 points for a post in its first hours, falling to none at two days old.
   def freshness(at)

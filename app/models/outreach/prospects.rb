@@ -79,7 +79,7 @@ class Outreach::Prospects
   def rank
     people = Person.includes(:pin, :tags, :lists).where(x_id: candidates.keys).index_by(&:x_id)
     accounts = X::Account.where(x_id: candidates.keys - people.keys).index_by(&:x_id)
-    candidates.filter_map do |x_id, reasons|
+    ranked = candidates.filter_map do |x_id, reasons|
       person = people[x_id]
       account = accounts[x_id]
       next unless person || account
@@ -90,7 +90,9 @@ class Outreach::Prospects
       score += 5 if person&.tier_list&.tier == "circle"
       score += 5 if person && mutual?(person)
       Prospect.new(x_id, person, account, reasons, score, exchange&.last_touch_at, recent_posts.fetch(x_id, []))
-    end.sort_by { |prospect| [ -prospect.score, -(prospect.recent_posts.first&.published_at.to_f), prospect.name.downcase ] }.first(LIMIT)
+    end.sort_by { |prospect| [ -prospect.score, -(prospect.recent_posts.first&.published_at.to_f), prospect.name.downcase ] }
+    # Your circle's fresh posts always reach Reply now, however long the list.
+    ranked.first(LIMIT) + ranked.drop(LIMIT).select { |prospect| prospect.recent_posts.any? && List::CIRCLE_TIERS.include?(prospect.person&.tier_list&.tier) }
   end
 
   def weight(key, x_id, exchange)

@@ -102,6 +102,43 @@ class OutreachTest < ActiveSupport::TestCase
     assert_equal "https://x.com/carol/status/3001", openings.second.url
   end
 
+  test "today's openings fill the remaining replies, 60% from your circle, and either side fills the other's places" do
+    circle = (1..8).map { |n| person("20#{n}", "circle#{n}") }
+    others = (1..8).map { |n| person("30#{n}", "other#{n}") }
+    List.ensure_tiers!
+    circle.each { |person| List.find_by!(tier: "circle").people << person }
+    snapshot("following", Person.all)
+    snapshot("followers", Person.all)
+    (circle + others).each_with_index { |person, index| post("40#{index.to_s.rjust(2, '0')}", person.x_id, at: (index + 1).minutes.ago) }
+
+    openings = Outreach::Openings.new(Outreach::Prospects.new)
+    today = openings.today(10)
+    assert_equal [ 6, 4 ], [ today.circle.size, today.reach.size ]
+    assert today.circle.all? { |opening| opening.author.x_id.start_with?("20") }
+    assert today.reach.none? { |opening| opening.author.x_id.start_with?("20") }
+
+    assert_equal [ 8, 8 ], openings.today(20).then { |list| [ list.circle.size, list.reach.size ] }, "short on both sides: everything shows"
+    assert_equal 0, openings.today(0).size
+    List.find_by!(tier: "circle").people.delete(circle.first(6))
+    assert_equal [ 2, 8 ], Outreach::Openings.new(Outreach::Prospects.new).today(10).then { |list| [ list.circle.size, list.reach.size ] },
+      "reach takes the places an emptier circle leaves"
+  end
+
+  test "a circle member's fresh post stays a prospect past the list's limit" do
+    (1..Outreach::Prospects::LIMIT + 1).each do |n|
+      person("5#{n}", "eager#{n}")
+      3.times { |i| interaction("5#{n}", "999", "p#{n}-#{i}") }
+    end
+    quiet = person("600", "quiet")
+    List.ensure_tiers!
+    List.find_by!(tier: "circle").people << quiet
+    post("6001", "600", at: 30.hours.ago)
+
+    prospects = Outreach::Prospects.new.all
+    assert_equal Outreach::Prospects::LIMIT + 1, prospects.size
+    assert_equal "600", prospects.last.x_id
+  end
+
   test "the session counts distinct new targets and reports follow-ups separately" do
     session = Outreach::Session.current
     ingest(x_id: "o1", target_x_id: "t1", occurred_at: 1.minute.ago)
