@@ -86,6 +86,19 @@ class ArchivePostsImportTest < ActiveSupport::TestCase
     assert_equal event, Outreach::Target.find_by!(target_x_id: "5002").reply_event
   end
 
+  test "archived posts keep their media, and posts saved without it take the archive's" do
+    run = X::SyncRun.create!(dataset: "posts", mode: "capture", status: "completed", owner_x_id: "999", request_key: "capture-test-media",
+      page_limit: 1, upper_bound: Time.current)
+    X::SourcePost.create!(x_id: "9002", author_x_id: "999", body: "@ada hello", published_at: 29.days.ago, x_sync_run: run, media_kinds: "photo")
+    photo = ->(name) { { "extended_entities" => { "media" => [ { "type" => "photo", "media_url_https" => "https://pbs.twimg.com/media/#{name}.jpg",
+      "sizes" => { "large" => { "w" => "2048", "h" => "1536" } } } ] } } }
+    X::ArchiveImport.import!(archive(tweets: [ tweet("9001", 30.days.ago).merge(photo.("own")), tweets.second.merge(photo.("reply")) ]))
+
+    assert_equal [ { "kind" => "photo", "image" => "https://pbs.twimg.com/media/own.jpg", "width" => 2048, "height" => 1536 } ],
+      X::SourcePost.find_by!(x_id: "9001").media
+    assert_equal "https://pbs.twimg.com/media/reply.jpg", X::SourcePost.find_by!(x_id: "9002").media.first["image"]
+  end
+
   test "importing the same archive twice changes nothing" do
     path = archive(tweets: tweets)
     X::ArchiveImport.import!(path)

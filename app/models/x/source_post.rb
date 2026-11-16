@@ -38,6 +38,7 @@ class X::SourcePost < ApplicationRecord
       record.assign_attributes(details.slice(:quoted_x_id, :reposted_x_id).compact)
       # A post's media and links don't change, but a sighting can omit them (a repost, a trimmed embed).
       record.media_kinds = details[:media_kinds] if details[:media_kinds]
+      record.media = details[:media] if details[:media]
       record.has_link ||= details[:has_link] == true
       counts = details.slice(*COUNTS).compact
       record.assign_attributes(counts.merge(metrics_observed_at: at)) if counts.any?

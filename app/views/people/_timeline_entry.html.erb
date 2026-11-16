@@ -8,10 +8,10 @@
   <% if entry.parent %>
     <% parent_url = "https://x.com/i/status/#{entry.parent.x_id}" unless entry.url.nil? %>
     <%= render "people/tweet", author: entry.parent.author, person: person, owner_handle: owner_handle, body: entry.parent.body,
-      at: nil, url: parent_url, marks: timeline.marks[entry.parent.x_id], thread: true, analytics: timeline.analytics_for(entry.parent.x_id), **timeline.counts_for(entry.parent.x_id) %>
+      at: nil, url: parent_url, marks: timeline.marks[entry.parent.x_id], thread: true, analytics: timeline.analytics_for(entry.parent.x_id), source: timeline.sources[entry.parent.x_id], **timeline.counts_for(entry.parent.x_id) %>
   <% end %>
   <%= render "people/tweet", author: entry.author, person: person, owner_handle: owner_handle, body: entry.body, at: entry.at,
-    url: entry.url, marks: timeline.marks[entry.x_id], detail: entry.detail, analytics: timeline.analytics_for(entry.x_id), **timeline.counts_for(entry.x_id) %>
+    url: entry.url, marks: timeline.marks[entry.x_id], detail: entry.detail, analytics: timeline.analytics_for(entry.x_id), source: timeline.sources[entry.x_id], **timeline.counts_for(entry.x_id) %>
 <% else %>
   <div class="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3 text-[0.9375rem] leading-5">
     <span class="flex size-10 items-center justify-center rounded-full <%= ApplicationHelper::MEANING_CLASSES.fetch(entry.tone) %>"><%= lc_icon entry.icon, options: { class: "size-5", "aria-hidden": true } %></span>

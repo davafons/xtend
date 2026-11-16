@@ -1,11 +1,15 @@
 <%# One post as x.com draws it: avatar column, name line, text, media, quote, and the action row.
     An action shows only when there is a count or one of your marks for it, so a blank means not collected.
-    thread: draws the line from this avatar down to the next post in the same conversation. %>
-<%# locals: (avatar:, name:, handle:, body:, name_url: nil, at: nil, detail: nil, cue: nil, context: nil, media_kinds: [], quote: nil, counts: nil, counts_note: nil, marks: [], url: nil, thread: false, extra: nil, footer: nil) -%>
+    thread: draws the line from this avatar down to the next post in the same conversation.
+    source: the saved X::SourcePost, for its media and its page in Xtend. Clicking the post opens that page unless
+    linked: false (the post the page is about). %>
+<%# locals: (avatar:, name:, handle:, body:, name_url: nil, at: nil, detail: nil, cue: nil, context: nil, source: nil, linked: true, quote: nil, counts: nil, counts_note: nil, marks: [], url: nil, thread: false, extra: nil, footer: nil) -%>
 <% counted = !counts.nil? %>
 <% counts ||= {} %>
 <% marks ||= [] %>
-<div class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 text-[0.9375rem] leading-5">
+<% page = post_path(source.x_id) if source && linked %>
+<%= tag.div class: [ "grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 text-[0.9375rem] leading-5", ("cursor-pointer" if page) ],
+  data: (page ? { controller: "post-link", post_link_url_value: page, action: "click->post-link#open auxclick->post-link#open" } : {}) do %>
   <div class="flex flex-col items-center [--lc-avatar-size:--spacing(10)]">
     <%= avatar %>
     <% if thread %><span class="mt-1 -mb-3 w-0.5 grow bg-border" aria-hidden="true"></span><% end %>
@@ -15,7 +19,7 @@
       <% if name_url.is_a?(Person) %><%= person_link name_url, name, class: "truncate font-bold text-foreground hover:underline" %><% elsif name_url %><%= link_to name, name_url, class: "truncate font-bold text-foreground hover:underline" %><% else %><span class="truncate font-bold text-foreground"><%= name %></span><% end %>
       <% if handle %><span class="min-w-0 truncate">@<%= handle %></span><% end %>
       <%= cue %>
-      <% if at %><span aria-hidden="true">·</span><span class="shrink-0"><%= lc_time at, detail: detail %></span><% end %>
+      <% if at %><span aria-hidden="true">·</span><% if page %><%= link_to page, class: "shrink-0 hover:underline" do %><%= lc_time at, detail: detail %><% end %><% else %><span class="shrink-0"><%= lc_time at, detail: detail %></span><% end %><% end %>
     </p>
     <% if context %><p class="text-muted-foreground"><%= context %></p><% end %>
     <% if body.present? %>
@@ -23,21 +27,27 @@
     <% else %>
       <p class="mt-0.5 italic text-muted-foreground">Text not collected</p>
     <% end %>
-    <% if media_kinds.any? %>
+    <% media_kinds = source&.media_kinds.to_s.split(",") %>
+    <% if source&.media.present? %>
+      <%= render "shared/x_media", media: source.media, url: (url unless demo?) %>
+    <% elsif media_kinds.any? %>
       <% video = (media_kinds & %w[video animated_gif]).any? %>
-      <p class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-tile px-3 py-1 text-caption text-muted-foreground">
+      <p class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-tile px-3 py-1 text-caption text-muted-foreground" title="Not saved: Xtend keeps media the next time this post shows up on x.com">
         <%= lc_icon(video ? "film" : "photo", options: { class: "size-4", "aria-hidden": true }) %>
         <%= media_kinds.map { |kind| { "photo" => "Photo", "video" => "Video", "animated_gif" => "GIF" }.fetch(kind, kind) }.uniq.to_sentence %>
       </p>
     <% end %>
     <% if quote %>
-      <div class="mt-3 rounded-2xl bg-tile px-3 py-2.5">
+      <% quote_page = post_path(quote[:source].x_id) if quote[:source] %>
+      <%= tag.div class: [ "mt-3 rounded-2xl bg-tile px-3 py-2.5", ("cursor-pointer" if quote_page) ],
+        data: (quote_page ? { controller: "post-link", post_link_url_value: quote_page, action: "click->post-link#open auxclick->post-link#open" } : {}) do %>
         <p class="flex min-w-0 items-center gap-1 text-muted-foreground">
           <span class="truncate font-bold text-foreground"><%= quote[:name] || "Quoted post" %></span>
           <% if quote[:handle] %><span class="truncate">@<%= quote[:handle] %></span><% end %>
         </p>
         <p class="mt-0.5 line-clamp-4 whitespace-pre-line break-words"><%= x_post_body quote[:body] %></p>
-      </div>
+        <% if quote[:source]&.media.present? %><%= render "shared/x_media", media: quote[:source].media %><% end %>
+      <% end %>
     <% end %>
     <% live = url && !demo? %>
     <% stat = ->(key, icon, label, mark: nil, tone: nil, href: nil, hover: "you") { x_post_stat(icon, counts[key], label, counted: counted, mine: mark && marks.include?(mark), tone: tone, note: counts_note, href: (href if live), hover: hover) } %>
@@ -62,4 +72,4 @@
     </div>
     <%= footer %>
   </div>
-</div>
+<% end %>

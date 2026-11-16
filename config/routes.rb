@@ -36,6 +36,7 @@ Rails.application.routes.draw do
   end
   resource :network, only: :show, controller: "network"
   resource :timeline, only: :show, controller: "timeline"
+  resources :posts, only: :show
   resource :insights, only: :show
   resource :week, only: :show
   resource :growth, only: %i[show update]

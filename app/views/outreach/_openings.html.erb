@@ -30,7 +30,7 @@
             name: author.name, name_url: (author if author.is_a?(Person)), handle: author.handle, at: post.published_at,
             context: (tag.span(safe_join(why), class: "flex min-w-0 flex-wrap items-center gap-x-heading text-small") if why.any?),
             body: CGI.unescapeHTML(post.body),
-            media_kinds: captured ? post.media_kinds.to_s.split(",") : [],
+            source: (post if captured),
             counts: captured ? { reply: post.reply_count, repost: post.repost_count, like: post.like_count, view: post.view_count, bookmark: post.bookmark_count } : { reply: post.reply_count },
             counts_note: note, url: opening.url %>
         </li>

@@ -200,7 +200,7 @@ class X::WebPayload
     @skipped += 1
   end
 
-  # Counts, media, links, and the accounts mentioned in the body. A repost's own counts belong to the original,
+  # Counts, media (kinds and what to draw), links, and the accounts mentioned in the body. A repost's own counts belong to the original,
   # so reposts keep none. Leading @handles that X adds to a reply are the reply chain, not mentions.
   def post_details(node, legacy, original)
     details = { quoted_x_id: legacy["quoted_status_id_str"], reposted_x_id: original&.dig("rest_id") }
@@ -208,14 +208,15 @@ class X::WebPayload
     counts = { reply_count: legacy["reply_count"], like_count: legacy["favorite_count"], repost_count: legacy["retweet_count"],
       quote_count: legacy["quote_count"], bookmark_count: legacy["bookmark_count"], view_count: node.dig("views", "count") }
     counts.transform_values! { |value| self.class.send(:count, value) }
-    media = Array(legacy.dig("extended_entities", "media") || legacy.dig("entities", "media")).filter_map { |item| item["type"] if item.is_a?(Hash) }
+    items = legacy.dig("extended_entities", "media") || legacy.dig("entities", "media")
+    media = Array(items).filter_map { |item| item["type"] if item.is_a?(Hash) }
     entities = post_entities(node, legacy)
     urls = Array(entities["urls"]).select { |url| url.is_a?(Hash) && url["expanded_url"].is_a?(String) && !url["expanded_url"].match?(%r{\Ahttps://(x|twitter)\.com/\w+/status/}) }
     body_start = Array(legacy["display_text_range"]).first.to_i
     mentions = Array(entities["user_mentions"]).filter_map do |mention|
       mention["id_str"] if mention.is_a?(Hash) && mention["id_str"].to_s.match?(/\A\d{1,30}\z/) && Array(mention["indices"]).first.to_i >= body_start
     end
-    details.merge(counts).merge(media_kinds: media.uniq.sort.join(",").presence, has_link: urls.any?, mention_ids: mentions.uniq)
+    details.merge(counts).merge(media_kinds: media.uniq.sort.join(",").presence, media: X::Media.parse(items), has_link: urls.any?, mention_ids: mentions.uniq)
   end
 
   # The text as x.com shows it: a long post's full text, links pointing where they go instead of t.co, no trailing

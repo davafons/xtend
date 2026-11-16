@@ -1,5 +1,5 @@
 <%# A saved post in X's layout: author, text, a quoted post, and the counts the capture last saw. %>
-<%# locals: (post:, timeline:) %>
+<%# locals: (post:, timeline:, linked: true, thread: false, marks: [], footer: nil) %>
 <% person = timeline.people[post.author_x_id] %>
 <% account = timeline.accounts[post.author_x_id] %>
 <% owner = post.author_x_id == Current.workspace.owner_x_id %>
@@ -17,12 +17,12 @@
   end
   quote = (quoted = timeline.quoted[post.quoted_x_id]) && begin
     author = timeline.people[quoted.author_x_id] || timeline.accounts[quoted.author_x_id]
-    { name: author&.name, handle: author&.handle, body: CGI.unescapeHTML(quoted.body) }
+    { name: author&.name, handle: author&.handle, body: CGI.unescapeHTML(quoted.body), source: quoted }
   end
   seen = timeline.sightings[post.x_id].to_i
   note = [ ("Counts as of #{post.metrics_observed_at.strftime('%-d %b, %H:%M')}" if post.metrics_observed_at), ("seen #{seen} times" if seen > 1) ].compact.join(" | ").presence
 %>
 <%= render "shared/x_post", avatar: avatar, name: name, name_url: person, handle: owner ? X::Connection.current&.username : person&.handle || account&.handle,
-  at: post.published_at, detail: note, context: context, body: CGI.unescapeHTML(post.body).then { |text| post.reply_to_x_id ? text.sub(/\A(@\w+\s+)+/, "") : text }, media_kinds: post.media_kinds.to_s.split(","), quote: quote,
+  at: post.published_at, detail: note, context: context, body: CGI.unescapeHTML(post.body).then { |text| post.reply_to_x_id ? text.sub(/\A(@\w+\s+)+/, "") : text }, source: post, linked: linked, quote: quote, thread: thread,
   counts: { reply: post.reply_count, repost: post.repost_count, like: post.like_count, view: post.view_count, bookmark: post.bookmark_count },
-  counts_note: note, url: "https://x.com/i/status/#{post.x_id}" %>
+  counts_note: note, marks: marks, footer: footer, url: "https://x.com/i/status/#{post.x_id}" %>

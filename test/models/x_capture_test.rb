@@ -134,6 +134,28 @@ class XCaptureTest < ActiveSupport::TestCase
     end
   end
 
+  test "posts keep what to draw for their photos, videos, and GIFs, only from X's own hosts" do
+    Person.resolve_profile!(profile(x_id: "111", handle: "builder"))
+    photo = { "type" => "photo", "media_url_https" => "https://pbs.twimg.com/media/A1.jpg", "ext_alt_text" => "A desk",
+      "original_info" => { "width" => 1200, "height" => 800 } }
+    video = { "type" => "video", "media_url_https" => "https://pbs.twimg.com/ext_tw_video_thumb/1/pu/img/B2.jpg",
+      "video_info" => { "variants" => [
+        { "content_type" => "application/x-mpegURL", "url" => "https://video.twimg.com/ext_tw_video/1/pu/pl/B2.m3u8" },
+        { "content_type" => "video/mp4", "bitrate" => 256_000, "url" => "https://video.twimg.com/ext_tw_video/1/pu/vid/480x270/low.mp4?tag=12" },
+        { "content_type" => "video/mp4", "bitrate" => 2_176_000, "url" => "https://video.twimg.com/ext_tw_video/1/pu/vid/1280x720/high.mp4?tag=12" } ] } }
+    elsewhere = { "type" => "animated_gif", "media_url_https" => "https://evil.example/gif.jpg" }
+    capture!(web_response("HomeTimeline", web_timeline([ web_tweet("1102", web_user("111", "builder"), media: [ photo, video, elsewhere ]) ])))
+    capture!(web_response("UserTweets", web_timeline([ web_tweet("1102", web_user("111", "builder")) ])))
+
+    post = X::SourcePost.find_by!(x_id: "1102")
+    assert_equal "animated_gif,photo,video", post.media_kinds
+    assert_equal [
+      { "kind" => "photo", "image" => "https://pbs.twimg.com/media/A1.jpg", "alt" => "A desk", "width" => 1200, "height" => 800 },
+      { "kind" => "video", "image" => "https://pbs.twimg.com/ext_tw_video_thumb/1/pu/img/B2.jpg",
+        "video" => "https://video.twimg.com/ext_tw_video/1/pu/vid/1280x720/high.mp4?tag=12" }
+    ], post.media, "the best MP4 is kept, a sighting without media keeps it, and other hosts are dropped"
+  end
+
   test "replies, quotes, reposts, and body mentions become interactions; strangers talking to strangers don't" do
     owner = owner_user
     alice = web_user("121", "alice")

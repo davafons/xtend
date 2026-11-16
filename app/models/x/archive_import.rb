@@ -148,13 +148,14 @@ class X::ArchiveImport < ApplicationRecord
     raise ArgumentError, "Archive post IDs are numeric." unless x_id.match?(/\A\d{1,30}\z/)
     repost = text.start_with?("RT @")
     parent = tweet["in_reply_to_status_id_str"].presence unless repost
-    media = Array(tweet.dig("extended_entities", "media") || tweet.dig("entities", "media")).filter_map { |item| item["type"] }
+    items = tweet.dig("extended_entities", "media") || tweet.dig("entities", "media")
+    media = Array(items).filter_map { |item| item["type"] if item.is_a?(Hash) }
     links = Array(tweet.dig("entities", "urls")).any? { |url| !url["expanded_url"].to_s.match?(%r{\Ahttps?://(x|twitter)\.com/\w+/status/}) }
     { x_id: x_id, author_x_id: owner, parent_x_id: parent, reply_to_x_id: (tweet["in_reply_to_user_id_str"].presence if parent),
       body: text, language: tweet["lang"], published_at: Time.strptime(tweet.fetch("created_at"), TWEET_TIME).utc, repost: repost,
       like_count: (Integer(tweet["favorite_count"]) unless repost || tweet["favorite_count"].nil?),
       repost_count: (Integer(tweet["retweet_count"]) unless repost || tweet["retweet_count"].nil?),
-      media_kinds: (media.uniq.sort.join(",").presence unless repost), has_link: !repost && links }
+      media_kinds: (media.uniq.sort.join(",").presence unless repost), media: (X::Media.parse(items) unless repost), has_link: !repost && links }
   end
 
   # Inserts new posts in chunks so a large archive doesn't hold the database for the whole import. Posts already
@@ -173,6 +174,7 @@ class X::ArchiveImport < ApplicationRecord
       rows = slice.map { |row| row.merge(defaults, metrics_observed_at: (generated_at if row[:like_count])) }
       transaction { X::SourcePost.insert_all(rows, unique_by: [ :workspace_id, :x_id ], returning: [ :id ]).length }
     end
+    add_missing_media(posts)
     people = add_people(repliees)
     replies = posts.select { |row| row[:reply_to_x_id] && row[:reply_to_x_id] != owner }.sort_by { |row| row[:published_at] }
     reply_events = replies.each_slice(REPLY_CHUNK).sum do |slice|
@@ -191,6 +193,14 @@ class X::ArchiveImport < ApplicationRecord
     end
     Draft.link_published!
     { posts_count: inserted, replies_count: reply_events, people_count: people }
+  end
+
+  # Posts saved before Xtend kept media, or seen in a capture that omitted it, take the archive's.
+  def self.add_missing_media(posts)
+    with_media = posts.select { |row| row[:media] }.index_by { |row| row[:x_id] }
+    with_media.keys.each_slice(CHUNK) do |ids|
+      X::SourcePost.where(x_id: ids, media: nil).find_each { |post| post.update_columns(media: with_media.fetch(post.x_id)[:media]) }
+    end
   end
 
   # Creates people the workspace doesn't know yet. A handle another account holds now is left alone: the

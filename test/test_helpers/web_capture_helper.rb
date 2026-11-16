@@ -29,7 +29,7 @@ module WebCaptureHelper
       "entities" => { "user_mentions" => entity_mentions, "urls" => urls.map { |url| { "expanded_url" => url } } },
       "in_reply_to_status_id_str" => reply_to&.dig(:post), "in_reply_to_user_id_str" => reply_to&.dig(:user),
       "quoted_status_id_str" => quoted&.dig("rest_id") }.compact
-    legacy["extended_entities"] = { "media" => media.map { |type| { "type" => type } } } if media.any?
+    legacy["extended_entities"] = { "media" => media.map { |item| item.is_a?(Hash) ? item : { "type" => item } } } if media.any?
     legacy["retweeted_status_result"] = { "result" => reposted } if reposted
     tweet = { "__typename" => "Tweet", "rest_id" => id, "core" => { "user_results" => { "result" => author } }, "legacy" => legacy,
       "views" => { "count" => views, "state" => "EnabledWithCount" } }

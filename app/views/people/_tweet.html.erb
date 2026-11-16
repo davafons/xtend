@@ -1,10 +1,11 @@
 <%# One post in a person's timeline. Locals: author (:you or :them), person, owner_handle, body, at, url,
     marks (["like", "bookmark"]), detail, thread (draws the line down to the next post in the thread), and counts with
-    counts_note when X's counts were seen, and analytics (X::PostAnalytic) for your own posts. %>
+    counts_note when X's counts were seen, analytics (X::PostAnalytic) for your own posts, and source (the saved post,
+    for its media and page). %>
 <% you = author == :you %>
 <%= render "shared/x_post",
   avatar: you ? owner_avatar : link_to(person_avatar(person), person, tabindex: -1, aria: { hidden: true }),
   name: you ? "You" : person.name, name_url: (person unless you), handle: you ? (owner_handle || "you") : person.handle,
-  body: body, at: at, detail: local_assigns[:detail], url: url, marks: local_assigns[:marks],
+  body: body, at: at, detail: local_assigns[:detail], url: url, marks: local_assigns[:marks], source: local_assigns[:source],
   thread: local_assigns.fetch(:thread, false), counts: local_assigns[:counts], counts_note: local_assigns[:counts_note],
   footer: (render("people/post_analytics", analytics: local_assigns[:analytics]) if local_assigns[:analytics]) %>

@@ -45,6 +45,11 @@ class Person::Timeline
       counts_note: "As seen on X #{source.metrics_observed_at.strftime(source.metrics_observed_at.year == Date.current.year ? '%-d %b, %H:%M' : '%-d %b %Y')}" }
   end
 
+  # The saved posts behind this page's entries and their parents, for counts, media, and each post's page.
+  def sources
+    @sources ||= X::SourcePost.where(x_id: entries.select(&:post?).flat_map { |entry| [ entry.x_id, entry.parent&.x_id ] }.compact).index_by(&:x_id)
+  end
+
   # X's private totals for your own posts and replies on this page, from its analytics Content page.
   def analytics_for(x_id)
     @analytics ||= X::PostAnalytic.where(post_x_id: entries.select(&:post?).flat_map { |entry| [ entry.x_id, entry.parent&.x_id ] }.compact).index_by(&:post_x_id)
@@ -140,8 +145,7 @@ class Person::Timeline
   end
 
   def counted_sources
-    @counted_sources ||= X::SourcePost.where(x_id: entries.select(&:post?).flat_map { |entry| [ entry.x_id, entry.parent&.x_id ] }.compact)
-      .where.not(metrics_observed_at: nil).index_by(&:x_id)
+    @counted_sources ||= sources.select { |_, source| source.metrics_observed_at }
   end
 
   def engagement_entries

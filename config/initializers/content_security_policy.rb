@@ -7,6 +7,8 @@ Rails.application.configure do
     policy.style_src :self, :unsafe_inline
     policy.img_src :self, :data, :https
     policy.font_src :self
+    # Videos and GIFs in posts play from X's own media host.
+    policy.media_src :self, "https://video.twimg.com"
     policy.connect_src :self
     policy.object_src :none
     policy.base_uri :self

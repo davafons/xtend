@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_16_060000) do
   create_table "ai_proposals", force: :cascade do |t|
     t.integer "person_id", null: false
     t.string "kind", null: false
@@ -630,6 +630,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_150000) do
     t.boolean "has_link", default: false, null: false
     t.datetime "metrics_observed_at"
     t.datetime "first_seen_at"
+    t.json "media"
     t.index ["workspace_id", "author_x_id", "published_at"], name: "idx_on_workspace_id_author_x_id_published_at_8e405ab74e"
     t.index ["workspace_id", "conversation_x_id"], name: "index_x_source_posts_on_workspace_id_and_conversation_x_id"
     t.index ["workspace_id", "parent_x_id"], name: "index_x_source_posts_on_workspace_id_and_parent_x_id"

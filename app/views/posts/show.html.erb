@@ -1,0 +1,81 @@
+<% post = @thread.post %>
+<% author = @thread.author %>
+<% author_name = @thread.own? ? "You" : author&.name || "Unknown account" %>
+<% content_for :title, "Post by #{author_name}" %>
+<% x_url = "https://x.com/i/status/#{post.x_id}" %>
+<div class="<%= lc_split_class %>">
+  <section class="flex min-w-0 flex-col gap-content" aria-label="Conversation">
+    <%= lc_card padding: :none, class: "overflow-hidden" do %>
+      <div class="flex items-center gap-content px-related py-tight">
+        <%= lc_icon_button_link_to "Back", :back, icon: "arrow-left", title: "Back" %>
+        <h1 class="text-label">Post</h1>
+      </div>
+
+      <div class="px-inset pt-content">
+        <% if @thread.missing_parent? %>
+          <p class="mb-content grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 text-small text-muted-foreground">
+            <span class="flex justify-center"><%= lc_icon "ellipsis-vertical", options: { class: "size-5", "aria-hidden": true } %></span>
+            <span>Replies to a post Xtend hasn't saved. <%= link_to "See it on X", x_url, target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline" unless demo? %></span>
+          </p>
+        <% end %>
+        <% @thread.ancestors.each do |ancestor| %>
+          <%= render "timeline/post", post: ancestor, timeline: @thread, thread: true %>
+        <% end %>
+      </div>
+
+      <article class="px-inset pb-content <%= 'pt-content' if @thread.ancestors.empty? %>" id="post_<%= post.x_id %>" aria-label="Post by <%= author_name %>">
+        <%= render "timeline/post", post: post, timeline: @thread, linked: false, marks: @thread.marks,
+          footer: (render("people/post_analytics", analytics: @thread.analytics) if @thread.analytics) %>
+        <p class="mt-content text-small text-muted-foreground">
+          <%= post.published_at.strftime("%H:%M · %-d %b %Y") %>
+          <% if post.reply_count %> · <%= pluralize(post.reply_count, "reply", plural: "replies") %> on X<% end %>
+        </p>
+      </article>
+
+      <div class="border-t border-border">
+        <% if @thread.replies.any? %>
+          <ol class="flex flex-col divide-y divide-border" aria-label="Replies">
+            <% @thread.replies.each do |reply| %>
+              <li class="px-inset py-3" id="post_<%= reply.x_id %>"><%= render "timeline/post", post: reply, timeline: @thread %></li>
+            <% end %>
+          </ol>
+        <% end %>
+        <p class="px-inset py-content text-small text-muted-foreground">
+          <% if @thread.replies.empty? %>No replies collected.<% else %><%= pluralize(@thread.replies.size, "reply", plural: "replies") %> collected.<% end %>
+          <% if post.reply_count.to_i > @thread.replies.size %>X counted <%= post.reply_count %>; Xtend has only the ones that showed up while you browsed or synced.<% end %>
+          <% unless demo? %><%= link_to "Read the thread on X", x_url, target: "_blank", rel: "noopener noreferrer", class: "text-primary hover:underline" %><% end %>
+        </p>
+      </div>
+    <% end %>
+
+    <% if @thread.quotes.any? %>
+      <%= lc_card padding: :none, class: "overflow-hidden" do %>
+        <h2 class="px-inset pt-content text-label">Quotes</h2>
+        <ol class="flex flex-col divide-y divide-border">
+          <% @thread.quotes.each do |quote| %>
+            <li class="px-inset py-3"><%= render "timeline/post", post: quote, timeline: @thread %></li>
+          <% end %>
+        </ol>
+      <% end %>
+    <% end %>
+  </section>
+
+  <aside class="flex flex-col gap-content self-start lg:sticky lg:top-6" aria-label="About this post">
+    <% if author.is_a?(Person) %>
+      <%= lc_card do %><%= render "people/card", person: author, graph: @thread.follow_graph %><% end %>
+    <% end %>
+    <%= lc_card do %>
+      <div class="flex flex-col gap-related text-small">
+        <h2 class="text-label">What Xtend saw</h2>
+        <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-heading gap-y-tight">
+          <% if post.first_seen_at %><dt class="text-muted-foreground">First saved</dt><dd><%= relative_day post.first_seen_at %></dd><% end %>
+          <dt class="text-muted-foreground">Sightings</dt><dd><%= @thread.sightings[post.x_id].to_i %></dd>
+          <dt class="text-muted-foreground">Counts</dt>
+          <dd><%= post.metrics_observed_at ? "as of #{post.metrics_observed_at.strftime('%-d %b, %H:%M')}" : "not collected" %></dd>
+          <% if post.media_kinds.present? && post.media.blank? %><dt class="text-muted-foreground">Media</dt><dd>Not saved yet</dd><% end %>
+        </dl>
+        <p class="text-muted-foreground">Counts are the last ones Xtend saw, not live numbers.</p>
+      </div>
+    <% end %>
+  </aside>
+</div>

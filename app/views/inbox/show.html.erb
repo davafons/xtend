@@ -29,7 +29,7 @@
               cue: tag.span(lc_icon(relationship_icon(state), options: { class: "size-4", "aria-hidden": true }) + tag.span(state, class: "sr-only"), class: "shrink-0 #{ApplicationHelper::MEANING_TEXT.fetch(state_meaning(state))}", title: state),
               body: post&.body&.sub(/\A(@\w+\s+)+/, ""),
               counts: post ? { reply: post.reply_count, repost: post.repost_count, like: post.like_count, view: post.view_count, bookmark: post.bookmark_count } : nil,
-              marks: item.liked ? [ "like" ] : [], url: item.url,
+              source: post, marks: item.liked ? [ "like" ] : [], url: item.url,
               extra: lc_icon_button_to("Set aside the reply from #{person.name}", reply_event_dismissal_path(item.event), icon: "archive-box", size: :sm, title: "Set aside without answering") %>
           </li>
         <% end %>

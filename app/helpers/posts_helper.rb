@@ -36,6 +36,12 @@ module PostsHelper
     id ? "https://x.com/intent/#{action}?tweet_id=#{id}" : post_url
   end
 
+  # One of X's post images at a size X serves (small, medium, large). Only post media and video posters take a
+  # size; any other X image is used as it is.
+  def x_media_image_url(url, size)
+    url.match?(%r{\Ahttps://pbs\.twimg\.com/(media|ext_tw_video_thumb|amplify_video_thumb|tweet_video_thumb)/}) ? "#{url}?name=#{size}" : url
+  end
+
   # Post text with line breaks kept and links, @mentions and #hashtags in the accent, as X shows them in its link color.
   def x_post_body(text)
     parts = text.to_s.split(%r{(https?://\S+|(?<![\w@])@\w{1,15}|(?<![\w#])#[A-Za-z_]\w*)})
